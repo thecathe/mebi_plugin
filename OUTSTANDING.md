@@ -22,7 +22,7 @@ order:
 3. Whether to build proofs split into separately checked lemmas.
 4. For review: choices made while he was away (the target notion,
    `weak_bisim` removed, `Sim Begin` on similar states, provenance,
-   `Answers Auto` as the default, the licence split).
+   `Answers Auto` as the default, the memory bound, the licence split).
 
 Decision 2 would change every checked-in proof bound if it went against
 `Auto`, so it comes before the upstream PR.
