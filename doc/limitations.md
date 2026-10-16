@@ -87,7 +87,8 @@ turns the pin into a positive test.
   OOM-killed at 6GB. `MeBi Config Bounds Memory <mb>` (2026-10-16; on by
   default at 75% of RAM, or 90% of a cgroup cap) stops a command with an
   error before that, but softly: one solver step can
-  overshoot it, and `Qed` is not checked at all. Keep the OS cap
+  overshoot it, `Qed` is not checked at all, and it bounds one process, so
+  a parallel build (`make -j`) is not covered. Keep the OS cap
   (`systemd-run ... -p MemoryMax=...`) as the backstop.
 - **Deep derivations make `Qed` dominate.** At 64 layers, `Qed` takes
   71s against 7s of solving, and `Qed` grows ~13× per doubling of the
