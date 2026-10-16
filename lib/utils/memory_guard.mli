@@ -51,14 +51,16 @@ val over_bound : int -> string option
 (** The least time in seconds between two reads of memory by {!check}. *)
 val interval : float
 
-(** [used ()] is the process's memory in bytes: its resident set
-    ([VmRSS] in [/proc/self/status]) on Linux, otherwise the size of the
-    OCaml major heap. [None] if neither can be read. Raises nothing. *)
+(** [used ()] is the process's memory in bytes: its resident set and swap
+    ([VmRSS] and [VmSwap] in [/proc/self/status]) on Linux, otherwise the
+    size of the OCaml major heap. [None] if neither can be read. Raises
+    nothing. *)
 val used : unit -> int option
 
 (** [check phase] checks {!used} against {!limit}, if one is set and
     either {!interval} has passed since the last read or that read was
-    over the limit.
+    over the limit. Over it, it compacts the heap (once after each raise)
+    and reads again before raising.
 
     @raise Exceeded if memory is over the limit (raised here). *)
 val check : string -> unit

@@ -10,21 +10,46 @@ exception
    a loop calling {!check} per unit of work costs nothing noticeable. *)
 let interval : float = 0.02
 
-(** [vm_rss ()] is the [VmRSS] line of [/proc/self/status] in bytes, or
-    [None] if there is no such file or line. Raises nothing. *)
-let vm_rss () : int option =
-  match In_channel.with_open_text "/proc/self/status" In_channel.input_all with
-  | exception Sys_error _ -> None
-  | status ->
-    String.split_on_char '\n' status
-    |> List.find_map (fun (line : string) ->
-      try Scanf.sscanf line "VmRSS: %d kB" (fun kb -> Some (kb * 1024)) with
+(** [status_field lines field] is the [field] line of [lines] (as in
+    [/proc/self/status] or [/proc/meminfo], "[field]: <n> kB") in bytes,
+    or [None]. Raises nothing. *)
+let status_field (lines : string list) (field : string) : int option =
+  List.find_map
+    (fun (line : string) ->
+      try
+        Scanf.sscanf line "%s@: %d kB" (fun (f : string) kb ->
+          if String.equal f field then Some (kb * 1024) else None)
+      with
       | Scanf.Scan_failure _ | Failure _ | End_of_file -> None)
+    lines
+;;
+
+(** [read_lines file] is [file]'s lines, or [None] if it cannot be read.
+    Raises nothing. *)
+let read_lines (file : string) : string list option =
+  match In_channel.with_open_text file In_channel.input_all with
+  | exception Sys_error _ -> None
+  | s -> Some (String.split_on_char '\n' s)
+;;
+
+(** [vm_rss_swap ()] is [VmRSS] plus [VmSwap] from [/proc/self/status] in
+    bytes, or [None] if there is no such file or [VmRSS] line. Swap counts:
+    a process whose pages are swapped out still holds them, and a machine
+    with swap thrashes well before the resident set alone reaches the
+    bound. Raises nothing. *)
+let vm_rss_swap () : int option =
+  match read_lines "/proc/self/status" with
+  | None -> None
+  | Some lines ->
+    Stdlib.Option.map
+      (fun (rss : int) ->
+        rss + Stdlib.Option.value ~default:0 (status_field lines "VmSwap"))
+      (status_field lines "VmRSS")
 ;;
 
 (* See the [.mli]. *)
 let used () : int option =
-  match vm_rss () with
+  match vm_rss_swap () with
   | Some _ as x -> x
   | None ->
     (match (Gc.quick_stat ()).heap_words with
@@ -39,13 +64,8 @@ let mb (b : int) : string = Printf.sprintf "%iMB" ((b + 999_999) / 1_000_000)
 (** [meminfo_total ()] is [MemTotal] in [/proc/meminfo] in bytes, or
     [None]. Raises nothing. *)
 let meminfo_total () : int option =
-  match In_channel.with_open_text "/proc/meminfo" In_channel.input_all with
-  | exception Sys_error _ -> None
-  | info ->
-    String.split_on_char '\n' info
-    |> List.find_map (fun (line : string) ->
-      try Scanf.sscanf line "MemTotal: %d kB" (fun kb -> Some (kb * 1024)) with
-      | Scanf.Scan_failure _ | Failure _ | End_of_file -> None)
+  Stdlib.Option.bind (read_lines "/proc/meminfo") (fun lines ->
+    status_field lines "MemTotal")
 ;;
 
 (** [cgroup_max ()] is the smallest [memory.max] of this process's cgroup
@@ -183,7 +203,9 @@ let message (phase : string) (used : int) (limit : int) : string =
   Printf.sprintf
     "Memory_Bound_Exceeded: the process uses %s, over the memory bound of %s, \
      during %s. The command was stopped. %s If the machine has the memory, \
-     raise the bound with [MeBi Config Bounds Memory <mb>] (0 turns it off)."
+     raise the bound with [MeBi Config Bounds Memory <mb>] (0 turns it off). \
+     If a small command is stopped after a large one, restart the prover: \
+     memory a stopped command used may not be returned to the system."
     (mb used)
     (describe_bound limit)
     phase
@@ -193,9 +215,20 @@ let message (phase : string) (used : int) (limit : int) : string =
 (** What {!check} last read, [0] before any read. *)
 let last_used : int ref = ref 0
 
+(** Whether {!check} may compact before raising: set by each raise, so
+    that the next command over the limit gets one compaction. *)
+let may_compact : bool ref = ref true
+
 (* See the [.mli]. A check skips the read only while the last one was
    under the limit: otherwise a command that starts within {!interval} of
-   one stopped by the limit would skip its read and run on. *)
+   one stopped by the limit would skip its read and run on.
+
+   Over the limit, it compacts the heap once before raising: OCaml (5.2 on)
+   then returns free memory to the system, which it otherwise keeps. Without
+   this, after one command was stopped, the memory it had used was still
+   counted, and every later command, however small, was stopped too. Only
+   once per raise, as a compaction of a large heap takes seconds: a
+   command that is genuinely over the limit compacts once and stops. *)
 let check (phase : string) : unit =
   match !limit with
   | None -> ()
@@ -204,9 +237,24 @@ let check (phase : string) : unit =
     if now -. !last_read >= interval || !last_used > limit
     then (
       last_read := now;
-      match used () with
-      | None -> ()
-      | Some used ->
-        last_used := used;
-        if used > limit then raise (Exceeded { phase; used; limit }))
+      let read () : int option =
+        let x = used () in
+        Stdlib.Option.iter (fun u -> last_used := u) x;
+        x
+      in
+      match read () with
+      | Some u when u > limit ->
+        let u : int =
+          if !may_compact
+          then (
+            may_compact := false;
+            Gc.compact ();
+            Stdlib.Option.value ~default:u (read ()))
+          else u
+        in
+        if u > limit
+        then (
+          may_compact := true;
+          raise (Exceeded { phase; used = u; limit }))
+      | _ -> ())
 ;;
