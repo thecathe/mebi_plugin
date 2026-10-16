@@ -8765,6 +8765,41 @@ Bug fix 0 · Optimization 0 · Tooling 0.
 
 ---
 
+## 2026-10-16 (cont.) — `Bounds Memory`: swap, and stuck after a stop
+
+On branch `fix/memory-bound-swap-restart`, from a review of #81 after it
+was merged.
+
+- **Bug fix.** After one command was stopped by the bound, every later
+  command was stopped too, however small. OCaml keeps the memory a
+  command used after it is freed, so the process still read over the
+  bound. Reproduced: with `Bounds Memory 700`, after the width-3 `Solve`
+  was stopped, a 6-state `Run LTS` was refused, with a hint (lower the
+  state bound) that did not apply. Now a check over the bound compacts
+  the heap first (`Gc.compact`, which since OCaml 5.2 returns free memory
+  to the system) and reads again, raising only if still over. It compacts
+  once after each raise, as compacting a large heap takes seconds. The
+  same file now runs the `Run LTS` and a full proof after the stop (974
+  steps, as before). The message also says to restart the prover if a
+  small command is stopped after a large one.
+- **Bug fix.** Memory in swap was not counted: on a machine with swap, a
+  process could thrash well before its resident set reached the bound.
+  `used` is now `VmRSS` plus `VmSwap`, from one parser shared with
+  `MemTotal` (checked against a process with swap).
+- **Docs.** The bound is per process, so a parallel build (`make -j`)
+  can still exhaust the machine: said in `MeBi Help Config Bounds`, the
+  README and `doc/limitations.md`. The default is on for every user, so
+  it is in `doc/decisions.md`'s choices for @dcastrop to review (4).
+
+Checked: `dune build` (with `Test.v`), `test/tests.exe` 110/110, `make`
+of the plugin and `test/rocq/Test.vo`, and the default suite under `Auto`
+(counts unchanged).
+
+**Session tally (2026-10-16), cont.:** New feature 1 · Bug fix 2 · Docs 2 ·
+Refactor 0 · Optimization 0 · Tooling 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
