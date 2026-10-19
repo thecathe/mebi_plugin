@@ -59,9 +59,6 @@ Decision 2 would change every checked-in proof bound if it went against
 
 Found through external feedback; detail in
 [`doc/feedback-2026-10-15.md`](doc/feedback-2026-10-15.md).
-- **Extraction runs away on a step rule whose premise is the relation
-  itself** (on a congruent copy of the source): no bound stops it, not
-  even `Bounds Memory` (item 1).
 - **A proof through a congruence premise crashes** ("Tried to normalize
   ill-typed term"; known-wrong pin `ExternalFeedback`). Possibly the
   feedback's proof that never closed (item 4).
