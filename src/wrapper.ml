@@ -601,6 +601,7 @@ module Make (Enc : Encoding.S) :
     let grefs = Rocq_utils.libnames_to_globrefs (primary_lts :: names) in
     let open M.Syntax in
     Rocq_monad_utils.Approximations.reset ();
+    Rocq_monad_utils.Exploring.reset ();
     let* the_graph : G.t = G.build ~weak init primary_lts grefs in
     let* the_lts : Model.LTS.t = G.extract the_graph in
     let approximations = Rocq_monad_utils.Approximations.get () in

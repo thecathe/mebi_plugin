@@ -2289,21 +2289,28 @@ Module ExternalFeedback.
   | s_loop : base loop (Some a) (tau (pre b loop)).
 
   (* Item 1. A rule whose step premise is the relation being defined, on a
-     congruent copy of its source, does not terminate: [cong] is
-     reflexive, so exploring [step p'] asks for [step p'] again. On one
-     enabled transition it passed 2GB in 12s, and [Bounds Memory] did not
-     stop it (it is checked between states, and this is inside one). Not
-     run here; to see it, run under a memory cap:
+     congruent copy of its source. [cong] is reflexive, so exploring
+     [step_rec p'] asks for [step_rec p'] again, and [cong (par p done) p]
+     asks from ever larger sources. Until 2026-10-19 it did not terminate:
+     on one enabled transition it passed 2GB in 12s, past every bound.
+     Now such a premise is cut off when it repeats, or nests more than
+     [Premise Depth] times on sources that are not parts of the enclosing
+     ones, and the LTS is incomplete ([LTS_Incomplete], with a warning
+     naming the premise). An exploration already made under the same
+     enclosing ones is reused: without that it still took 3^depth time. *)
+  Inductive step_rec : proc -> option act -> proc -> Prop :=
+  | r_base p l q : base p l q -> step_rec p l q
+  | r_str p p' q q' l :
+      cong p p' -> cong q q' -> step_rec p l q -> step_rec p' l q'.
+  MeBi Config Weak As Option act.
+  Fail MeBi Run LTS (pre a done) Using step_rec.
+  MeBi Config FailIf Incomplete False.
+  MeBi Run LTS (pre a done) Using step_rec.
+  MeBi Config FailIf Incomplete True.
+  MeBi Config Reset Weak.
 
-       Inductive step_rec : proc -> option act -> proc -> Prop :=
-       | r_base p l q : base p l q -> step_rec p l q
-       | r_str p p' q q' l :
-           cong p p' -> cong q q' -> step_rec p l q -> step_rec p' l q'.
-       MeBi Run LTS (pre a done) Using step_rec.
-
-     When it ends in [LTS_Incomplete] instead, put that here as a [Fail].
-     The workaround the feedback used, the step premise over [base] (the
-     rule applied at most once), extracts: *)
+  (* The workaround the feedback used, the step premise over [base] (the
+     rule applied at most once), extracts, and is complete: *)
   Inductive step : proc -> option act -> proc -> Prop :=
   | s_base p l q : base p l q -> step p l q
   | s_str p p' q q' l :

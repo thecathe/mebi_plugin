@@ -9034,6 +9034,50 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-10-19 (cont.) — a step premise that recursed without end
+
+On branch `fix/runaway-extraction`, at Jonah's go-ahead. The external
+feedback's item 1 (`doc/feedback-2026-10-15.md`).
+
+**Bug fix.** A rule whose step premise is the relation itself, on a copy
+of its source (`cong p p' -> step p l q -> step p' l q'`, `cong`
+reflexive), never terminated: 2GB in 12s on one transition, past every
+bound. Extraction now keeps a stack of the step premises it is exploring
+and cuts one off when the same relation is asked from the same source
+again, or nests more than `Premise Depth` times on sources that are not
+parts of the enclosing ones. A cut warns and makes the LTS incomplete.
+`Bounds Memory` is checked before each such exploration.
+
+**How it went.** Cycle detection was not enough on its own: `cong (par p
+done) p` asks from ever larger sources, which never repeat. The depth for
+that could not be a small fixed number: measured on the default and
+`eval` suites, real examples nest up to 8 such levels (CADP, `Depth.v`,
+CCS), so it is `Premise Depth` (16). With the cut, memory stayed flat but
+time grew 3x per level. I first guessed duplicate results and
+deduplicated them: no change, and I removed it. Counting explorations
+showed the cause: the same premise explored hundreds of times, once per
+solution of the `cong` premises before it. Caching explorations helped,
+but reusing one across contexts lost transitions (3 states for 4), as
+what encloses an exploration decides what it cuts; caching only cut-free
+ones brought the 3^depth back, since here every exploration has a cut. An
+exploration is now reused under the same enclosing explorations only,
+where it is the same computation. The reproducer: 0.6s at depth 16, 4
+states and 6 transitions at every depth.
+
+**Verified.** `tests.exe` 111/111, `make`, `Test.v` (the `Fail` checked
+for its reason), the default suite under `Auto`, `True` and `False`, `eval`
+and ABP: every Solve identical to `main` (`False` and `eval` compared with
+`bench/compare.sh` against `main` runs; the others against `CLAUDE.md`).
+Nothing in them is cut. `CCS/PluginProofs` under `False` took 6.3s, 11.8s
+on `main`.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-10-19), cont.:** Bug fix 1 · Docs 1 · New feature 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
