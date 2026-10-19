@@ -140,6 +140,18 @@ These were Jonah's calls, made as the work went. Each can be reversed.
   still are. The figures are in `doc/measurements/answers-auto.md`. Back
   out with `MeBi Config Solver Answers Default`, or `git revert -m 1` the
   merge.
+- **A memory bound, on by default** (2026-10-16, fork PR #81). `MeBi
+  Config Bounds Memory <mb>` stops a command with `Memory_Bound_Exceeded`
+  once the Rocq process uses more than `<mb>` MB (resident memory and
+  swap), instead of the OS killing Rocq, or the machine, as uncapped heavy
+  proofs used to. The default is 75% of RAM, or 90% of a cgroup cap the
+  process runs under (`systemd-run -p MemoryMax=...`) if smaller; outside
+  Linux there is none. Every checked-in proof stays far below it: ABP, the
+  heaviest, peaks at 4.3GB. It is soft (one step can overshoot it, `Qed`
+  is not checked) and per process, so parallel builds still need an OS
+  cap. The code is `lib/utils/memory_guard.ml`, with checks in the
+  extraction, saturation and solver loops. Turn it off with `MeBi Config
+  Bounds Memory 0`, or `git revert -m 1` the merge.
 - **Licence: GPL for the plugin, LGPL for the library** (2026-10-15; it was
   a brief of its own, as there was no licence). You said you do not mind and
   tend to use GPL. Jonah's aim is that the plugin itself stays free, so the
