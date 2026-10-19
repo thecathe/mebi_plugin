@@ -657,5 +657,34 @@ module Approximations : sig
   val get : unit -> string list
 end
 
+(** The LTS premises being explored now, innermost first, so that
+    extraction can cut off a premise that would recurse without end: the
+    same relation asked about the same source again (a rule like
+    [cong p p' -> step p l q -> step p' l q'] with [cong] reflexive), or
+    nested more than [Premise Depth] times on sources that are not proper
+    subterms of the enclosing ones. [reset] before an extraction. *)
+module Exploring : sig
+  (** [reset ()] forgets every premise. Raises nothing. *)
+  val reset : unit -> unit
+
+  (** [push r src] records that the relation [r] is being explored from
+      [src]; [pop ()] that the innermost exploration is over. Raise
+      nothing. *)
+  val push : EConstr.t -> EConstr.t -> unit
+
+  val pop : unit -> unit
+
+  (** Why a premise is cut off. *)
+  type cut =
+    | Repeat (** the same relation and source are already being explored *)
+    | Too_deep of int
+    (** that many enclosing explorations of the relation have sources the
+        new one is not a proper subterm of *)
+
+  (** [cut sigma r src] is why exploring the relation [r] from [src] now
+      should be cut off, if it should. Raises nothing. *)
+  val cut : Evd.evar_map -> EConstr.t -> EConstr.t -> cut option
+end
+
 module Make (Enc : Encoding.S) :
   S with type enc = Enc.t and type tree = Enc.Tree.t

@@ -367,6 +367,85 @@ module Approximations = struct
   let get () : string list = !notes
 end
 
+(* See the [.mli]. *)
+module Exploring = struct
+  let stack : (EConstr.t * EConstr.t) list ref = ref []
+  let on_reset : (unit -> unit) list ref = ref []
+
+  let reset () : unit =
+    stack := [];
+    List.iter (fun f -> f ()) !on_reset
+  ;;
+
+  let at_reset (f : unit -> unit) : unit = on_reset := f :: !on_reset
+
+  module Key = Hashtbl.Make (struct
+      type t = Constr.t * Constr.t * Constr.t option
+
+      let equal (r, s, a) (r', s', a') =
+        Constr.equal r r'
+        && Constr.equal s s'
+        && Stdlib.Option.equal Constr.equal a a'
+      ;;
+
+      let hash (r, s, a) =
+        Hashtbl.hash
+          (Constr.hash r, Constr.hash s, Stdlib.Option.map Constr.hash a)
+      ;;
+    end)
+
+  let key
+        (sigma : Evd.evar_map)
+        (r : EConstr.t)
+        (src : EConstr.t)
+        (act : EConstr.t)
+    : Key.key option
+    =
+    match
+      ( EConstr.to_constr_opt sigma r
+      , EConstr.to_constr_opt sigma src
+      , EConstr.to_constr_opt sigma act )
+    with
+    | Some r, Some s, a -> Some (r, s, a)
+    | _ -> None
+  ;;
+
+  let push (r : EConstr.t) (src : EConstr.t) : unit =
+    stack := (r, src) :: !stack
+  ;;
+
+  let pop () : unit = match !stack with _ :: tl -> stack := tl | [] -> ()
+
+  type cut =
+    | Repeat
+    | Too_deep of int
+
+  let cut (sigma : Evd.evar_map) (r : EConstr.t) (src : EConstr.t) : cut option =
+    let same : EConstr.t list =
+      List.filter_map
+        (fun (r', s) -> if EConstr.eq_constr sigma r r' then Some s else None)
+        !stack
+    in
+    if List.exists (EConstr.eq_constr sigma src) same
+    then Some Repeat
+    else (
+      (* enclosing sources [src] is not a proper subterm of: structural
+         recursion, on a part of the source, never counts *)
+      let growing : int =
+        List.length
+          (List.filter
+             (fun s ->
+               Bool.not
+                 (Termops.dependent sigma src s
+                  && Bool.not (EConstr.eq_constr sigma src s)))
+             same)
+      in
+      if growing >= !Premise_search.max_depth
+      then Some (Too_deep growing)
+      else None)
+  ;;
+end
+
 module Make (Enc : Encoding.S) :
   S with type enc = Enc.t and type tree = Enc.Tree.t = struct
   (*****************************************)
@@ -1469,6 +1548,59 @@ module Make (Enc : Encoding.S) :
       return ()
     ;;
 
+    (** Premises already warned about as cut off, keyed by LTS and head. *)
+    let cut_premises : (string * string, unit) Hashtbl.t = Hashtbl.create 8
+
+    (** [warn_cut_premise lts_enc name premise why] warns, once per LTS and
+        head, that the LTS premise [premise] (headed [name]) was not explored
+        ({!Exploring.cut}), so transitions may be missing, and notes it
+        ({!Approximations}): the LTS is then incomplete. Raises nothing. *)
+    let warn_cut_premise
+          (lts_enc : Enc.t)
+          (name : EConstr.t)
+          (premise : EConstr.t)
+          (why : Exploring.cut)
+      : unit mm
+      =
+      let open Syntax in
+      let$+ _warned env sigma =
+        let head = Rocq_utils.Strfy.econstr env sigma name in
+        let key = Rocq_utils.Strfy.econstr env sigma (decode lts_enc), head in
+        Approximations.note
+          (Printf.sprintf
+             "a premise over [%s] of %s was cut off to stop it recursing \
+              without end, so it may be missing transitions"
+             head
+             (fst key));
+        if Bool.not (Hashtbl.mem cut_premises key)
+        then (
+          Hashtbl.add cut_premises key ();
+          Logger.warning
+            (Printf.sprintf
+               "A constructor of %s has a premise over [%s] (first met as \
+                [%s]) that MeBi stopped exploring: %s. A rule whose premise is \
+                the relation itself, on a copy of its source (a structural \
+                congruence, say), would otherwise recurse without end. The \
+                extracted LTS may be missing transitions. Put that premise \
+                over a relation without the rule, so that it applies once. See \
+                [MeBi Help Premises]."
+               (fst key)
+               head
+               (Rocq_utils.Strfy.econstr env sigma premise)
+               (match why with
+                | Exploring.Repeat ->
+                  "it was asked again, from the same source, while still being \
+                   explored"
+                | Exploring.Too_deep n ->
+                  Printf.sprintf
+                    "it was nested %i times on sources that are not parts of \
+                     the enclosing ones ([MeBi Config Premise Depth] is the \
+                     limit)"
+                    n)))
+      in
+      return ()
+    ;;
+
     (** LTSs already warned about for transitions MeBi could not determine. *)
     let undetermined : (string, unit) Hashtbl.t = Hashtbl.create 8
 
@@ -1779,6 +1911,21 @@ module Make (Enc : Encoding.S) :
           return (axiom :: constructors))
       ;;
     end
+
+    (** The LTS premises explored during this extraction, with what each
+        found and the explorations that enclosed it ({!Exploring.stack}),
+        keyed by relation, source and label ({!Exploring.key}). A premise is
+        explored once per solution of the premises before it, often the
+        same exploration under the same enclosing ones: then it is reused.
+        A self-recursive rule made that exponential (2026-10-19). Emptied by
+        {!Exploring.reset}. *)
+    let explored
+      : ((EConstr.t * EConstr.t) list * Constructors.t) Exploring.Key.t
+      =
+      Exploring.Key.create 64
+    ;;
+
+    let () = Exploring.at_reset (fun () -> Exploring.Key.reset explored)
 
     (** [warn_each warn ds] is [warn lts_enc (name, args)] for each deferred
         premise [(lts_enc, name, args)] of [ds], in order (one of the
@@ -2097,17 +2244,51 @@ module Make (Enc : Encoding.S) :
           let next_lts : Ind.LTS.constructor array =
             Ind.get_lts_constructor_types c
           in
-          let* next_constructors : Constructors.t =
-            check_valid_constructors next_lts indmap lhs act c.enc
-          in
-          match next_constructors with
-          | [] -> return None
-          | next_constructors ->
-            let* problems : Problems.t =
-              Constructors.to_problems args next_constructors
+          let$+ cut _env sigma = Exploring.cut sigma name lhs in
+          match cut with
+          | Some why ->
+            (* cut off, and the LTS marked incomplete: a rule whose premise
+               is this relation on a copy of its source recursed without
+               end here, past every bound (2026-10-19, external feedback) *)
+            let$+ premise _env sigma =
+              Reductionops.nf_evar sigma (EConstr.mkApp (name, raw_args))
             in
-            let acc = ListOfProblems.cross_product problems acc in
-            check_updated_ctx lts_enc acc indmap (substl, tl)
+            let* () = warn_cut_premise lts_enc name premise why in
+            return None
+          | None ->
+            let$+ key _env sigma = Exploring.key sigma name lhs act in
+            let* next_constructors : Constructors.t =
+              (* only from the same context: what encloses an exploration
+                 decides what it cuts off, so elsewhere it may differ *)
+              let$+ ctx _env _sigma = !Exploring.stack in
+              match
+                Stdlib.Option.bind key (Exploring.Key.find_opt explored)
+              with
+              | Some (ctx', found) when ctx' == ctx -> return found
+              | _ ->
+                let$+ _pushed _env _sigma =
+                  Memory_guard.check "extraction";
+                  Exploring.push name lhs
+                in
+                let* found : Constructors.t =
+                  check_valid_constructors next_lts indmap lhs act c.enc
+                in
+                let$+ _popped _env _sigma =
+                  Exploring.pop ();
+                  Stdlib.Option.iter
+                    (fun k -> Exploring.Key.replace explored k (ctx, found))
+                    key
+                in
+                return found
+            in
+            (match next_constructors with
+             | [] -> return None
+             | next_constructors ->
+               let* problems : Problems.t =
+                 Constructors.to_problems args next_constructors
+               in
+               let acc = ListOfProblems.cross_product problems acc in
+               check_updated_ctx lts_enc acc indmap (substl, tl))
         in
         (* [explore_sources ()] is {!explore_closed} once per source the
            premise search finds for this premise, whose source is open and
