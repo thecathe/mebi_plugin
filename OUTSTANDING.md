@@ -101,6 +101,7 @@ Detail is in [`doc/future-work.md`](doc/future-work.md). None is under
 way.
 - **Cost, accepted as limits:**
   - the solver's own per-step cost;
+  - ideas from chess engines (initial, not investigated);
   - memory of the saturation estimate;
   - extraction's unindexed derivation search.
 - **Capability:** proofs split into separately checked lemmas
