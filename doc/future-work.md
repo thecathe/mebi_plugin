@@ -206,6 +206,61 @@ in `bench/README.md` (`-s cadp-large`, `-s cadp-huge`, with `-M` and `-a`).
   `/usr/bin/time` work as they are, and a `PATH` fallback has not been tried
   on them.
 
+## Ideas from chess engines
+
+**Initial ideas only (2026-10-19), none investigated.** Each needs
+measuring against the plugin's real costs before any work starts, and
+some may turn out not to apply. Jonah was pointed at
+[chessprogramming.org](https://www.chessprogramming.org/) as a source of
+techniques that make search competitive rather than brute force: compact
+encodings, and the tricks such encodings allow. The plan is to take this
+up once bugs are few, but some of it (perft especially) also helps find
+them, and running large examples in reasonable time and memory exposes
+problems too.
+
+How each technique might map onto the plugin:
+
+- **Perft** (counting the positions reachable to a depth, to check a move
+  generator against known totals). The counterpart is counting
+  extraction's states and transitions, and the game's pairs, against an
+  independent implementation: a regression check for extraction that
+  `Test.v` lacks. The external feedback's user did this informally, with
+  a 100-line checker of their own (`feedback-2026-10-15.md`). Likely the
+  first to try, as it tests rather than optimises.
+- **Transposition tables** (caching positions already searched).
+  Extraction asks the same premise question, the relation, source and
+  label, more than once; caching the answers would cut repeated work, and
+  is the complete form of the repeat cut-off for self-recursive rules
+  (`OUTSTANDING.md`, Bugs). In the solver: pairs already proved, or game
+  positions already costed.
+- **Proof-number search** (best-first search of AND/OR trees, from chess
+  endgame solving). The bisimulation game is such a tree: every attacker
+  move must be answered (AND), and one answer is enough (OR). It is a
+  principled way to choose which goal to expand next; today's answer
+  policies (`Answers Auto`) use cost estimates.
+- **Move ordering, killer moves** (trying likely refutations first). The
+  counterpart is answer ordering: the answer that worked for a similar
+  pair first.
+- **Bitboards** (sets of squares as machine words). States could be dense
+  integers per FSM, with state sets and partitions as bitsets, for
+  saturation, partition refinement and the product game. Encodings are
+  already integers, but sets of them are balanced trees.
+- **Zobrist hashing and hash-consing** (cheap incremental hashes; one
+  copy of each term). Pointer-equal terms would make term equality and
+  lookup cheap: extraction's search is unification-heavy, and the solver
+  finds a goal's states by looking terms up (the term-equality question,
+  `ASSISTED-CHANGES.md`, 2026-09-28).
+- **Precomputed lookup tables** ("magic" tables for move generation).
+  Indexing constructors by the head symbol of their source would avoid
+  trying each by unification: "Extraction's derivation search is
+  unindexed", above.
+- **Make/unmake** (updating a position in place instead of copying it).
+  The encoding is rebuilt by every command; incremental updates across
+  commands, or of saturation, may matter on large systems.
+- **Nodes per second** as the standard measure. The counterparts are
+  states per second for extraction and steps per second for the solver,
+  tracked per build, as `bench/compare.sh` begins to.
+
 ## Smaller possible work
 
 **Evaluation** (detail in Jonah's local notes 10 and 12)

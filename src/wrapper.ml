@@ -214,6 +214,17 @@ module Make (Enc : Encoding.S) :
   (* See the [.mli]. *)
   module Config = Config_loader.Make (Enc) (M) (Weak)
 
+  (** Where a printed result came from: the command, its file and line,
+      its terms as written and the relations involved, as a few lines of
+      text and as JSON. Set by [Command.run] for each command. *)
+  type origin =
+    { lines : string list
+    ; json : Yojson.t
+    }
+
+  (** The origin of the command running now, if any. *)
+  let the_origin : origin option ref = ref None
+
   (** The JSON fields left out when [Detail] is off: constructor bindings,
       derivation trees and the annotations of weak actions. *)
   let detail_keys : string list = [ "rocq lts"; "tree"; "trees"; "annotation" ]
@@ -240,18 +251,28 @@ module Make (Enc : Encoding.S) :
                   type k = a
 
                   let name = J.name
-                  let text = text ~detail
+
+                  let text (x : a) : string =
+                    match !the_origin with
+                    | Some o -> String.concat "\n" (o.lines @ [ text ~detail x ])
+                    | None -> text ~detail x
+                  ;;
                 end) : Json.Log
                 with type k = a)
-           | _, _ when detail -> (module J : Json.Log with type k = a)
            | _, _ ->
              (module Json.Make (struct
                   type k = a
 
                   let name = J.name
 
+                  (* at the top, the origin beside the value *)
                   let json ?as_elt (x : a) : Yojson.t =
-                    Json.without detail_keys (J.json ?as_elt x)
+                    let y = J.json ?as_elt x in
+                    let y = if detail then y else Json.without detail_keys y in
+                    match !the_origin, as_elt, y with
+                    | Some o, (None | Some false), `Assoc l ->
+                      `Assoc (("origin", o.json) :: l)
+                    | _ -> y
                   ;;
                 end) : Json.Log
                 with type k = a))
@@ -1157,6 +1178,102 @@ module Make (Enc : Encoding.S) :
       M.return None
     ;;
 
+    (** [constructors r] is the names of the constructors of the relation
+        [r], or [[]] if it is not an inductive. Raises nothing. *)
+    let constructors (r : Libnames.qualid) : string list =
+      try
+        match Nametab.global r with
+        | Names.GlobRef.IndRef (mind, i) ->
+          (Environ.lookup_mind mind (Global.env ())).mind_packets.(i)
+            .mind_consnames
+          |> Array.to_list
+          |> List.map Names.Id.to_string
+        | _ -> []
+      with
+      | _ -> []
+    ;;
+
+    (** [location ()] is the file and line of the command running now.
+        Raises nothing. *)
+    let location () : string =
+      match Loc.get_current_command_loc () with
+      | Some { fname = InFile { file; _ }; line_nb; _ } ->
+        Printf.sprintf "%s, line %i" file line_nb
+      | Some { line_nb; _ } -> Printf.sprintf "line %i" line_nb
+      | None -> "unknown location"
+    ;;
+
+    (** [set_origin command terms using] makes {!the_origin} the command
+        [command] at the current location, on the terms [terms] as the user
+        wrote them, each with its relation, and every relation involved
+        with its constructors. Raises, when run, as {!user_term}. *)
+    let set_origin
+          (command : string)
+          (terms : rocq_args list)
+          (refs : Libnames.qualid list)
+      : unit M.mm
+      =
+      let open M.Syntax in
+      let rec shown = function
+        | [] -> M.return []
+        | ((_, r) as t) :: tl ->
+          let* s = user_term t in
+          let* rest = shown tl in
+          M.return ((s, Libnames.string_of_qualid r) :: rest)
+      in
+      let* terms_shown = shown terms in
+      let relations : Libnames.qualid list =
+        List.fold_left
+          (fun acc r ->
+            if List.exists (Libnames.qualid_eq r) acc then acc else acc @ [ r ])
+          []
+          (List.map snd terms @ refs)
+      in
+      let rels = List.map (fun r -> r, constructors r) relations in
+      let where = location () in
+      the_origin
+      := Some
+           { lines =
+               [ Printf.sprintf "origin: %s: MeBi %s" where command
+               ; "terms: "
+                 ^ String.concat
+                     "; "
+                     (List.map
+                        (fun (t, r) -> Printf.sprintf "%s (by %s)" t r)
+                        terms_shown)
+               ; "relations: "
+                 ^ String.concat
+                     "; "
+                     (List.map
+                        (fun (r, cs) ->
+                          Printf.sprintf
+                            "%s (%s)"
+                            (Libnames.string_of_qualid r)
+                            (String.concat ", " cs))
+                        rels)
+               ]
+           ; json =
+               `Assoc
+                 [ "location", `String where
+                 ; "command", `String ("MeBi " ^ command)
+                 ; ( "terms"
+                   , `List
+                       (List.map
+                          (fun (t, r) ->
+                            `Assoc [ "term", `String t; "relation", `String r ])
+                          terms_shown) )
+                 ; ( "relations"
+                   , `Assoc
+                       (List.map
+                          (fun (r, cs) ->
+                            ( Libnames.string_of_qualid r
+                            , `List (List.map (fun c -> `String c) cs) ))
+                          rels) )
+                 ]
+           };
+      M.return ()
+    ;;
+
     (* See the [.mli]. *)
     let run (refs : Libnames.qualid list) (x : t)
       : Model.Bisimilarity.t option M.mm
@@ -1165,6 +1282,18 @@ module Make (Enc : Encoding.S) :
       let open M.Syntax in
       Config.load_the_bounds_args ();
       let* () = Config.load_weak_args () in
+      let* () =
+        match x with
+        | MakeLTS a -> set_origin "Run LTS" [ a ] refs
+        | MakeFSM a -> set_origin "Run FSM" [ a ] refs
+        | Saturate a -> set_origin "Run Saturate" [ a ] refs
+        | Minimize a -> set_origin "Run Minimize" [ a ] refs
+        | Merge { a; b } -> set_origin "Run Merge" [ a; b ] refs
+        | CheckBisim { a; b } -> set_origin "Sim Begin" [ a; b ] refs
+        | RunBisim { a; b } -> set_origin "Run Bisim" [ a; b ] refs
+        | CheckSim { a; b } -> set_origin "Run Sim" [ a; b ] refs
+        | BenchmarkGraph (a, _) -> set_origin "Benchmark LTS" [ a ] refs
+      in
       match x with
       | MakeLTS args -> do_make_lts args refs
       | MakeFSM args -> do_make_fsm args refs

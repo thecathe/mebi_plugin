@@ -59,8 +59,8 @@ module type S = sig
   (** Plain-text renderings of results ([MeBi Config Output Format Text],
       the default): the states and labels numbered once, with their terms,
       then the moves as [from -label-> to]. With [detail], each move also
-      shows its derivation as constructor names ([via s_l(s_pre)]), and the
-      relations are listed with their constructors. *)
+      shows its derivation as constructor names ([via s_l(s_pre)]). The
+      wrapper puts the command's origin above it. *)
   module Plain : sig
     (** [lts ~detail x] is the LTS [x] as text. Raises nothing. *)
     val lts : detail:bool -> lts -> string
@@ -540,25 +540,6 @@ module Make
           (String.concat ", " (List.map tree ts))
     ;;
 
-    (** [relations info] is one line per relation the system was extracted
-        with, naming its constructors. *)
-    let relations (info : Model.Info.t) : string list =
-      match info.meta with
-      | None -> []
-      | Some meta ->
-        "relations:"
-        :: List.map
-             (fun (r : Model.Info.Meta.RocqLTS.t) ->
-               let n = List.length r.constructors in
-               Printf.sprintf
-                 "  %s: %s"
-                 (term r.base)
-                 (String.concat
-                    ", "
-                    (List.init n (fun i -> constructor (r.base, i)))))
-             meta.lts
-    ;;
-
     (** [header kind info init nstates nlabels nmoves moves] is the first
         line: the sizes, whether complete, and the initial state. *)
     let header
@@ -675,8 +656,7 @@ module Make
             , List.length edges
             , "transitions" )
           :: tabs)
-         @ moves "transitions" edges
-         @ if detail then relations x.info else [])
+         @ moves "transitions" edges)
     ;;
 
     (* See the [.mli]. *)
@@ -724,8 +704,7 @@ module Make
             , List.length (List.sort_uniq Stdlib.compare (List.map fst edges))
             , "edges" )
           :: tabs)
-         @ moves "edges" edges
-         @ if detail then relations x.info else [])
+         @ moves "edges" edges)
     ;;
 
     (* See the [.mli]. *)
