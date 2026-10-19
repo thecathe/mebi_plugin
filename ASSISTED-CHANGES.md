@@ -9008,6 +9008,32 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-10-19 (cont.) — where a result came from; chess-engine ideas
+
+On branch `feat/result-origin`, at Jonah's request.
+
+**New feature (output only).** Each printed or dumped result starts with
+its origin: file and line, the command, the terms as written with their
+relations, and the relations' constructors. Three lines of plain text, or
+an `"origin"` field in JSON. `Command.run` records it for every command,
+`Sim Begin`'s check included. Plain text's `Detail` is now the derivation
+trees alone, since the constructors are always in the header.
+
+**Docs.** `doc/future-work.md`, "Ideas from chess engines": initial ideas
+from chessprogramming.org, not investigated, for when optimisation
+starts.
+
+**Verified.** `dune build`, `make`, `tests.exe` 111/111, the default proof
+suite under `Auto`: every count unchanged (the origin re-reads the terms on
+`Sim Begin`'s path too).
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-10-19), cont.:** New feature 1 · Docs 1 · Bug fix 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
