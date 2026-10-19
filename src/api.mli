@@ -47,8 +47,8 @@ val output_config_dump_results : bool -> unit
     Raises nothing. *)
 val set_output : bool -> string -> unit
 
-(** [detail ()] is whether results include the relations' constructor
-    bindings and each transition's derivation trees: as set by
+(** [detail ()] is whether results include each transition's derivation
+    trees (and, in JSON, the constructors' bindings): as set by
     [MeBi Config Output "Detail"], else off for plain text and on for JSON.
     Raises nothing. *)
 val detail : unit -> bool

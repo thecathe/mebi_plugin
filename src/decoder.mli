@@ -82,8 +82,8 @@ module type S = sig
   (** Plain-text renderings of results ([MeBi Config Output Format Text],
       the default): the states and labels numbered once, with their terms,
       then the moves as [from -label-> to]. With [detail], each move also
-      shows its derivation as constructor names ([via s_l(s_pre)]), and the
-      relations are listed with their constructors. *)
+      shows its derivation as constructor names ([via s_l(s_pre)]). The
+      wrapper puts the command's origin above it. *)
   module Plain : sig
     (** [lts ~detail x] is the LTS [x] as text. Raises nothing. *)
     val lts : detail:bool -> lts -> string

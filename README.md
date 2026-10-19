@@ -337,9 +337,12 @@ MeBi Config Solver Answers Default|Greedy|Minimal|Auto.
 - `FailIf` controls whether an empty LTS (default `False`), an incomplete one (default `True`: exploration cut short by a bound, or a premise the search could not decide), a negative bisimilarity result (default `True`), or a saturation above `Bounds Saturation` (`Oversaturated`, default `True`) raises a hard error instead of a warning. `Oversaturated` defaults to `True` because past the bound the likely alternative is running out of memory; `False` warns and saturates anyway.
 - `Solver MutualCofix` picks how `MeBi Sim` introduces coinduction hypotheses (one nested cofix per new pair, or one mutual cofix over the whole relation; `Auto`, the default, measures both). `Solver Answers` picks how it chooses each answer to the other system's move: `Auto` (the default, since 2026-10-15) the plan with the lowest predicted cost, among `Default`, `Greedy` and `Minimal`; `Default` move by move, as the solver did before; `Greedy`/`Minimal` from one of those plans. On the checked-in examples `Auto` was never slower than `Default`, and cut the `weak_bisimilar` proofs by 60% (`ASSISTED-CHANGES.md`, 2026-10-02). On an FSM saturated on demand, `Auto` answers move by move unless `Bounds Game` is set.
 - `Output "<Kind>" <bool>` toggles one log channel. `<Kind>` is one of `Debug`, `Info`, `Notice`, `Warning`, `Error`, `Trace`, `Result`, `Show`, `DecodeResults`, `DumpResults`, `Detail`. `Info`, `Notice`, `Warning`, `Error` and `Show` are on by default, `Debug`, `Trace` and `Result` off; `Info` is the routine kind, so `MeBi Config Output "Info" False.` quiets a run and keeps the rest. Loading the plugin prints one `Notice` saying so. `DumpResults` is off by default: when on, every command writes its FSMs and results , in the format set, into `./_dumps/` in the working directory, which is useful for debugging but costly on large systems (on `Proc/Test4`, about 20s, hundreds of MB on disk and 1GB of extra memory per command).
-- `Output Format Text|JSON` sets how results are printed (`Output "Result" True`) and dumped. **Plain text is the default**: the states and labels numbered once, with their terms, then each move as `from -label-> to`:
+- `Output Format Text|JSON` sets how results are printed (`Output "Result" True`) and dumped. **Plain text is the default**: a header saying where the result came from (file and line, command, the terms as written, and each relation with its constructors), then the states and labels numbered once, with their terms, then each move as `from -label-> to`:
 
   ```
+  origin: ./Fmt.v, line 15: MeBi Run FSM
+  terms: p (by step)
+  relations: step (s_pre, s_tau, s_l, s_r)
   FSM: 3 states, 3 labels, 3 edges. Initial state: 0.
   states:
     0  (choice (pre A done) (tau (pre B done)))
@@ -355,7 +358,7 @@ MeBi Config Solver Answers Default|Greedy|Minimal|Auto.
     2 -2-> 1
   ```
 
-  `Format JSON` prints the full structure instead, as before 2026-10-19. `Output "Detail"` adds each move's derivation tree (`0 -0-> 1  via s_l(s_pre)`) and the relations' constructors; in JSON it also keeps the constructors' bindings and the annotations of weak actions. Unless set, `Detail` is off for plain text and on for JSON; once set, it holds for both. Each printed result is tagged with its form (`[plain text]`, `[JSON, without detail]`, ...), and the first one in a session is preceded by a `Notice` saying how to change it. Benchmark samples are always JSON. `Reset Output` restores the defaults.
+  `Format JSON` prints the full structure instead, as before 2026-10-19, with the header as an `"origin"` field. `Output "Detail"` adds each move's derivation tree (`0 -0-> 1  via s_l(s_pre)`); in JSON it also keeps the constructors' bindings and the annotations of weak actions. Unless set, `Detail` is off for plain text and on for JSON; once set, it holds for both. Each printed result is tagged with its form (`[plain text]`, `[JSON, without detail]`, ...), and the first one in a session is preceded by a `Notice` saying how to change it. Benchmark samples are always JSON. `Reset Output` restores the defaults.
 
 ### Diagnostics
 

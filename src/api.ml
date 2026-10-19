@@ -58,15 +58,14 @@ let describe_output () : string =
   let with_detail =
     match !the_output_config.detail, detail () with
     | None, true ->
-      "with the relations' constructors and each move's derivation tree \
-       (JSON's default)"
+      "with each move's derivation tree and the constructors' bindings (JSON's \
+       default)"
     | None, false ->
-      "without the relations' constructors or the moves' derivation trees \
-       (plain text's default)"
+      "without derivation trees or constructor bindings (plain text's default)"
     | Some _, true ->
-      "with the relations' constructors and each move's derivation tree"
-    | Some _, false ->
-      "without the relations' constructors or the moves' derivation trees"
+      "with each move's derivation tree (and, in JSON, the constructors' \
+       bindings)"
+    | Some _, false -> "without derivation trees or constructor bindings"
   in
   Printf.sprintf
     "Results are printed as %s, %s. [MeBi Config Output Format %s] and [MeBi \

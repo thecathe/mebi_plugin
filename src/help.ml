@@ -316,12 +316,14 @@ let text : string list -> string option = function
        MeBi Config Reset Output.\n\n\
        Results (the FSMs, LTSs and verdicts shown with Output \"Result\" True, \
        and dumps) are plain text by default: the states and labels numbered \
-       with their terms, then the moves as from -label-> to. Format JSON \
-       prints them as JSON instead. Output \"Detail\" adds the relations' \
-       constructors and each move's derivation tree (in JSON, the \
-       constructors' bindings and the annotations of weak actions too); it is \
-       off for plain text and on for JSON unless set, and once set holds for \
-       both. Reset Output restores plain text, detail as the format has it.\n\n\
+       with their terms, then the moves as from -label-> to, under a header \
+       saying where they came from: file and line, command, terms, and the \
+       relations with their constructors. Format JSON prints them as JSON \
+       instead, with the header as \"origin\". Output \"Detail\" adds each \
+       move's derivation tree (in JSON, the constructors' bindings and the \
+       annotations of weak actions too); it is off for plain text and on for \
+       JSON unless set, and once set holds for both. Reset Output restores \
+       plain text, detail as the format has it.\n\n\
        Toggle one message kind: Debug, Info, Notice, Warning, Error, Trace, \
        Result, Show, DecodeResults, DumpResults, Detail. Info, Notice, \
        Warning, Error and Show are on by default; Debug, Trace and Result are \
