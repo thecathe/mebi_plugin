@@ -29,6 +29,15 @@ turns the pin into a positive test.
   Enumerating the matched argument's constructors would be a new
   *capability* (small). From external feedback
   (`feedback-2026-10-15.md`, item 3).
+- **A guard does not stop recursion through a step premise** (*limit*,
+  pinned `ExternalFeedback.step_u`). In `n < 5 -> step (up (S n)) l q ->
+  step (up n) l q`, the guard is closed but decided only after the step
+  premise is explored, so extraction explores `up 6`, `up 7`, ... until
+  the cut-off for such premises (`Premise Depth` levels), and the LTS is
+  reported incomplete though it is finite. Before 2026-10-19 it ran away.
+  Deciding closed premises before exploring step premises would lift it
+  (*bug fix*, small; it changes what extraction explores first, so every
+  suite would need re-running). Found 2026-10-19.
 - **Self-referential "collapsing" definitions** with a silent collapse
   (B1) are infinite with no finite quotient, and are refused at the state
   bound (*limit*, pinned `Collapsing`). Guarded variants work.
