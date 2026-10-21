@@ -78,6 +78,7 @@ unless noted.
     *capability*);
   - a premise that matches on an argument nothing fixes is undecided
     (enumerating it would be a *capability*);
+  - a guard premise does not stop recursion through a step premise;
   - size;
   - memory quadratic in the number of silent SCCs.
 - **Goals and proofs:**

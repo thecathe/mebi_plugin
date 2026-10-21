@@ -9141,6 +9141,66 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-10-21 — more runaway tests, the guard limit, and the premise-source pins
+
+**Tooling** (tests) · **Docs**. On branch `test/premise-sources`, written
+2026-10-19 after the runaway-extraction fix (#87), and built and run for the
+first time today, at Jonah's go-ahead.
+
+**`test/rocq/Test.v`, `ExternalFeedback`:** four more shapes the cut-off must
+handle. `grow`: each premise asks from a larger source, so nothing repeats and
+only the depth limit stops it. `step1`/`step2`: two relations through each
+other on one source; a repeat across relations is cut, conservatively (the LTS
+is in fact complete). `step_n`: bounded recursion that is not structural;
+complete at the default depth, cut by `Premise Depth 3`. `step_u`, a **KNOWN
+LIMIT**: a guard (`n < 5`) does not stop the recursion, because extraction
+decides a closed premise only after exploring the step premise, so `up 0`
+explores `up 6`, `up 7`, ... until the cut and is reported incomplete though it
+is finite.
+
+**`PremiseSources`:** item 4 of the external feedback (a proof through a
+congruence premise), as four known-wrong pins, A to D, that tell apart three
+candidate fixes (apply the child constructor by unification when its source is
+open; solve the premises that fix the source first; record each step premise's
+source and target in the derivation tree). Each becomes a positive test when a
+fix covers it.
+
+**Docs:** the guard limit in `doc/limitations.md`, one line in `OUTSTANDING.md`.
+
+**Verified, today.** Rebased onto `main` (the branch had no commits of its own),
+then `dune build -j 4 @install` and `dune build -j 2 test/rocq/Test.vo` under a
+4GB cap: exit 0, `Test.v` in 5.1s at 471MB peak (the plugin build was served
+mostly from dune's cache, 5.9s, 307MB). Every new `Fail` was then dropped, one
+at a time, to read the error it hides; each is the intended one:
+- `grow`, `step_u`, `step_n` (depth 3): `LTS_Incomplete` ("nested 16 times" for
+  the first two, "nested 4 times" for the third);
+- `step1`/`step2`: `LTS_Incomplete` ("asked again, from the same source");
+- `PremiseSources` A, B, D: "Tried to normalize ill-typed term";
+- `PremiseSources` C: "cannot prove the constructor premise (pick ?x ?y)".
+
+**Owed from 2026-10-19: the #87 timings.** Run one at a time, before and after
+the fix (`bench/proofs.sh`, `Auto`); the tables and logs are in
+`notes/timing-87-2026-10-19/` (local). Every Solve count is identical: 61 on
+the default suite, 14 on `eval`, 2 on `Test4`, and the 2 ABP proofs (6494,
+9914). Nothing in them is cut. Wall times are within noise, which was large:
+another session was loading the machine (the default suite's `CCS/PluginProofs`
+took 12.1s before and 4.7s after; `Test2` 8.3s and 5.6s). `Test4`:
+27.4s/245.9s before, 27.9s/246.2s after; peak 2.74GB and 2.78GB. The ABP
+"before" runs were killed (exit 143) during `Qed`, after printing their
+counts, when the machine was near out of memory with a second session running;
+they were rerun after the fix only (256s and 224s, 4.27GB and 4.40GB).
+
+**Mistakes and reversals.** A state-bound size pin was written for the runaway
+case and dropped: with the cut in place there was nothing to assert.
+
+Revert: `git revert -m 1 <merge commit>` once merged; before that, delete the
+branch.
+
+**Session tally (2026-10-21), cont.:** Tooling 1 · Docs 1 · Bug fix 0 ·
+New feature 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

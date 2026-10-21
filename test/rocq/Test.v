@@ -2309,6 +2309,55 @@ Module ExternalFeedback.
   MeBi Config FailIf Incomplete True.
   MeBi Config Reset Weak.
 
+  (* More shapes the cut-off must handle (2026-10-19). *)
+  (* Growth with no repeat: each premise asks from a larger source, so
+     only the depth limit stops it. *)
+  Inductive grow : proc -> proc -> Prop := g_par p : grow (par p done) p.
+  Inductive step_g : proc -> option act -> proc -> Prop :=
+  | g_base p l q : base p l q -> step_g p l q
+  | g_str p p' l q : grow p p' -> step_g p l q -> step_g p' l q.
+  MeBi Config Weak As Option act.
+  Fail MeBi Run LTS (pre a done) Using step_g.
+  MeBi Config FailIf Incomplete False.
+  MeBi Run LTS (pre a done) Using step_g.
+  MeBi Config FailIf Incomplete True.
+
+  (* Two relations through each other, on one source: a repeat across
+     relations is cut too. Conservative here: the LTS is in fact complete
+     (every finite derivation ends in [base]), but it is reported
+     incomplete. *)
+  Inductive step1 : proc -> option act -> proc -> Prop :=
+  | one p l q : step2 p l q -> step1 p l q
+  with step2 : proc -> option act -> proc -> Prop :=
+  | two_base p l q : base p l q -> step2 p l q
+  | two p l q : step1 p l q -> step2 p l q.
+  Fail MeBi Run LTS (pre a done) Using step1 step2.
+
+  (* Bounded recursion that is not structural: [nrec k] asks [npar k nnil],
+     not a part of it. Five levels stay under the default limit, so the LTS
+     is complete; [Premise Depth 3] cuts it. *)
+  Inductive nt := nnil | nact (k : nt) | nrec (k : nt) | npar (p q : nt).
+  Inductive step_n : nt -> option act -> nt -> Prop :=
+  | n_act k : step_n (nact k) (Some a) k
+  | n_rec k l q : step_n (npar k nnil) l q -> step_n (nrec k) l q
+  | n_par p l q : step_n p l q -> step_n (npar p nnil) l q.
+  MeBi Run LTS (nrec (nrec (nrec (nrec (nrec (nact nnil)))))) Using step_n.
+  MeBi Config Premise Depth 3.
+  Fail MeBi Run LTS (nrec (nrec (nrec (nrec (nrec (nact nnil)))))) Using step_n.
+  MeBi Config Reset Premise.
+
+  (* KNOWN LIMIT: a guard does not stop the recursion. [n < 5] is closed,
+     but extraction decides it only after exploring the step premise, so
+     [up 0] explores [up 6], [up 7], ... until the cut: incomplete, though
+     the LTS is finite. Deciding closed premises first would lift it
+     ([doc/limitations.md]). *)
+  Inductive up_t := up (n : nat) | fin.
+  Inductive step_u : up_t -> option act -> up_t -> Prop :=
+  | u_top : step_u (up 5) (Some a) fin
+  | u_next n l q : n < 5 -> step_u (up (S n)) l q -> step_u (up n) l q.
+  Fail MeBi Run LTS (up 0) Using step_u.
+  MeBi Config Reset Weak.
+
   (* The workaround the feedback used, the step premise over [base] (the
      rule applied at most once), extracts, and is complete: *)
   Inductive step : proc -> option act -> proc -> Prop :=
@@ -2392,3 +2441,103 @@ Module OutputFormat.
   MeBi Config Output "DecodeResults" False.
   MeBi Config Reset Weak.
 End OutputFormat.
+
+(* Proofs through a premise that fixes a step premise's source
+   (2026-10-19; external feedback, item 4). Each relation has a
+   congruence-like rule [r p p' l q q' : fix p p' -> fix q q' ->
+   base p l q -> step p' l q']: the conclusion fixes [p'] and [q'], and only
+   the [fix] premises fix the step premise's source [p] and target [q].
+   The solver takes step premises first ([move_premises_last]), so it
+   reaches [base ?p l ?q] with both open; with the target known (one [fix]
+   premise, not two) the child's arguments are read from it and these
+   close. Each is a KNOWN-WRONG pin: bisimilar, but the proof fails.
+
+   They tell apart three fixes: (1) apply the child constructor by
+   unification when its source is open, (2) solve the premises that fix
+   the source first, (3) record each step premise's source and target in
+   the derivation tree at extraction.
+
+     case  what fixes [?p]                              (1)  (2)  (3)
+     A     one [cong] solution; the child pins it        yes  yes  yes
+     B     [cong] reflexive first, which is wrong        yes  no   yes
+     C     the child's conclusion is generic in it       no   no   yes
+     D     an equation [strip p' = p]                    yes  yes  yes
+
+   A, B and D fail with "Tried to normalize ill-typed term"; C on the
+   child's own premise, [pick ?x ?y], with both open. A fix turns each case
+   it handles into a positive test: drop the [Fail], [Abort] to [Qed]. *)
+MeBi Divider "Theories.Test.PremiseSources".
+Module PremiseSources.
+  Inductive act := a | b.
+  Inductive proc :=
+  | done | pre (x : act) (k : proc) | tau (k : proc) | loop | par (p q : proc).
+  Inductive base : proc -> option act -> proc -> Prop :=
+  | s_pre x k : base (pre x k) (Some x) k
+  | s_tau k : base (tau k) None k
+  | s_loop : base loop (Some a) (tau (pre b loop)).
+  MeBi Config Weak As Option act.
+
+  Module A.
+    Inductive cong : proc -> proc -> Prop := c_nil p : cong p (par p done).
+    Inductive step : proc -> option act -> proc -> Prop :=
+    | s_base p l q : base p l q -> step p l q
+    | s_str p p' l q q' :
+        cong p p' -> cong q q' -> base p l q -> step p' l q'.
+    MeBi Run Bisim loop With step And (par loop done) With step As wA
+      Using base.
+    Fail MeBi Sim Solve 300.
+    Abort.
+  End A.
+
+  Module B.
+    Inductive cong : proc -> proc -> Prop :=
+    | c_refl p : cong p p
+    | c_nil p : cong p (par p done).
+    Inductive step : proc -> option act -> proc -> Prop :=
+    | s_base p l q : base p l q -> step p l q
+    | s_str p p' l q q' :
+        cong p p' -> cong q q' -> base p l q -> step p' l q'.
+    MeBi Run Bisim loop With step And (par loop done) With step As wB
+      Using base.
+    Fail MeBi Sim Solve 300.
+    Abort.
+  End B.
+
+  Module C.
+    Inductive cong : proc -> proc -> Prop :=
+    | c_refl p : cong p p
+    | c_nil p : cong p (par p done).
+    Inductive pick : proc -> proc -> Prop := pk k : pick (tau k) k.
+    (* [t_pick]'s conclusion says nothing about its source: only [pick]
+       does *)
+    Inductive base2 : proc -> option act -> proc -> Prop :=
+    | t_pre x k : base2 (pre x k) (Some x) k
+    | t_loop : base2 loop (Some a) (tau (pre b loop))
+    | t_pick x y : pick x y -> base2 x None y.
+    Inductive step : proc -> option act -> proc -> Prop :=
+    | s_base p l q : base2 p l q -> step p l q
+    | s_str p p' l q q' :
+        cong p p' -> cong q q' -> base2 p l q -> step p' l q'.
+    MeBi Run Bisim loop With step And (par loop done) With step As wC
+      Using base2.
+    Fail MeBi Sim Solve 300.
+    Abort.
+  End C.
+
+  Module D.
+    Inductive cong : proc -> proc -> Prop :=
+    | c_refl p : cong p p
+    | c_nil p : cong p (par p done).
+    Definition strip (p : proc) : proc :=
+      match p with par p done => p | p => p end.
+    Inductive step : proc -> option act -> proc -> Prop :=
+    | s_base p l q : base p l q -> step p l q
+    | s_eq p p' l q q' :
+        strip p' = p -> cong q q' -> base p l q -> step p' l q'.
+    MeBi Run Bisim loop With step And (par loop done) With step As wD
+      Using base.
+    Fail MeBi Sim Solve 300.
+    Abort.
+  End D.
+  MeBi Config Reset Weak.
+End PremiseSources.
