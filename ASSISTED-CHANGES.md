@@ -9201,6 +9201,35 @@ New feature 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-10-21 — an outline for the solver's step messages
+
+**Docs.** On branch `docs/step-messages-outline` (stacked on
+`test/premise-sources`, so the two entries do not collide). Jonah asked for the
+stubbed `"TODO: explicit bindings"` printer, and others like it, to be finished
+and shown in the `Info` log, and for the work to be outlined on its own branch
+first. No code is written.
+
+`doc/future-work.md` gains "Step messages: finish the stubs, build them lazily,
+then a script": four phases (the stubbed printers; lazy message strings;
+exact messages, deferred; a proof-script file, a *new feature* to agree
+first), with the estimates and the checks. One line in `OUTSTANDING.md`.
+
+**A measurement, and a guess withdrawn.** I had suggested that the eagerly
+built message strings might explain CADP's per-step decision cost. Printing
+normalised CADP initial states with Rocq's printer takes 0.28, 0.58 and 1.0 ms
+for one, two and three processes. The only large eager print is `exists`'s,
+once per answered move (every 9-11 steps), so about 0.03-0.1 ms a step, under
+5% of the 2-8 ms. It does not explain the cost. It becomes worth fixing when
+the bindings are printed at every constructor application, which is why the
+outline pairs the two.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-10-21), cont.:** Docs 1 · Bug fix 0 · New feature 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
