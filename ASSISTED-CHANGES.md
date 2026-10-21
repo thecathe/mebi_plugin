@@ -9223,6 +9223,12 @@ once per answered move (every 9-11 steps), so about 0.03-0.1 ms a step, under
 the bindings are printed at every constructor application, which is why the
 outline pairs the two.
 
+**Later the same day.** The memory cost of the eager strings was measured as
+well (2.5-2.7MB allocated per printed three-process state, ~500x the output,
+garbage and not retention; in `doc/future-work.md`), and Jonah asked for phases
+1 and 2 to be logged as worth doing soon: `OUTSTANDING.md` has a "Next up"
+section for them, and Future work keeps the later phases.
+
 Revert: `git revert -m 1 <merge commit>`.
 
 **Session tally (2026-10-21), cont.:** Docs 1 · Bug fix 0 · New feature 0 ·

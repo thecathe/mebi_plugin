@@ -263,7 +263,8 @@ How each technique might map onto the plugin:
 
 ## Step messages: finish the stubs, build them lazily, then a script
 
-**Standing.** Agreed in principle 2026-10-21; not started. Each tactic the
+**Standing.** Agreed 2026-10-21; not started. **Phases 1 and 2 are next up**
+(`OUTSTANDING.md`); phases 3 and 4 are future work. Each tactic the
 solver builds carries a message (`Tactic.t`, `src/proof_solver_tactic.ml`),
 emitted at `Info` when the step's chain is applied (`Tactic.unpack`): the
 plugin's counterpart of `info_auto` (`trivial` already switches to Rocq's own
@@ -301,6 +302,15 @@ together.
   step, under 5% of its 2-8 ms decision cost**. So the current cost is small, and it
   does not explain the CADP per-step cost in "The solver's own per-step
   cost" (an earlier suggestion that it might is withdrawn).
+- **Memory, measured 2026-10-21** (the same states, 200, 1,000 and 5,000
+  separate `Print` commands, `OCAMLRUNPARAM=v=0x400`): each print allocates
+  **2.5-2.7MB, about 500x the 4.9KB of output**, of which ~170KB is promoted to
+  the major heap. Peak RSS did not grow with the number of prints (233MB for
+  none, 365MB for 1,000, 277MB for 5,000): garbage waiting for a major
+  collection, not retention. The string is the small part; a thunk skips the
+  whole printing pipeline and holds a few pointers to data that already
+  exists. With a print at every constructor step, a direct 11,128-step CADP
+  proof would churn up to ~30GB instead of ~3GB (an upper bound).
 - Phase 1 changes that: it prints every binding at every constructor
   application, one per step in `ApplyConstructors`, and a binding can be most
   of the state. Up to ~0.3-1 ms a step on CADP (estimated, not measured),
