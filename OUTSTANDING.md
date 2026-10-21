@@ -106,6 +106,7 @@ way.
   (decision 3).
 - **Smaller:**
   - replay a derivation tree in one solver step;
+  - step messages: finish the stubbed printers and build them lazily, later exact messages and an optional proof-script file;
   - `Auto`'s mis-estimate on `LawProofs.tau1`;
   - scale the evaluation levers further;
   - the CADP/mCRL2 comparison (see above);

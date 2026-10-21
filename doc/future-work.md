@@ -261,6 +261,86 @@ How each technique might map onto the plugin:
   states per second for extraction and steps per second for the solver,
   tracked per build, as `bench/compare.sh` begins to.
 
+## Step messages: finish the stubs, build them lazily, then a script
+
+**Standing.** Agreed in principle 2026-10-21; not started. Each tactic the
+solver builds carries a message (`Tactic.t`, `src/proof_solver_tactic.ml`),
+emitted at `Info` when the step's chain is applied (`Tactic.unpack`): the
+plugin's counterpart of `info_auto` (`trivial` already switches to Rocq's own
+`info_trivial` output when `Info` is on). Some messages print a placeholder or
+say less than what is applied. Four phases, in this order; 1 and 2 go
+together.
+
+**1. Finish the stubbed printers** (*bug fix* / tooling, small).
+- `Strfy.econstr_bindings` (`lib/rocq_tools/rocq_monad_strfy.ml`) returns the
+  literal strings `"TODO: implicit bindings"` and `"TODO: explicit bindings"`,
+  with the intended code commented out beside them. Its only user is the
+  `Debug` log in `Tacs.apply_constructor`, so even `Debug` shows nothing. Implement
+  both, and show the bindings in the `constructor` message at `Info`:
+  `econstructor i with (x := t) ...` (the code applies `econstructor`, and the
+  message says `constructor`). Test anonymous binders: `Constructor_bindings.get_quantified_hyp`
+  maps them to `AnonHyp 0` (FIXME), which would print as `(0 := t)` and not replay.
+- The handler for `InvalidCheckUpdatedCtx` prints `"TODO: substls"` and
+  `"TODO: ctx_tys"` (`lib/rocq_tools/rocq_monad_utils.ml`). Print them.
+- Look for others when starting: `grep -n '"TODO' src lib`.
+- Messages do not change which tactics run, so every count in `CLAUDE.md` is
+  the check. There is no assertion on message text; read the `Info` output of
+  one proof by hand, or grep it in a `bench` script.
+
+**2. Build messages lazily** (*optimization*, small).
+- Today `Tactic.create ~msg:(Printf.sprintf "exists %s" (Strfy.econstr t))`
+  runs the printer when the tactic is *built*, whether or not `Info` is on, because
+  the argument is evaluated first. `Logger.thing` (`lib/utils/logger.ml`)
+  names this hazard in its own comment and guards against it; tactic messages
+  have no such guard.
+- **Measured 2026-10-21** (Rocq's printer on normalised CADP initial states,
+  200 copies printed per run, `Time Print`): **0.28 ms** (1 process, 1.5KB),
+  **0.58 ms** (2 processes, 3.1KB), **1.0 ms** (3 processes, 4.9KB), about
+  0.2 ms per KB. The one large eager print today is `exists`'s (`ex_intro`),
+  once per answered move, which is every 9-11 steps on CADP: **0.03-0.1 ms a
+  step, under 5% of its 2-8 ms decision cost**. So the current cost is small, and it
+  does not explain the CADP per-step cost in "The solver's own per-step
+  cost" (an earlier suggestion that it might is withdrawn).
+- Phase 1 changes that: it prints every binding at every constructor
+  application, one per step in `ApplyConstructors`, and a binding can be most
+  of the state. Up to ~0.3-1 ms a step on CADP (estimated, not measured),
+  against a 2-8 ms decision. That is why the laziness goes with phase 1.
+- Change: `Tac.msg : (Output.Kind.t * string Lazy.t) option`, and `Tactic.create`
+  takes the message as a thunk, forced in `to_string_opt` only when
+  `Logger.is_enabled k`. 26 sites (24 in `proof_solver_tactics.ml`, 2 in
+  `proof_solver_step.ml`). Only those that print a term need it (`exists`,
+  `apply`, `eapply`, the bindings); the rest are cheap and may be converted for
+  uniformity. Keep side effects (`new_cofix_name`) outside the thunk. `Strfy`
+  reads the monad's context when it runs, now the same step; the terms are ground
+  states, so it makes no difference.
+- With `Info` on (the default) the cost is paid, by design.
+- Measure with the solver-profile patch (`notes/tools/solver-profile.diff`,
+  per-step CPU time) on the CADP default-suite files. Wall time of
+  `bench/proofs.sh -s default` cannot show 1-5%: the same suite varied by
+  more than that between runs on 2026-10-19.
+
+**3. Exact messages** (*bug fix*, deferred). Make each message say what is
+applied. Inventory (about 25 sites): `constructor` (bindings; `econstructor`;
+two unprinted post-steps, `move_premises_last` and `fix_premise_witnesses`, both
+no-ops on every checked-in example), `exists` (the `split` after it),
+`simpl` (`simpl in *`), `unfold` (prints the kernel name), `mutual_cofix` (the
+types are not printed), and the descriptive ones with no vernacular form:
+the refute family, `(prove negated premise)`, `(prove bounded universal premise)`,
+`exact (premise proof)` (the term is not printed), `(to all goals)`.
+
+**4. A proof script written to a file** (*new feature*: agree before code).
+An output setting in the style of `DumpResults` that writes the proof as the
+solver builds it, for reuse without running the plugin again. It needs phase 3 for
+every tactic it emits: a file that does not replay is not reusable. So the script
+should be a separate rendering (a `script` thunk beside `msg`), not scraped from
+`Info`. A step with no vernacular form is written as a marked comment and the
+file says it is incomplete; the alternatives are `exact <term>` or a plugin
+tactic (the script then needs the plugin). It cannot edit the editor's buffer.
+Test by replaying: the bench harness recompiles every checked-in proof from its
+emitted script. Estimates, rough: phase 1 plus 2 about a day; phase 3 for the
+common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
+`simpl`) 1-2 days, for all 2-4; phase 4 on top 2-3.
+
 ## Smaller possible work
 
 **Evaluation** (detail in Jonah's local notes 10 and 12)
