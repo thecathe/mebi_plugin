@@ -51,7 +51,7 @@ relative to the verdict, and where it stops.
 | normalised (observing) ≈ `spec_fifo` | 644 | 4.8s, 0.64GB | 45,773 steps, 37.6 min, 17.8GiB, on a 31GB host (OOM at 9GB after ~15 min on a 14GB host) † | ~470× |
 | normalised vs `spec_lts` | 644 | not bisimilar, 4.6s, 0.61GB | spec ≤ system: 124 steps, 9.2s (326 under `Answers Default`). System ≤ spec: 20,432 steps, 22.8 min, 13.4GiB, on a 31GB host (OOM at 8-9GB after 11-13 min on a 14GB host) † | ~300× (system ≤ spec) |
 | **Proc `Test4`** (four components) | | | | |
-| `p` ≈ `q`, direct | 9,720 | 42s, 0.98GB (saturated on demand) | not attempted: ~525k steps predicted † | — |
+| `p` ≈ `q`, direct | 9,720 | 42s, 0.98GB (saturated on demand) | not attempted: predicted ~525k steps for `weak_sim` (87,480 moves at about 6 steps a move), and about twice that for `weak_bisimilar` (two obligations per pair) † | — |
 | `p` ≈ `q`, normalised | 82 | 0.45s, 0.36GB | 61,161 steps, ~4 min, ~2.8GB (`Answers Minimal`) †; `weak_sim` alone 6,115 steps, ~30s, ~0.7GB (48,821 steps, ~7 min, ~3.8GB under `Answers Default`, until 2026-10-15) | ~500× (`weak_bisimilar`) |
 | **CCS, Alternating Bit Protocol** | | | | |
 | `abp` ≈ one-place buffer | 108 | 3.4s, 0.36GB | 9,914 steps, ~3.8 min, ~4.2GB †; `abp` ≤ buffer alone 6,494 steps, ~3.7 min † | ~65× |
