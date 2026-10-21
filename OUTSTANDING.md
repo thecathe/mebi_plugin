@@ -40,6 +40,17 @@ Decision 2 would change every checked-in proof bound if it went against
   2026-10-11 puts machinery in `theories/` once two examples use it, and
   only CADP does yet. Otherwise, it moves to `examples/CADP/`.
 
+## Next up (agreed, not started)
+
+- **Step messages, phases 1 and 2** (*bug fix* and *optimization*, small; on
+  their own branch). Finish the stubbed printers (`"TODO: explicit bindings"`
+  and the others), show the `with` bindings in the `Info` message, and build
+  every message string lazily, behind a thunk forced only when `Info` is on,
+  so that the bindings cost nothing when it is off. Printing a CADP state
+  allocates ~500x its size (2.5-2.7MB for three processes). Detail:
+  [`doc/future-work.md`](doc/future-work.md), "Step messages". The later
+  phases stay under Future work.
+
 ## CADP, the running example
 
 - **Two processes, glued ≈ layered:** decided, not proved (*limit*): out
@@ -106,7 +117,7 @@ way.
   (decision 3).
 - **Smaller:**
   - replay a derivation tree in one solver step;
-  - step messages: finish the stubbed printers and build them lazily, later exact messages and an optional proof-script file;
+  - step messages, later phases: exact messages, and an optional proof-script file (a *new feature*; see Next up for phases 1 and 2);
   - `Auto`'s mis-estimate on `LawProofs.tau1`;
   - scale the evaluation levers further;
   - the CADP/mCRL2 comparison (see above);
