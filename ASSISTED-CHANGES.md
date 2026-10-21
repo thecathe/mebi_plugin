@@ -9113,6 +9113,34 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-10-21 — `decide-vs-prove.md`: the `Test4` direct row named the wrong goal
+
+**Docs.** On branch `docs/decide-vs-prove-weak-sim-figure`, on Jonah's
+go-ahead ("worth going to fix"). Found while writing seminar notes, and
+repeated by me in a reply before it was caught.
+
+The `Test4` direct row of `doc/decide-vs-prove.md` was headed `p` ≈ `q`
+(`weak_bisimilar`) but quoted "~525k steps predicted", which is the
+prediction for `weak_sim`: 87,480 left transitions to answer, at the
+~6 solver steps a move measured on `Proc` (`TermTests.v`, header). The
+`weak_bisimilar` prediction is about twice that, since each pair has two
+obligations. Beside the normalised row's 61,161 (`weak_bisimilar`) the
+525k looked like the like-for-like figure, and it is not: for `weak_sim`
+the comparison is ~525k against 6,115 steps, for `weak_bisimilar` ~1.05M
+against 61,161. The row now says which goal each figure is for. Neither
+direct figure was run; both stay marked as predictions (†).
+
+No other file changes. The same 525k appears in `TermTests.v`'s header and
+in the 2026-10-03 entry above, where it is correctly attached to the
+`weak_sim` proof under discussion, so they are left alone.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-10-21):** Docs 1 · Bug fix 0 · New feature 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
