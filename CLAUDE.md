@@ -197,11 +197,15 @@ session has them.
 - Commit per completed step. Run `dune fmt` before committing.
 - Gate a commit on the build. A `git commit` chained after a build in one
   command commits a broken tree.
-- Push branches to `fork` (`thecathe/mebi_plugin`) and open PRs there.
-  Never push to `origin` (`dcastrop`): it gets a single PR, when Jonah
-  says. (50 commits reached `origin/main` by mistake on 2026-09-29, from
-  a session whose git setup sent the push there. Before any push, read
-  `git remote -v` and `git branch -vv`, and name the remote explicitly.)
+- Push branches only to the fork (`thecathe/mebi_plugin`) and open PRs
+  there. Never push to the upstream repository (`dcastrop/mebi_plugin`):
+  it gets a single PR, when Jonah says. Remote names differ between
+  clones: in some, `origin` is upstream and the fork is a second remote,
+  `fork`; in others, `origin` is the fork and upstream is not configured
+  at all. Go by the URL, not the name. (50 commits reached `origin/main`
+  by mistake on 2026-09-29, from a session whose git setup sent the push
+  there. Before any push, read `git remote -v` and `git branch -vv`, and
+  name the remote explicitly.)
 - A new capability is flagged and agreed before code (see the top of this
   file).
 
