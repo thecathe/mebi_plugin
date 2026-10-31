@@ -9262,6 +9262,31 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-10-31 — `bench/README.md`: the default suite is seven files, not eight
+
+**Docs.** On branch `docs/bench-readme-default-suite`, at Jonah's request
+("go ahead and make the eight vs seven fix"). Found while setting up an audit
+of the plugin, and traced before it was changed.
+
+The "Running the proof suites" table described the `default` suite as "the six
+`PluginProofs.v` marked `### Success` in `_CoqProject`, plus
+`CCS/PluginProofs.v` and `CCS/LawProofs.v`": eight files. `proofs.sh` runs
+seven. Nothing was commented out or missing. The sentence is from the
+harness's first commit (`20cd2aa`, 2026-10-04), when the CADP proofs were three
+`PluginProofs.v` files (three Proc and three CADP made "six"). The CADP
+restructure of 2026-10-13 (`e9dd143`) made them two files, `MutualExclusion.v`
+and `GluedLayered.v`, which neither match "`PluginProofs.v`" nor make six, and
+the sentence was not updated. The row now lists the seven files, as
+`proofs.sh`'s own header comment already did. The script, and the rest of the
+README, are unchanged ("run 8 at a time" is `-j`'s default).
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-10-31), cont.:** Docs 1 · Bug fix 0 · New feature 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
