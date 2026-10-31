@@ -9236,6 +9236,32 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-10-31 — `CLAUDE.md`: say which remote is which by URL, not by name
+
+**Docs.** On branch `docs/claude-md-remote-names`, at Jonah's request ("clean
+up that now in `CLAUDE.md`"). Found while setting up an audit of the plugin.
+
+The "Conventions" in `CLAUDE.md` said to push to a remote called `fork` and
+never to `origin`. That describes one clone. In the clone on the main
+development host `origin` **is** the fork (`thecathe/mebi_plugin`) and the
+upstream repository is not configured at all, deliberately, so the rule named
+a remote that does not exist there. It now names the two repositories by
+URL, says that remote names differ between clones, and keeps the advice to
+read `git remote -v` and `git branch -vv` and to name the remote explicitly
+before any push. No remote or branch was changed.
+
+The copy of `CLAUDE.md` that reached the upstream repository has the same
+text (read-only fetch of its default branch on 2026-10-31: identical to
+`main` before this change). It is not changed there; that follow-up is
+tracked outside this repository.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-10-31):** Docs 1 · Bug fix 0 · New feature 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
