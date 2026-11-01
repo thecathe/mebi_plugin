@@ -877,7 +877,9 @@ let contains ~(sub : string) (s : string) : bool =
    user error that names the exception and says whose problem it is.
    Exceptions with a registered printer -- Rocq's own errors, tactic
    failures, [MEBI_exn] -- pass through unchanged. *)
-let guard (f : unit -> 'a) : 'a =
+let guard ~(command : string) (f : unit -> 'a) : 'a =
+  Notify.timed ~command
+  @@ fun () ->
   (* The step logic runs inside a tactic ([Proofview.Goal.enter]), whose
      engine wraps an exception raised there: look through that wrapper, or a
      wrapped plugin exception still escapes as an Anomaly (as

@@ -133,5 +133,6 @@ way.
   - the CADP/mCRL2 comparison (see above);
   - `examples/Bisimilarity/_nat_streams.v`, unfinished.
   - `bench/ocaml/fixtures/` is stale (from 2026-10-10).
+  - `MeBi Config Notify`: macOS, and a terminal bell (`doc/future-work.md`, "Notifications").
 - **Set aside on purpose**, so they are not rediscovered as new: listed
   at the end of `doc/future-work.md`.

@@ -318,10 +318,13 @@ It states `weak_bisimilar`; if the two are not bisimilar, nothing is opened. `As
 
 ```
 MeBi Config Reset.                                 (* everything below *)
-MeBi Config Reset [Bounds|Weak|FailIf|Output|Draw].
+MeBi Config Reset [Bounds|Weak|FailIf|Output|Draw|Notify].
 MeBi Config Draw Format TeX|PDF|PNG.               (* what MeBi Draw makes; default PDF *)
 MeBi Config Draw Dir "<dir>".                      (* default ./_diagrams/ *)
 MeBi Config Draw Style "<Component>" "<TikZ options>".
+MeBi Config Notify After <s>.                         (* a desktop notification when a command takes <s> seconds or more; off by default *)
+MeBi Config Notify Off.
+MeBi Config Notify Test.                           (* send one now, to see that it works *)
 MeBi Config Bounds Draw States <n>.                (* most states drawn; default 50 *)
 MeBi Config Bounds Draw Transitions <n>.           (* or most transitions; the last set is the one in force *)
 MeBi Config Bounds Draw Time <s>.                  (* seconds each program may run; default 60 *)
@@ -400,6 +403,18 @@ MeBi Config Solver Answers Default|Greedy|Minimal|Auto.
   - `Flow` hands the breaking to whatever shows the message: Rocq prints text at its printing width (78, or `Set Printing Width`), and a client that lays the boxes out itself can follow its own window. vsrocq shows a `Notice` or `Warning` as text, so in `Flow` those wrap at 78; its `Info` messages (which includes `Result`) are sent to the proof panel as boxes. That panel re-flows them to the pane's width as it is resized, but can leave a message about a character too wide (`doc/limitations.md`, "Output"). Use `Wide` or `Slim` where a fixed width is wanted.
   - It applies to everything the plugin prints: its messages and results, `MeBi Help`, `MeBi Message`, `Debug` and `Divider`, and the errors it raises. It does not apply to Rocq's own messages and errors.
   - `Reset Output` turns wrapping off and resets `Wide` and `Slim`.
+
+### Notification when a long command ends
+
+To leave a long run going and be told when it is over (in a demonstration, say):
+
+```
+MeBi Config Notify Test.        (* send one now, whatever the setting *)
+MeBi Config Notify After 30.    (* announce any command that takes 30 seconds or more *)
+MeBi Config Notify Off.
+```
+
+A `MeBi Run`, `Draw` or `Benchmark` command, or a `MeBi Sim` command (`Solve`, `Step`, `Begin`), that takes at least that long ends with a desktop notification naming it and how long it took, also when it ends with an error. It is off by default, and nothing in MeBi needs it: it runs `notify-send` (the `libnotify` package; `libnotify-bin` on Debian and Ubuntu, and in the dev shell of this repository's flake), which needs a notification server in your desktop session. Where `notify-send` is not on `PATH`, or nothing receives the message, the command finishes as usual and a single warning says why. It does not work over SSH, in a container or on CI, where there is no session to notify, and has not been tried on macOS or Windows. `MeBi Help Config Notify` has the same.
 
 ### Diagnostics
 

@@ -9903,6 +9903,69 @@ repetition.
 
 ---
 
+## 2026-11-01 (cont.) — `MeBi Config Notify`: a desktop notification when a long command ends
+
+**New feature** (a capability the plugin did not have, raised and agreed before
+any code), **Tooling** and **Docs**, with one small **Refactor**. On branch
+`feat/notify`. Jonah wanted a "ping" when a long proof run ends, for
+demonstrations given under vsrocq. The plugin's own scope was the constraint he
+set: opt-in, optional, and nothing the plugin needs; the feature to stay
+self-contained, and not part of his personal configuration.
+
+- **What it does.** `MeBi Config Notify After <s>` makes any command that takes
+  at least `<s>` seconds end with a desktop notification naming it and the
+  time, also when it ends with an error; `Off`, `Reset Notify` and `Config
+  Reset` turn it off, and `Test` sends one at once. Off by default. It runs
+  `notify-send` (no shell involved) if that is on `PATH`; otherwise, or if
+  nothing receives the message, the command is unaffected and one warning says
+  why. (`ced6e83`, `b54d202`, `982d826`.)
+- **Self-contained.** One new library module, `lib/utils/notify.ml` (no Rocq
+  dependency, so `test/tests.exe` runs it), and three small edits in `src/`:
+  `Wrapper.Command.run` times the monadic value it returns, and
+  `Proof_solver.guard` now takes the command's name, which together cover every
+  user command; the grammar, `reset_all` and `MeBi Help` follow the pattern of
+  `Draw`. It does not use `lib/draw` (whose `find_exe` it repeats, 12 lines),
+  because `MeBi Draw` may become a separate package.
+- **A plan that did not survive.** I said the hook would go "where commands are
+  dispatched in `g_mebi.mlg`". There is no such place: it has about twenty
+  separate entries. Hooking each would have been a large edit, so I looked for
+  what they share, found two, and `Notify.timed` ignores a call made inside
+  another so that `Sim Begin`, which runs the bisimilarity check, announces once.
+- **Two things left out of what I first proposed.** The terminal-bell fallback:
+  a bell is a byte written to stdout or stderr, and under vsrocq stdout may be
+  the language server's protocol channel (not checked); it would tell a user in
+  an editor nothing anyway. And `osascript` for macOS, which cannot be tried
+  here. Both are in `doc/future-work.md`. **Added**, not proposed: `Config
+  Notify Test`, so that a demonstration can be checked beforehand.
+- **Refactor.** `Command.run` named each command in one table that feeds both
+  `set_origin` and the notification, in place of the strings in `set_origin`'s
+  match. Same behaviour: the order of the effects is unchanged.
+- **Tooling.** `libnotify` in the flake's dev shell (`de2f629`), so `notify-send`
+  is on `PATH` for `vsrocqtop` under direnv. Checked that the shell provides it
+  (`notify-send 0.8.8`); `flake.lock` is untouched. Optional: nothing needs it.
+- **A mistake the gate caught.** The first commit used `Int.max`, which dune
+  accepts and `make`'s packed build rejects (Rocq's own `Int` has no `max`).
+  `CLAUDE.md` names this class of failure; running `make` before declaring it
+  done found it, and `982d826` fixes it. I had committed the first before that
+  check, so the history holds a commit that builds under dune only.
+- **Verified.** `dune exec test/tests.exe`: 252/252 (28 new checks, a stand-in
+  `notify-send` on `PATH`: off by default, the threshold, an exception
+  re-raised, nesting, a failing and a missing tool, one warning). `dune build`,
+  and `make src/mebi_plugin.cmxs test/rocq/Test.vo` on an exported tree. The
+  five default proof files under `make`: all 27 `Solve` counts and all 14
+  `weak_bisimilar` counts equal `CLAUDE.md`'s baseline. End to end under
+  `rocq compile` with a stand-in and with the real `notify-send` (it popped
+  up; with the tool absent the commands ran as usual, with one warning), and under a
+  real `vsrocqtop` driven over LSP (`Sim Begin`, `Sim Solve` and a failing `Sim
+  Begin` each announced, once). **Not checked:** the full suite forced to `True`
+  and `False` (not a heuristic change), `CCS/LawProofs.v` and the ABP proofs,
+  a VS Code window, a worker process under `proof.delegation`, macOS.
+
+**Session tally (2026-11-01, this entry):** New feature 1 · Tooling 1 · Docs 1 ·
+Refactor 1 · Bug fix 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
