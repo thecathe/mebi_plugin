@@ -98,6 +98,8 @@ module type S = sig
     type t =
       | MakeLTS of rocq_args
       | MakeFSM of rocq_args
+      | DrawLTS of rocq_args * string option
+      | DrawFSM of rocq_args * string option
       | Saturate of rocq_args
       | Minimize of rocq_args
       | Merge of rocq_pair
@@ -120,6 +122,18 @@ module type S = sig
 
     val do_make_fsm
       :  Constrexpr.constr_expr * Libnames.qualid
+      -> Libnames.qualid list
+      -> Model.Bisimilarity.t option M.mm
+
+    val do_draw_lts
+      :  Constrexpr.constr_expr * Libnames.qualid
+      -> string option
+      -> Libnames.qualid list
+      -> Model.Bisimilarity.t option M.mm
+
+    val do_draw_fsm
+      :  Constrexpr.constr_expr * Libnames.qualid
+      -> string option
       -> Libnames.qualid list
       -> Model.Bisimilarity.t option M.mm
 
@@ -749,6 +763,162 @@ module Make (Enc : Encoding.S) :
       M.return None
     ;;
 
+    (** [check_draw_name name] is [()] if [name] is not given, or can name a
+        diagram's files.
+
+        @raise CErrors.UserError if it cannot (raised here). *)
+    let check_draw_name (name : string option) : unit =
+      match name with
+      | Some n when not (Draw_output.valid_name n) ->
+        CErrors.user_err
+          (Pp.str
+             (Printf.sprintf
+                "MeBi Draw: \"%s\" cannot name a diagram's files. Use letters, \
+                 digits, '-', '_' and '.', and do not start with '-' or '.'."
+                n))
+      | _ -> ()
+    ;;
+
+    (** [check_draw_size what (states, transitions)] is [()] if a system of
+        that size is within the draw bound ({!Api.the_draw_config}). It runs
+        before any term is decoded, so that refusing a large system is cheap.
+
+        @raise CErrors.UserError if it is over the bound (raised here). *)
+    let check_draw_size (what : string) ((states, transitions) : int * int)
+      : unit
+      =
+      let over, bound =
+        match !Api.the_draw_config.draw_bounds with
+        | Api.States n -> states > n, Printf.sprintf "%i states" n
+        | Api.Transitions n ->
+          transitions > n, Printf.sprintf "%i transitions" n
+      in
+      if over
+      then
+        CErrors.user_err
+          (Pp.str
+             (Printf.sprintf
+                "MeBi Draw: %s has %i states and %i transitions, over the draw \
+                 bound of %s. LuaTeX's layout slows quickly as a diagram grows \
+                 (about 3 seconds at 50 states, 21 at 100: \
+                 doc/measurements/draw-layout-time.md). Raise the bound with \
+                 [MeBi Config Bounds Draw States <n>] (or [... Draw \
+                 Transitions <n>]), and the time limit with [MeBi Config \
+                 Bounds Draw Time <s>]."
+                what
+                states
+                transitions
+                bound))
+    ;;
+
+    (** [fsm_moves fsm] is the number of moves of [fsm]: what {!Draw.t}'s
+        arrows are before parallel ones are merged. *)
+    let fsm_moves (fsm : FSM.t) : int =
+      Model.EdgeMap.fold
+        (fun _ am acc ->
+          Model.Action.Map.fold
+            (fun _ dests acc -> acc + Model.State.Set.cardinal dests)
+            am
+            acc)
+        fsm.edges
+        0
+    ;;
+
+    (** [draw ~kind ~term ~name d] writes [d]'s files and makes what
+        [MeBi Config Draw Format] asks for, as {!Draw_output} does, warning
+        of each program that could not do its part, and says what it wrote.
+        [kind] ([LTS] or [FSM]) and [term] (the system's term, printed) name
+        the files, unless [name] is given.
+
+        @raise CErrors.UserError if a file cannot be written (raised here). *)
+    let draw
+          ~(kind : string)
+          ~(term : string)
+          ~(name : string option)
+          (d : Draw.t)
+      : unit
+      =
+      let c : Api.draw_config = !Api.the_draw_config in
+      let name : string =
+        match name with
+        | Some n -> n
+        | None ->
+          Draw_output.name_of_term ~kind:(String.lowercase_ascii kind) term
+      in
+      let written : string list =
+        try Draw_output.write ~dir:c.draw_dir ~name ~style:c.draw_style d with
+        | Sys_error e ->
+          CErrors.user_err
+            (Pp.str
+               (Printf.sprintf
+                  "MeBi Draw: could not write the diagram into %s: %s. Choose \
+                   another directory with [MeBi Config Draw Dir \"<dir>\"]."
+                  c.draw_dir
+                  e))
+      in
+      let made, problems =
+        Draw_output.render
+          ~format:c.draw_format
+          ~timeout:(Float.of_int c.draw_time)
+          ~dir:c.draw_dir
+          ~name
+      in
+      List.iter
+        (fun p ->
+          Logger.warning
+            (String.capitalize_ascii (Draw_output.describe_problem p)))
+        problems;
+      Logger.notice
+        (Printf.sprintf
+           "(Diagram of the %s of %s: %i states, %i transitions. Wrote %s.)"
+           kind
+           term
+           (List.length d.nodes)
+           (List.length d.edges)
+           (String.concat ", " (written @ made)))
+    ;;
+
+    (* See the [.mli]. *)
+    let do_draw_lts
+          ((x, primary_lts) : Constrexpr.constr_expr * Libnames.qualid)
+          (name : string option)
+          refs
+      : Model.Bisimilarity.t option M.mm
+      =
+      Logger.trace __FUNCTION__;
+      let open M.Syntax in
+      check_draw_name name;
+      Logger.info "Extracting LTS to draw...";
+      let* the_lts = build_lts primary_lts x refs in
+      check_draw_size
+        "the LTS"
+        ( Model.State.Set.cardinal the_lts.states
+        , Model.Transition.Set.cardinal the_lts.transitions );
+      let* t = user_term (x, primary_lts) in
+      draw ~kind:"LTS" ~term:t ~name (Decode.Diagram.lts the_lts);
+      M.return None
+    ;;
+
+    (* See the [.mli]. *)
+    let do_draw_fsm
+          ((x, primary_lts) : Constrexpr.constr_expr * Libnames.qualid)
+          (name : string option)
+          refs
+      : Model.Bisimilarity.t option M.mm
+      =
+      Logger.trace __FUNCTION__;
+      let open M.Syntax in
+      check_draw_name name;
+      Logger.info "Making FSM to draw (from extracted LTS)...";
+      let* the_fsm = build_fsm primary_lts x refs in
+      check_draw_size
+        "the FSM"
+        (Model.State.Set.cardinal the_fsm.states, fsm_moves the_fsm);
+      let* t = user_term (x, primary_lts) in
+      draw ~kind:"FSM" ~term:t ~name (Decode.Diagram.fsm the_fsm);
+      M.return None
+    ;;
+
     (* See the [.mli]. *)
     let do_saturate (x, primary_lts) refs : Model.Bisimilarity.t option M.mm =
       Logger.trace __FUNCTION__;
@@ -796,6 +966,8 @@ module Make (Enc : Encoding.S) :
     type t =
       | MakeLTS of rocq_args
       | MakeFSM of rocq_args
+      | DrawLTS of rocq_args * string option
+      | DrawFSM of rocq_args * string option
       | Saturate of rocq_args
       | Minimize of rocq_args
       | Merge of rocq_pair
@@ -1287,6 +1459,8 @@ module Make (Enc : Encoding.S) :
         match x with
         | MakeLTS a -> set_origin "Run LTS" [ a ] refs
         | MakeFSM a -> set_origin "Run FSM" [ a ] refs
+        | DrawLTS (a, _) -> set_origin "Draw LTS" [ a ] refs
+        | DrawFSM (a, _) -> set_origin "Draw FSM" [ a ] refs
         | Saturate a -> set_origin "Run Saturate" [ a ] refs
         | Minimize a -> set_origin "Run Minimize" [ a ] refs
         | Merge { a; b } -> set_origin "Run Merge" [ a; b ] refs
@@ -1298,6 +1472,8 @@ module Make (Enc : Encoding.S) :
       match x with
       | MakeLTS args -> do_make_lts args refs
       | MakeFSM args -> do_make_fsm args refs
+      | DrawLTS (args, name) -> do_draw_lts args name refs
+      | DrawFSM (args, name) -> do_draw_fsm args name refs
       | Saturate args -> do_saturate args refs
       | Minimize args -> do_minimize args refs
       | Merge args -> do_merge args refs

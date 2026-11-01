@@ -9358,6 +9358,85 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-11-01 (cont.) — `MeBi Draw`: an LTS or FSM as a TikZ diagram
+
+**New feature**, raised before it was written. Jonah asked whether state
+diagrams of the dumped LTSs and FSMs could be generated for LaTeX, and
+possibly Forester, and for the feasibility to be looked at first. The
+research found no existing OCaml route and these options: Graphviz DOT then
+`dot2tex` (needs Python and Graphviz, neither on the host; upstream
+unmaintained), or LuaTeX's own `graphdrawing` library, which needs nothing
+else. Jonah then chose commands inside the plugin, for coffee-machine-sized
+systems, with the size bound configurable, and asked for two things beyond
+the plan: the bound should be states **or** transitions, as `Bounds As Num`
+is, and the look of each part (arrows, labels, states) should be
+configurable. Forester was set aside.
+
+What was built, on branch `feat/draw-lts` (seven commits, listed below, and this entry):
+
+- `lib/draw` (new, plain OCaml, no `rocq-runtime`): `Draw_style` (ten
+  components, each a TikZ style with a built-in default followed by the
+  user's options), `Draw` (the picture, as TikZ named styles only, laid out
+  by the layered layout), `Draw_output` (writes `<name>.tikz`,
+  `<name>.style.tikz`, `<name>.tex`; runs `lualatex` and `pdftocairo` or
+  `gs` as child processes killed at a time limit; a missing tool, failure
+  or timeout is a value, not an exception).
+- `MeBi Draw LTS|FSM`, `MeBi Config Draw Format|Dir|Style`,
+  `MeBi Config Bounds Draw States|Transitions|Time`, `MeBi Config Reset
+  Draw`, `MeBi Help Draw`, `MeBi Help Config Draw`. A system over the
+  bound (50 states) is refused before any term is decoded.
+- **Refactor**, its own commit: `Decode.Plain` numbered states and listed an
+  FSM's moves inline; both are functions now so that a diagram numbers its
+  states as the text dump does. The plain-text LTS and FSM of
+  `examples/CoffeeMachineSimple.v` are byte-identical before and after.
+
+Checked: `dune build` (which runs `Test.v`), `make` of the plugin and
+`Test.v`, `scripts/check_module_lists.py`, and `dune exec test/tests.exe`:
+114 -> 169 tests (171 with a rasteriser on `PATH`), including a real
+`lualatex` compile of a diagram with every feature, of one with a style
+TeX rejects, and (with Ghostscript on `PATH`) a PNG. `Test.v` gets a `Draw`
+module; each `Fail` was checked for its reason by running it without the
+`Fail`. The real coffee machine was drawn through the plugin and looked at.
+**Not run:** the proof suites, since nothing here is read by `lib/model` or
+the solver. **Not tested:** Forester (set aside; unverified whether its
+`\tex` can use `graphdrawing`, which needs LuaTeX), LaTeX engines or TeX
+Live versions other than 2025, and any system above about 150 states.
+
+**What went wrong, and was corrected:**
+- The `Stdlib.Option` trap that `CLAUDE.md` already documents: the library
+  built and passed under dune and failed under `make` ("Unbound value
+  Option.value"). Found by running `make`, fixed in its own commit
+  (`fix(draw)`), not folded into the first.
+- Timing figures quoted before they were re-measured. The numbers in the
+  first report came from a throwaway prototype whose markup differed from
+  what the plugin writes (60 states: 8.1 s then, 3.4 s now). They were
+  re-measured with the plugin's own output and the code, help and README
+  were corrected (`doc/measurements/draw-layout-time.md`). The first report
+  also guessed that a memory cap had killed a 150-state run; the re-run
+  needed 219MB, and finished in 88 s. It is time that limits it.
+- Two defaults were chosen by looking at the coffee machine, not by
+  argument: the bend on arrows between a pair of states in both directions
+  (they overlapped as one line; `TwoWay`, in its own commit), and the layout
+  spacing, which was *not* changed, because more spacing did not clear the
+  collisions at the top of the picture. Those collisions remain: they are
+  the layered layout's, and the picture is only a draft where many arrows
+  cross.
+
+Known limits, in `doc/future-work.md`: past the bound the way on is
+Graphviz and fixed coordinates (which would also suit a plain-`latex`
+consumer such as, probably, Forester); labels are printed as their Rocq
+term (`(Some (Insert ten))`), with no trimming of the `Some`; a state's number
+is not in its box.
+
+Commits: `0662a44` library, `9614312` refactor, `5c91fcd` TwoWay,
+`1dbcca3` Option fix, `b5a7dda` commands, `6b6e221` docs, `7132178` PNG test.
+
+**Session tally (2026-11-01, this entry):** New feature 1 · Refactor 1 ·
+Docs 1 · Bug fix 0 (the `Option` slip was in code not yet released) ·
+Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

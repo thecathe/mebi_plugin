@@ -1,0 +1,11 @@
+; Plain OCaml, like lib/utils and lib/model: no rocq-runtime, so test/ links it
+; without a Rocq runtime. Only unix, to run lualatex and a rasteriser as child
+; processes.
+(library
+ (name draw)
+ (public_name rocq-mebi.draw)
+ (libraries unix)
+ (modules draw_style draw draw_output)
+ (wrapped false))
+
+(include_subdirs no)

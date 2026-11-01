@@ -73,6 +73,20 @@ module type S = sig
         states' terms. [detail] adds nothing. Raises nothing. *)
     val result : detail:bool -> result -> string
   end
+
+  (** Diagrams of an LTS or FSM ([MeBi Draw]), with each state and label as
+      its Rocq term printed. A state has the number it has in the
+      {!Plain} text of the same system, and a silent label is {!Draw.Silent}. *)
+  module Diagram : sig
+    (** [lts x] is the LTS [x] as a diagram. Each arrow is a transition.
+        Raises {!Bi_encoding.S.CannotDecode} if an encoding stands for no term
+        (propagated). *)
+    val lts : lts -> Draw.t
+
+    (** [fsm x] is the FSM [x] as a diagram. Each arrow is one move, as
+        {!Plain.fsm} lists them. Raises as {!lts}. *)
+    val fsm : fsm -> Draw.t
+  end
 end
 
 module Make
@@ -565,6 +579,17 @@ module Make
         init
     ;;
 
+    (** [number_states states] numbers [states] from 0, in their order. The
+        plain-text dump and {!Diagram} number states the same way, so a state
+        has the same number in a diagram as in the dump of the same system. *)
+    let number_states (states : Model.State.Set.t) : int SMap.t =
+      Model.State.Set.fold
+        (fun s (m, i) -> SMap.add s i m, i + 1)
+        states
+        (SMap.empty, 0)
+      |> fst
+    ;;
+
     (** [tables states labels] numbers [states] and [labels] in order, and
         is their tables' lines with the two numberings. *)
     let tables
@@ -573,12 +598,7 @@ module Make
           (labels : Model.Label.t list)
       : string list * int SMap.t * int LMap.t
       =
-      let sidx, _ =
-        Model.State.Set.fold
-          (fun s (m, i) -> SMap.add s i m, i + 1)
-          states
-          (SMap.empty, 0)
-      in
+      let sidx = number_states states in
       let lidx, _ =
         List.fold_left
           (fun (m, i) l -> if LMap.mem l m then m, i else LMap.add l i m, i + 1)
@@ -659,22 +679,25 @@ module Make
          @ moves "transitions" edges)
     ;;
 
+    (** [fsm_triples x] is every move of the FSM [x], as [(from, action, to)].
+    *)
+    let fsm_triples (x : Model.FSM.t)
+      : (Model.State.t * Model.Action.t * Model.State.t) list
+      =
+      Model.EdgeMap.fold
+        (fun from am acc ->
+          Model.Action.Map.fold
+            (fun (a : Model.Action.t) dests acc ->
+              Model.State.Set.fold (fun d acc -> (from, a, d) :: acc) dests acc)
+            am
+            acc)
+        x.edges
+        []
+    ;;
+
     (* See the [.mli]. *)
     let fsm ~(detail : bool) (x : Model.FSM.t) : string =
-      let triples =
-        Model.EdgeMap.fold
-          (fun from am acc ->
-            Model.Action.Map.fold
-              (fun (a : Model.Action.t) dests acc ->
-                Model.State.Set.fold
-                  (fun d acc -> (from, a, d) :: acc)
-                  dests
-                  acc)
-              am
-              acc)
-          x.edges
-          []
-      in
+      let triples = fsm_triples x in
       let labels =
         Model.Label.Set.elements x.alphabet
         @ List.map (fun (_, (a : Model.Action.t), _) -> a.label) triples
@@ -737,6 +760,77 @@ module Make
           :: classes x.bisim_states)
          @ ("classes with states of one system:" :: classes x.non_bisim_states)
         )
+    ;;
+  end
+
+  (* See the [.mli]. *)
+  module Diagram = struct
+    (** [build ~init ~terminals ~info states moves] is the diagram of a system
+        with [states], and [moves] as [(from, label, to)]. A state's number is
+        {!Plain.number_states}'s. A label is silent if the model says so,
+        and otherwise is its term, printed. *)
+    let build
+          ~(init : Model.State.t option)
+          ~(terminals : Model.State.Set.t)
+          ~(info : Model.Info.t)
+          (states : Model.State.Set.t)
+          (moves : (Model.State.t * Model.Label.t * Model.State.t) list)
+      : Draw.t
+      =
+      let sidx : int Plain.SMap.t = Plain.number_states states in
+      let id (s : Model.State.t) : int = Plain.SMap.find s sidx in
+      let is_init (s : Model.State.t) : bool =
+        match init with
+        | Some i -> Int.equal (Model.State.compare i s) 0
+        | None -> false
+      in
+      { nodes =
+          Plain.SMap.bindings sidx
+          |> List.map (fun ((s : Model.State.t), i) : Draw.node ->
+            { id = i
+            ; text = Plain.term s.base
+            ; initial = is_init s
+            ; terminal = Model.State.Set.mem s terminals
+            })
+      ; edges =
+          List.map
+            (fun ((f : Model.State.t), (l : Model.Label.t), (d : Model.State.t))
+              : Draw.edge ->
+              { src = id f
+              ; label =
+                  (if l.is_silent = Some true
+                   then Draw.Silent
+                   else Draw.Label (Plain.term l.base))
+              ; dst = id d
+              })
+            moves
+      ; incomplete =
+          (match info.meta with
+           | Some { is_complete = false; _ } -> true
+           | _ -> false)
+      }
+    ;;
+
+    (* See the [.mli]. *)
+    let lts (x : Model.LTS.t) : Draw.t =
+      build
+        ~init:x.init
+        ~terminals:x.terminals
+        ~info:x.info
+        x.states
+        (Model.Transition.Set.elements x.transitions
+         |> List.map (fun (t : Model.Transition.t) -> t.from, t.label, t.goto))
+    ;;
+
+    (* See the [.mli]. *)
+    let fsm (x : Model.FSM.t) : Draw.t =
+      build
+        ~init:x.init
+        ~terminals:x.terminals
+        ~info:x.info
+        x.states
+        (Plain.fsm_triples x
+         |> List.map (fun (f, (a : Model.Action.t), d) -> f, a.label, d))
     ;;
   end
 end

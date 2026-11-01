@@ -7,6 +7,7 @@
 (* See the [.mli]. *)
 let topics : string list list =
   [ [ "Run" ]
+  ; [ "Draw" ]
   ; [ "Sim" ]
   ; [ "Benchmark" ]
   ; [ "Premises" ]
@@ -18,6 +19,7 @@ let topics : string list list =
   ; [ "Config"; "FailIf" ]
   ; [ "Config"; "Solver" ]
   ; [ "Config"; "Output" ]
+  ; [ "Config"; "Draw" ]
   ]
 ;;
 
@@ -152,7 +154,7 @@ let text : string list -> string option = function
          !Premise_search.max_range)
   | [ "Config" ] ->
     Some
-      "MeBi Config Reset [Bounds | Weak | FailIf | Output].\n\n\
+      "MeBi Config Reset [Bounds | Weak | FailIf | Output | Draw].\n\n\
        Settings, each with its own topic:\n\
       \  MeBi Help Config Bounds.     how big an LTS (and its saturation) may \
        get\n\
@@ -161,7 +163,9 @@ let text : string list -> string option = function
       \  MeBi Help Config FailIf.     which outcomes are errors, not warnings\n\
       \  MeBi Help Config Solver.     the proof search's cofix strategy\n\
       \  MeBi Help Config Output.     which messages are shown, and the \
-       results' format (plain text by default)"
+       results' format (plain text by default)\n\
+      \  MeBi Help Config Draw.       what MeBi Draw makes, how big, and how \
+       it looks"
   | [ "Config"; "Bounds" ] ->
     let lo, hi = Api.mb_per_extracted_state in
     Some
@@ -171,6 +175,7 @@ let text : string list -> string option = function
           MeBi Config Bounds Saturation <n>.\n\
           MeBi Config Bounds Game <n>.\n\
           MeBi Config Bounds Memory <mb>.\n\
+          MeBi Config Bounds Draw States <n> | Transitions <n> | Time <s>.\n\
           MeBi Config Premise Depth <n>.\n\
           MeBi Config Premise Range <n>.\n\
           MeBi Config Reset Bounds.\n\n\
@@ -181,7 +186,8 @@ let text : string list -> string option = function
           Logging the result (Output \"Result\" / \"DecodeResults\" / \
           \"DumpResults\") costs far more, ~0.65MB per state. For the \
           saturation bound see MeBi Help Config Bounds Saturation; for the \
-          premise search depth and range, MeBi Help Premises.\n\n\
+          premise search depth and range, MeBi Help Premises; for how large a \
+          diagram MeBi Draw will draw, MeBi Help Config Draw.\n\n\
           Bounds Memory stops a command, with an error, once the whole Rocq \
           process uses more than <mb> megabytes (its resident memory and swap \
           on Linux). Now: %s. The default is 75%% of the machine's RAM, or \
@@ -333,6 +339,80 @@ let text : string list -> string option = function
        it and keeps the rest. DumpResults (off by default) writes each FSM and \
        result, in the format set, into ./_dumps/, for debugging: on a large \
        FSM that is hundreds of MB and many seconds a command."
+  | [ "Draw" ] ->
+    Some
+      "MeBi Draw LTS <term> Using <lts> [As \"<name>\"] [<lts>...].\n\
+       MeBi Draw FSM <term> Using <lts> [As \"<name>\"] [<lts>...].\n\n\
+       Draw the LTS (or FSM) of <term> as a TikZ picture, laid out by LuaTeX's \
+       graphdrawing library (a layered layout), into the directory set by MeBi \
+       Config Draw Dir (./_diagrams/ by default), as three files: <name>.tikz, \
+       the picture, to \\input into a LuaLaTeX document; <name>.style.tikz, \
+       its styles; and <name>.tex, a document that draws the two. With MeBi \
+       Config Draw Format PDF (the default) it also runs lualatex to make \
+       <name>.pdf, and with PNG a PNG of that, by pdftocairo or gs. A program \
+       that is missing, fails, or runs past the time limit is warned about, \
+       and the files made so far are kept.\n\n\
+       <name> is the one given by As (letters, digits, - _ and . only), else \
+       one made from the term, such as lts-old; files of that name are \
+       replaced. States are numbered as in the plain-text dump of the same \
+       system. A silent label is drawn as tau (see MeBi Help Config Weak), the \
+       two arrows between a pair of states in opposite directions are bent \
+       apart, and an LTS that is incomplete says so under the picture.\n\n\
+       A system over the draw bound is refused: the layout's time grows \
+       quickly with its size. For the bound, the formats and the look of each \
+       part of the picture, see MeBi Help Config Draw."
+  | [ "Config"; "Draw" ] ->
+    let c : Api.draw_config = Api.draw_config_default () in
+    Some
+      (Printf.sprintf
+         "MeBi Config Draw Format TeX | PDF | PNG.\n\
+          MeBi Config Draw Dir \"<dir>\".\n\
+          MeBi Config Draw Style \"<Component>\" \"<TikZ options>\".\n\
+          MeBi Config Bounds Draw States <n>.\n\
+          MeBi Config Bounds Draw Transitions <n>.\n\
+          MeBi Config Bounds Draw Time <s>.\n\
+          MeBi Config Reset Draw.\n\n\
+          How MeBi Draw draws (MeBi Help Draw). Defaults: %s.\n\n\
+          Bounds: a system with more states (or, if set, transitions) than the \
+          bound is refused, and, as with Bounds As Num, the last of States and \
+          Transitions set is the one in force. LuaTeX's layout took about 3 \
+          seconds at 50 states, 21 at 100 and 88 at 150 (one synthetic graph \
+          of each size, about 1.4 transitions a state; it is time that limits \
+          it, not memory: doc/measurements/draw-layout-time.md). Time is how \
+          long each program (lualatex, then pdftocairo or gs) may run before \
+          it is killed, %i seconds by default. Reset Bounds restores the \
+          bounds and the time limit; Reset Draw restores everything here.\n\n\
+          Style: the picture names a TikZ style for each part and defines \
+          none; <name>.style.tikz defines them, from a default for each \
+          component and then your options, which come after and so win. An \
+          empty string restores a component's default. Initial and Terminal \
+          build on State, SilentEdge on Edge, and SilentLabel on Label. Layout \
+          is what \\graph gets, so it is the place for spacing. For example:\n\
+         \  MeBi Config Draw Style \"State\" \"fill=yellow!20\".\n\
+         \  MeBi Config Draw Style \"Edge\" \"draw=blue\".\n\
+          The defaults:\n\
+          %s\n\n\
+          To style a picture by hand, leave <name>.style.tikz out and define \
+          the same names in your own document (Layout's under graphs/, as \
+          graphs/mebi layout/.style=...). The libraries and LuaLaTeX it needs \
+          are listed at the top of the style file."
+         (Printf.sprintf
+            "format %s, directory %s, at most %s"
+            (Draw_output.format_name c.draw_format)
+            c.draw_dir
+            (match c.draw_bounds with
+             | Api.States n -> Printf.sprintf "%i states" n
+             | Api.Transitions n -> Printf.sprintf "%i transitions" n))
+         Api.default_draw_time
+         (String.concat
+            "\n"
+            (List.map
+               (fun comp ->
+                 Printf.sprintf
+                   "  %-12s %s"
+                   (Draw_style.name comp)
+                   (Draw_style.default comp))
+               Draw_style.components)))
   | _ -> None
 ;;
 

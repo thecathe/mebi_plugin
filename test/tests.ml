@@ -1559,6 +1559,384 @@ let test_dump_names () : unit =
   Utils.FileWriter.set_loc_provider (fun () -> "Unknown Location")
 ;;
 
+(* ------------------------------------------------------------------ *)
+(* Diagrams ([lib/draw]).                                               *)
+
+let check_string (name : string) (expected : string) (actual : string) : unit =
+  incr total;
+  if String.equal expected actual
+  then Printf.printf "  ok    %s\n" name
+  else (
+    incr failures;
+    Printf.printf
+      "  FAIL  %s\n--- expected\n%s\n--- got\n%s\n---\n"
+      name
+      expected
+      actual)
+;;
+
+(** [contains ~sub s] is whether [sub] occurs in [s]. *)
+let contains ~(sub : string) (s : string) : bool =
+  let n = String.length sub in
+  let rec go i =
+    i + n <= String.length s
+    && (String.equal (String.sub s i n) sub || go (i + 1))
+  in
+  go 0
+;;
+
+(** A diagram with every kind of thing in it: an initial and a terminal
+    state, two arrows between one pair, a silent one, a loop, an arrow back,
+    and characters TeX reads as something else. *)
+let a_diagram : Draw.t =
+  { nodes =
+      [ { id = 2; text = "Done"; initial = false; terminal = true }
+      ; { id = 0; text = "(Idle, 0)"; initial = true; terminal = false }
+      ; { id = 1; text = "Brew_1"; initial = false; terminal = false }
+      ]
+  ; edges =
+      [ { src = 0; label = Label "insert"; dst = 1 }
+      ; { src = 1; label = Silent; dst = 2 }
+      ; { src = 0; label = Label "select"; dst = 1 }
+      ; { src = 1; label = Label "tick, tock"; dst = 1 }
+      ; { src = 2; label = Label "serve"; dst = 0 }
+      ; { src = 0; label = Label "insert"; dst = 1 }
+      ]
+  ; incomplete = true
+  }
+;;
+
+let test_draw_escape () : unit =
+  check_string
+    "special characters print as themselves"
+    {|a\_b \& 50\% \{x\} \textless{}y\textgreater{} \textbar{} \textasciitilde{} \textasciicircum{} \textbackslash{} -{}- \#\$|}
+    (Draw.escape "a_b & 50% {x} <y> | ~ ^ \\ -- #$");
+  check_string
+    "line breaks and tabs become spaces"
+    "a b c"
+    (Draw.escape "a\nb\tc")
+;;
+
+let test_draw_merge () : unit =
+  let merged = Draw.merge a_diagram.edges in
+  check_int "parallel arrows are one" 4 (List.length merged);
+  check
+    "labels keep their order, without repeats"
+    true
+    (List.exists
+       (fun (s, d, ls) ->
+         s = 0 && d = 1 && ls = [ Draw.Label "insert"; Draw.Label "select" ])
+       merged);
+  check
+    "sorted by source, then target"
+    true
+    (List.map (fun (s, d, _) -> s, d) merged = [ 0, 1; 1, 1; 1, 2; 2, 0 ])
+;;
+
+let test_draw_picture () : unit =
+  check_string
+    "the picture"
+    {|% MeBi diagram: the states, then the arrows. Styles are named, not set,
+% here: see the style file.
+\begin{tikzpicture}[>=Stealth, every edge quotes/.style={mebi label}]
+  \graph[mebi layout, nodes={mebi state}, edges={mebi edge}]{
+    s0[as={(Idle, 0)}, mebi initial];
+    s1[as={Brew\_1}];
+    s2[as={Done}, mebi terminal];
+    s0 ->[mebi edge, "{insert\\ select}"] s1;
+    s1 ->[mebi silent edge, "{$\tau$}"] s2;
+    s2 ->[mebi edge, "{serve}"] s0;
+  };
+  \path (s1) edge[mebi edge, mebi loop, "{tick, tock}"] (s1);
+  \node[mebi caption, anchor=north] at (current bounding box.south) {Incomplete: some states or transitions may be missing.};
+\end{tikzpicture}
+|}
+    (Draw.picture a_diagram);
+  check
+    "a complete diagram has no caption"
+    false
+    (contains
+       ~sub:"mebi caption"
+       (Draw.picture { a_diagram with incomplete = false }));
+  check
+    "an empty diagram says so, and draws no graph"
+    true
+    (let p = Draw.picture { nodes = []; edges = []; incomplete = false } in
+     contains ~sub:"Empty: no states." p && not (contains ~sub:"\\graph" p));
+  (* 0 and 1 have an arrow each way, and 1 has one on to 2. *)
+  let pair : Draw.t =
+    { nodes =
+        List.map
+          (fun id : Draw.node ->
+            { id; text = string_of_int id; initial = false; terminal = false })
+          [ 0; 1; 2 ]
+    ; edges =
+        [ { src = 0; label = Label "a"; dst = 1 }
+        ; { src = 1; label = Label "b"; dst = 0 }
+        ; { src = 1; label = Label "c"; dst = 2 }
+        ; { src = 2; label = Label "d"; dst = 2 }
+        ]
+    ; incomplete = false
+    }
+  in
+  let lines = String.split_on_char '\n' (Draw.picture pair) in
+  let line prefix = List.find (contains ~sub:prefix) lines in
+  check
+    "arrows with one back between the same states are both bent"
+    true
+    (contains ~sub:"mebi two-way" (line "s0 ->")
+     && contains
+          ~sub:"mebi two-way"
+          (line "s1 ->[mebi edge, mebi two-way, \"{b}\"]"));
+  check
+    "an arrow on its own is not"
+    false
+    (contains ~sub:"mebi two-way" (line "\"{c}\""));
+  check
+    "nor is a state's arrow to itself"
+    false
+    (contains ~sub:"mebi two-way" (line "\"{d}\""))
+;;
+
+let test_draw_style () : unit =
+  let open Draw_style in
+  let default = tikzset empty in
+  check
+    "layout is defined where \\graph looks for it"
+    true
+    (contains
+       ~sub:
+         "graphs/mebi layout/.style={layered layout, level distance=16mm, \
+          sibling distance=8mm}"
+       default);
+  check
+    "initial and terminal states build on the state style"
+    true
+    (contains ~sub:"mebi initial/.style={mebi state, very thick" default
+     && contains ~sub:"mebi terminal/.style={mebi state, double}" default);
+  check
+    "a silent edge draws its label in the silent label style"
+    true
+    (contains ~sub:"every edge quotes/.style={mebi silent label}" default);
+  check
+    "every component is defined, once"
+    true
+    (List.for_all
+       (fun c ->
+         let def = Printf.sprintf "%s/.style={" (use c) in
+         let rec count from acc =
+           match String.index_from_opt default from def.[0] with
+           | None -> acc
+           | Some i ->
+             let acc =
+               if
+                 i + String.length def <= String.length default
+                 && String.equal (String.sub default i (String.length def)) def
+               then acc + 1
+               else acc
+             in
+             count (i + 1) acc
+         in
+         count 0 0 = 1)
+       components);
+  let styled = set State "fill=yellow!20" empty in
+  check
+    "the user's options follow the default's, so they win"
+    true
+    (contains ~sub:"inner sep=3pt, fill=yellow!20}" (tikzset styled));
+  check_string
+    "the user's options are read back"
+    "fill=yellow!20"
+    (get State styled);
+  check
+    "a component set after another leaves it alone"
+    true
+    (get State (set Edge "red" styled) = "fill=yellow!20");
+  check_string
+    "a blank setting clears it"
+    default
+    (tikzset (set State "  " styled));
+  check "a style that is not set is the default" true (is_default empty);
+  check "a style that is set is not" false (is_default styled);
+  check_string
+    "the same style is the same text"
+    (tikzset styled)
+    (tikzset styled);
+  check
+    "component names are not case-sensitive"
+    true
+    (of_string "silentedge" = Some Silent_edge && of_string "nope" = None);
+  check "balanced braces" true (balanced "a={b}, c={d={e}}");
+  check "unbalanced braces" false (balanced "a={b");
+  check "closing before opening" false (balanced "}{")
+;;
+
+let test_draw_names () : unit =
+  check "a plain name is valid" true (Draw_output.valid_name "coffee-1.v2_x");
+  check "a name with a space is not" false (Draw_output.valid_name "a b");
+  check "a name with a colon is not" false (Draw_output.valid_name "a:b");
+  check
+    "a name starting with - would be an option"
+    false
+    (Draw_output.valid_name "-x");
+  check "a hidden name is not valid" false (Draw_output.valid_name ".x");
+  check "an empty name is not" false (Draw_output.valid_name "");
+  check_string
+    "a name from a term"
+    "lts-idle-0"
+    (Draw_output.name_of_term ~kind:"lts" "(Idle, 0)");
+  check_string
+    "a term with nothing to name it by"
+    "fsm"
+    (Draw_output.name_of_term ~kind:"fsm" "()");
+  check
+    "a name from a long term is cut"
+    true
+    (String.length (Draw_output.name_of_term ~kind:"lts" (String.make 200 'a'))
+     <= 44);
+  check
+    "every name from a term is valid"
+    true
+    (Draw_output.valid_name
+       (Draw_output.name_of_term ~kind:"lts" "\xe2\x88\x80 x, a_b -> c"))
+;;
+
+let test_draw_run () : unit =
+  let tmp = Filename.get_temp_dir_name () in
+  check
+    "an exit code is passed on"
+    true
+    (Draw_output.run ~timeout:5. ~dir:tmp [ "sh"; "-c"; "exit 3" ]
+     = Draw_output.Exited 3);
+  check
+    "success is exit 0"
+    true
+    (Draw_output.run ~timeout:5. ~dir:tmp [ "sh"; "-c"; "exit 0" ]
+     = Draw_output.Exited 0);
+  check
+    "a program that does not exist exits 127"
+    true
+    (Draw_output.run ~timeout:5. ~dir:tmp [ "no-such-program-mebi" ]
+     = Draw_output.Exited 127);
+  check
+    "it runs in the directory it is given"
+    true
+    (let dir = Filename.temp_dir "mebi-draw" "" in
+     let r =
+       Draw_output.run ~timeout:5. ~dir [ "sh"; "-c"; "echo x > here.txt" ]
+     in
+     let made = Sys.file_exists (Filename.concat dir "here.txt") in
+     (try Sys.remove (Filename.concat dir "here.txt") with Sys_error _ -> ());
+     Sys.rmdir dir;
+     r = Draw_output.Exited 0 && made);
+  let t0 = Unix.gettimeofday () in
+  let r = Draw_output.run ~timeout:0.3 ~dir:tmp [ "sh"; "-c"; "sleep 20" ] in
+  let took = Unix.gettimeofday () -. t0 in
+  check "a program past its time limit is killed" true (r = Draw_output.Killed);
+  check "and not waited for" true (took < 5.)
+;;
+
+let test_draw_files () : unit =
+  let root = Filename.temp_dir "mebi-draw" "" in
+  let dir = Filename.concat root "nested/dir" in
+  let paths =
+    Draw_output.write ~dir ~name:"d" ~style:Draw_style.empty a_diagram
+  in
+  let read p = In_channel.with_open_text p In_channel.input_all in
+  check_int "three files" 3 (List.length paths);
+  check
+    "all there, in the directory given"
+    true
+    (List.for_all
+       (fun p -> Sys.file_exists p && String.equal (Filename.dirname p) dir)
+       paths);
+  check_string "the picture" (Draw.picture a_diagram) (read (List.nth paths 0));
+  check_string
+    "the style file"
+    (Draw_style.tikzset Draw_style.empty)
+    (read (List.nth paths 1));
+  check
+    "the document draws the other two by name"
+    true
+    (let w = read (List.nth paths 2) in
+     contains ~sub:"\\input{d.style.tikz}" w
+     && contains ~sub:"\\input{d.tikz}" w);
+  check
+    "TeX asks for nothing more"
+    true
+    (Draw_output.render ~format:Tex ~timeout:5. ~dir ~name:"d" = ([], []));
+  let path = Sys.getenv_opt "PATH" in
+  Unix.putenv "PATH" "";
+  let made, problems =
+    Draw_output.render ~format:Pdf ~timeout:5. ~dir ~name:"d"
+  in
+  Unix.putenv "PATH" (Option.value path ~default:"");
+  check "with no lualatex there is no PDF" true (made = []);
+  check
+    "and it says what is missing"
+    true
+    (match problems with
+     | [ Draw_output.Missing_tool { tools = [ "lualatex" ]; _ } ] -> true
+     | _ -> false);
+  (* The rest compiles the diagram, so it needs LuaLaTeX; a machine without it
+     skips them rather than failing. *)
+  (match Draw_output.find_exe "lualatex" with
+   | None -> print_endline "  skip  the diagram compiles (no lualatex on PATH)"
+   | Some _ ->
+     let made, problems =
+       Draw_output.render ~format:Pdf ~timeout:120. ~dir ~name:"d"
+     in
+     check "the diagram compiles" true (problems = []);
+     check
+       "to a PDF, which is kept"
+       true
+       (made = [ Filename.concat dir "d.pdf" ] && Sys.file_exists (List.hd made));
+     check
+       "and the TeX's own files are not"
+       true
+       ((not (Sys.file_exists (Filename.concat dir "d.aux")))
+        && not (Sys.file_exists (Filename.concat dir "d.log")));
+     (* A PNG needs a rasteriser as well. *)
+     (match Draw_output.find_exe "pdftocairo", Draw_output.find_exe "gs" with
+      | None, None ->
+        print_endline
+          "  skip  the diagram becomes a PNG (no pdftocairo or gs on PATH)"
+      | _ ->
+        let made, problems =
+          Draw_output.render ~format:Png ~timeout:120. ~dir ~name:"d"
+        in
+        let png = Filename.concat dir "d.png" in
+        check
+          "a PNG is made after the PDF"
+          true
+          (problems = [] && made = [ Filename.concat dir "d.pdf"; png ]);
+        check
+          "and it is a PNG"
+          true
+          (Sys.file_exists png
+           && String.equal
+                "\137PNG"
+                (In_channel.with_open_bin png (fun ic ->
+                   really_input_string ic 4))));
+     let broken = Draw_style.set State "no such key=1" Draw_style.empty in
+     ignore (Draw_output.write ~dir ~name:"b" ~style:broken a_diagram);
+     let made, problems =
+       Draw_output.render ~format:Pdf ~timeout:120. ~dir ~name:"b"
+     in
+     check "a style TeX rejects makes no PDF" true (made = []);
+     check
+       "and says why, keeping the log"
+       true
+       (match problems with
+        | [ Draw_output.Failed { detail; log = Some l; _ } ] ->
+          contains ~sub:"Error" detail && Sys.file_exists l
+        | _ -> false));
+  Array.iter (fun f -> Sys.remove (Filename.concat dir f)) (Sys.readdir dir);
+  Sys.rmdir dir;
+  Sys.rmdir (Filename.dirname dir);
+  Sys.rmdir root
+;;
+
 let () =
   print_endline "\n=== mebi model tests (pure OCaml, no Rocq) ===\n";
   test_of_lts_preserves_states ();
@@ -1594,6 +1972,13 @@ let () =
   test_clean_string ();
   test_dump_names ();
   test_json ();
+  test_draw_escape ();
+  test_draw_merge ();
+  test_draw_picture ();
+  test_draw_style ();
+  test_draw_names ();
+  test_draw_run ();
+  test_draw_files ();
   Printf.printf "\n%i/%i passed\n" (!total - !failures) !total;
   if !failures > 0 then exit 1
 ;;
