@@ -9287,6 +9287,77 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-11-01 — Dump names: a live timestamp, a location under vsrocq, and no more silent overwrites
+
+**Bug fix.** On branch `fix/dump-names`, after Jonah reported that dump names
+were sometimes "Unknown Location" and that their timestamp was "always from
+the moment it was compiled, rather than live". Both were reproduced before
+anything was changed, and the consequence was worse than cosmetic: **dumps
+overwrote one another.**
+
+Two causes, one consequence:
+
+1. `Utils.FileWriter.get_local_timestamp` was a `string`, not a function, so
+   it was evaluated once when the plugin loaded (the name carried the load
+   time; in a vsrocq session, when the document first loaded the plugin).
+2. `Rocq_output.loc_provider` answered `"Unknown Location"` for anything but
+   a command read from a file. Under vsrocq every command is: vsrocq parses
+   with `loc = None` (`document.ml`, `parsed_state`), which Rocq turns into
+   `Loc.initial ToplevelInput`. `rocq repl` does the same. Only `rocq compile`
+   has a file.
+
+With a frozen time and a constant location, two commands writing a result of
+the same title wrote the same file, and the second replaced the first. In a
+`vsrocqtop` session driven over LSP by a script, two `MeBi Run LTS` commands
+left **one** file, named `... | Unknown Location | Finished Extracting LTS.txt`,
+and its time was 3 seconds before it was written. Jonah's own `_dumps/` had
+three files, all stamped `10:43:24` and last written between 11:57 and 12:24.
+
+The fix, in two commits:
+
+- `lib/utils`: `get_local_timestamp ()` is a function, read at each write (the
+  formatting is `format_timestamp`, so a test can pin it); `fresh_path` gives
+  `name (2).txt`, `name (3).txt` ... rather than overwrite, so two dumps made in
+  the same second under the same title both survive.
+- `src/rocq_output.ml`: a command with no file is named by the logical path of
+  the document (`Lib.library_dp ()`): under vsrocq `MyProj.Sub.Doc` where the
+  loadpath maps the file, `Doc` where nothing does; `Top` in `rocq repl`. A
+  file keeps `line N | file`.
+  The `"Unknown Location"` fallback remains only for a command with no location
+  at all, which was not seen to happen.
+
+Checked in `rocq compile`, `rocq repl` and a real `vsrocqtop` session, and
+`dune exec test/tests.exe` is 114/114 (three new checks, pure OCaml). Not run:
+the proof suites, since nothing here is read by `lib/model` or the solver.
+
+**A correction to 2026-09-29.** That session saw the frozen timestamp and wrote
+"Noticed, deliberately not changed ... that reads as intentional -- it groups a
+session's dumps together, and the filename already carries the source line". I
+inferred the intent and it was wrong on both counts: the filename did not carry
+the line under an editor, and the grouping is what made dumps overwrite each
+other. The `.mli` did say "computed once", but a doc comment describing what the
+code does is not evidence that it was wanted. Dumps from separate runs now
+accumulate in `_dumps/` instead of replacing each other, which is what the
+name's timestamp was always for.
+
+**Noticed, not changed.** Under vsrocq `Loc.line_nb` is not the file's line:
+a command at line 8, 20 and 40 reported 6, 18 and 38, and one at 17 reported
+14 (3 short, after multi-line comments and sentences). vsrocq's own source says
+as much (`document.ml`, "we could count the \n between start and stop and
+increase Loc.line_nb"). The `origin:` line at the top of every text result and
+the `"location"` field of JSON results use the same number (`Command.location`
+in `wrapper.ml`), so under vsrocq they can name the wrong line. In `rocq repl`
+they are right. This is a separate fix, with a choice in it (drop the line
+for a command with no file, or print the document and no line), so it is raised
+rather than made.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-11-01):** Bug fix 1 · Docs 0 · New feature 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
