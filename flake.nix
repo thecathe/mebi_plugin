@@ -34,6 +34,10 @@
             pkg-config # opam's conf-pkg-config
             git # opam VCS pins, and `dune subst` in the opam build
             gnumake # the `rocq makefile` build path
+            # Not needed to build or run MeBi. `MeBi Config Notify` runs
+            # `notify-send` to say a long command has ended; without it the
+            # plugin works as usual and warns once.
+            libnotify
           ];
 
           # If an opam package fails to build citing a missing system library,
