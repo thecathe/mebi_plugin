@@ -197,6 +197,11 @@ session has them.
 - Commit per completed step. Run `dune fmt` before committing.
 - Gate a commit on the build. A `git commit` chained after a build in one
   command commits a broken tree.
+- Integration: topic branches merge into `main` of the fork with a local
+  `git merge --no-ff` (never squash), agreed with Jonah on 2026-11-01. A
+  push is separate and waits for Jonah. The primary checkout is usually on a
+  topic branch, so merge from a worktree on `main` (`git worktree add
+  ../<name> main`) and remove it afterwards.
 - Push branches only to the fork (`thecathe/mebi_plugin`) and open PRs
   there. Never push to the upstream repository (`dcastrop/mebi_plugin`):
   it gets a single PR, when Jonah says. Remote names differ between
