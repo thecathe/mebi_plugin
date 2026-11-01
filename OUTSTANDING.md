@@ -39,12 +39,13 @@ Decision 2 would change every checked-in proof bound if it went against
 - **Whether `theories/Traces.v` may keep one example user.** The rule of
   2026-10-11 puts machinery in `theories/` once two examples use it, and
   only CADP does yet. Otherwise, it moves to `examples/CADP/`.
-- **What an `origin:` line should say under vsrocq**, where its line number
-  can be a few lines short (`doc/limitations.md`, "Output"): drop the line, or
-  print the document's logical path.
-- **Whether `Output Wrap Flow` follows the window in vsrocq's proof panel**
-  (a look in VS Code; `doc/limitations.md`, "Output"). If it does not,
-  `Wide` and `Slim` are the way.
+- **`MeBi Draw`, a session of its own.** The direction is agreed (the
+  standalone engine stays the default; Graphviz is an optional engine; the
+  drawing side becomes a second plugin in the same package,
+  `rocq-mebi.graph`), and its details are not: the hooks the core needs, the
+  Graphviz engine, labels on the middle of the arrow in the standalone
+  engine, and colour by kind of action. `doc/future-work.md`, "`MeBi
+  Draw`".
 
 ## Next up (agreed, not started)
 

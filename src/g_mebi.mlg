@@ -550,8 +550,8 @@ END
 
 VERNAC COMMAND EXTEND MeBi_Divider CLASSIFIED AS QUERY
 (* for outputting messages -- useful for sifting through compiler output *)
-| ["MeBi" "Message" string(x)] -> {Feedback.msg_info (Pp.str x)}
-| ["MeBi" "Debug"   string(x)] -> {Feedback.msg_debug  (Pp.str x)}
-| ["MeBi" "Divider"          ] -> {Feedback.msg_info (Pp.str "\n- - - - - - - - - - - - - - - -")}
-| ["MeBi" "Divider" string(x)] -> {Feedback.msg_info (Pp.str (Printf.sprintf "\n- - - - - - - - - - - - - - - -\n%s" x))}
+| ["MeBi" "Message" string(x)] -> {Feedback.msg_info (Rocq_output.render_text x)}
+| ["MeBi" "Debug"   string(x)] -> {Feedback.msg_debug (Rocq_output.render_text x)}
+| ["MeBi" "Divider"          ] -> {Feedback.msg_info (Rocq_output.render_text "\n- - - - - - - - - - - - - - - -")}
+| ["MeBi" "Divider" string(x)] -> {Feedback.msg_info (Rocq_output.render_text (Printf.sprintf "\n- - - - - - - - - - - - - - - -\n%s" x))}
 END 

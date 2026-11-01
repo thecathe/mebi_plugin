@@ -42,6 +42,14 @@ val option_fstr : ('a -> string) -> 'a option -> string
     quote becomes a single quote. Raises nothing. *)
 val clean_string : string -> string
 
+(** [contains ~sub s] is whether [sub] occurs in [s]. Raises nothing. *)
+val contains : sub:string -> string -> bool
+
+(** [line_of_offset text n] is the 1-based line of the byte offset [n] in
+    [text] (the number of newlines before [n], plus one), or [None] if [n] is
+    not an offset in it ([0] to [String.length text]). Raises nothing. *)
+val line_of_offset : string -> int -> int option
+
 (** Writing result dumps ([MeBi Config Output "DumpResults"]). *)
 module FileWriter : sig
   (** The permissions {!create_parent_dir} gives the directories it

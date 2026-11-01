@@ -389,25 +389,83 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
 
 **`MeBi Draw`** (`MeBi Help Draw`; measurements in
 `doc/measurements/draw-layout-time.md`)
-- **Bigger diagrams.** LuaTeX's layered layout is the limit: about 21 s at
-  100 states and 88 s at 150. The way past it is to lay the graph out
-  outside TeX, with Graphviz's `dot`, and draw nodes at fixed coordinates
-  (`dot2tex` does this; it needs Python and Graphviz, and its upstream is
-  unmaintained). Not built: the first version stays within what one
-  `lualatex` run does, which needs nothing else installed. Such a
-  diagram also compiles under plain `latex`, which a Forester `\tex` block
-  probably needs (unverified: `graphdrawing` needs LuaTeX).
-- **Shorter label text.** A label is printed as its Rocq term, so an
-  `option` label reads `(Some (Insert ten))`. Dropping the outer `Some` of
-  a non-silent label would read better, but it is a guess about the user's
-  label type; it would want its own setting (a `Labels` option).
+- **Direction agreed with the author, 2026-11-01.** The standalone engine
+  (LuaTeX, nothing else installed) stays the default, and is to be improved
+  until it does not need Graphviz. Graphviz becomes an *optional* engine,
+  used when `dot` is found. It can be offered but not bundled: as an
+  optional opam dependency (`depopts: conf-graphviz`, which asks the system
+  package manager) and in the repository's Nix flake. The drawing side is
+  to become a second plugin in the same package, `rocq-mebi.graph`, loaded
+  on request, with the option of folding it back into the main plugin.
+  **Details deferred to a later session:** the hooks the core would need (a
+  registry for reset callbacks and one for help topics, and what
+  `Decode.Diagram` needs exported), and what `make` does about it.
+- **Standalone parity: what is left.** Styling is done (2026-11-01: bigger
+  text, tighter padding, rounder corners; `Draw_style.default`). What
+  styling cannot do is where a label sits: it stays beside the last stretch
+  of its arrow, so labels pile up where arrows meet. Two ways, both
+  prototyped in the author's scratch (`layout-experiments/`): make each
+  label a node of the layout (a -> m -> b), which removes the overlaps but
+  costs about 1.8 times the layout time at 31 states and twice the height;
+  or lay out and route first and put the label on the middle of the finished
+  curve, which is the author's rule and is simple once something routes the
+  edge (Graphviz does; LuaTeX's layered layout does not expose it). A back
+  edge needs its own care in either: its label sticks to one end of the
+  chain (a first pass that measures the ranks it spans, then a label node
+  pinned half way with `minimum layers`, is the standalone version of the
+  rule that worked in Graphviz, and costs a second LuaTeX run).
+- **A Graphviz engine** (optional, see above). Written for Graphviz, the
+  rule for a back edge (found by a depth-first search from the initial
+  state) is: lay it out reversed, and pin its label half way with `minlen`
+  after a first pass that reads the ranks off the y coordinates. The author
+  prefers this shape (the edge down the side, entering the target from
+  below) to the one with side ports (`tailport`/`headport=e`), which was
+  tried and gives a cleaner exit but a harder edge to read; flipping alone
+  leaves the label at the top, the first pass is what centres it. For a
+  TikZ picture drawn from `dot -Tplain`, route first and place the label at
+  half the curve's arc length. Measured: `dot` takes
+  0.17 s at 100 states with every label a node, 5.8 s at 300, and did not
+  finish 1,000 in five minutes (random back edges are hard on its ordering).
+  `dot2tex` is the existing converter: with `--preproc` it needs
+  `preview.sty` (absent from this host's TeX Live), and it cannot put a
+  label on the middle of an edge.
+- **Colour by kind of action** (noted 2026-11-01 at the author's request;
+  not built, and a new capability to agree first). A colour is per *part*
+  today (`Style`), so colouring the arrows of each action meant
+  post-processing the TikZ with a script, three times as the author's
+  wishes changed (per label, then per *kind*: every `Insert X` alike, every
+  `Select X`, `Serve X`, `Return X`). A sketch:
+  `MeBi Config Draw Kind "<Constructor>" "<colour>"`. A label's kind is its
+  first word once tidied (`Insert ten` is `Insert`). `Draw_style` keeps the
+  kinds, and the style file defines `mebi kind <name>` for each: the arrow's
+  colour, its label's text colour and a light frame of the same colour
+  (`draw=<colour>!40`). The override has to sit inside a named style: set
+  inline on one arrow it does not take effect. `Draw.picture` adds the style
+  to the arrows of a configured kind only (TikZ rejects a style it does not
+  know). Optionally a palette cycled over the kinds when none is given.
+  Touches `draw_style`, `draw`, `draw_output` (what `write` is given), `api`,
+  `g_mebi.mlg`, `help.ml`, the tests and the README: about 150 lines, which
+  is why it was not slipped in beside a small change.
+- **A label's second half.** A label is the term printed, tidied (no outer
+  parentheses, no `Some` when every label has one). When a colour already
+  says `Insert`, only the argument (`ten`) would do; that needs the kind
+  above.
 - **A state's number in its box,** to cross-reference the plain-text dump
   (they share a numbering, `Decode.Diagram`), if wanted: a `State` style
   cannot add it, as that is content, not look.
+- **Labels on the arrow, not beside it.** The author asked for each label
+  centred on its arrow, white behind it, with an optional light frame. The
+  white fill is the default, and the frame is a `Label` option
+  (`draw=gray!50`), but the centring is not available by style: TikZ's `pos`
+  runs along an arrow's *last stretch* only, and the layered layout routes an
+  arrow as several, so a label sits near the target whatever the style says
+  (tried 2026-11-01: `auto` dropped, `midway` added, no change). It needs the
+  label to be a node of the layout (prototyped: no overlaps, but about 1.8
+  times the layout time at 31 states and twice the height) or a layout that
+  places labels itself (Graphviz, above).
 - **Overlapping labels** where many arrows cross (the top of the coffee
-  machine). `Layout`'s spacing and `Label`'s placement are configurable
-  but do not cure it: it is the layered layout, and a bigger bound makes
-  it worse.
+  machine). `Layout`'s spacing and `Label`'s style are configurable but do
+  not cure it: it is the layered layout, and a bigger bound makes it worse.
 
 **Reusable theory** (agreed 2026-10-11: machinery a user could reuse
 goes into `theories/` once two examples use it, which keeps `examples/`

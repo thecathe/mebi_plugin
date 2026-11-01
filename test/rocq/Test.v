@@ -2538,6 +2538,16 @@ Module OutputWrap.
   MeBi Config Output Wrap Width 19.
   MeBi Config Output Width Slim 19.
   MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  (* the text that does not go through the logger -- help, messages, dividers
+     and the errors the plugin raises -- takes the same wrapping (2026-11-01:
+     it did not at first, and this block did not exist) *)
+  MeBi Config Output Wrap Flow.
+  MeBi Help Premises.
+  MeBi Message "a message long enough that it has to be broken across lines at a narrow width.".
+  MeBi Divider "a label".
+  MeBi Config Output Wrap Width 30.
+  MeBi Help Config Output.
+  Fail MeBi Draw LTS (pre a done) Using step As "not a name".
   MeBi Config Output Wrap Off.
   MeBi Run LTS (pre a (tau (pre b done))) Using step.
   MeBi Config Output Wrap Wide.

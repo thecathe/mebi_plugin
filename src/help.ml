@@ -323,12 +323,14 @@ let text : string list -> string option = function
        MeBi Config Output Format Text | JSON.\n\
        MeBi Config Output Wrap Off | Flow | Wide | Slim.\n\
        MeBi Config Output Wrap Width <n>.\n\
-       MeBi Config Output Width Wide <n>.  MeBi Config Output Width Slim <n>.\n\
+       MeBi Config Output Width Wide <n>.\n\
+       MeBi Config Output Width Slim <n>.\n\
        MeBi Config Reset Output.\n\n\
        Results (the FSMs, LTSs and verdicts shown with Output \"Result\" True, \
        and dumps) are plain text by default: the states and labels numbered \
        with their terms, then the moves as from -label-> to, under a header \
-       saying where they came from: file and line, command, terms, and the \
+       saying where they came from: file and line (in an editor, the \
+       document's logical path and its line), command, terms, and the \
        relations with their constructors. Format JSON prints them as JSON \
        instead, with the header as \"origin\". Output \"Detail\" adds each \
        move's derivation tree (in JSON, the constructors' bindings and the \
@@ -347,7 +349,9 @@ let text : string list -> string option = function
        window. Wide and Slim are two named widths, 120 and 60 until set with \
        Output Width Wide <n> or Output Width Slim <n> (at least 20); setting \
        one changes the wrapping at once if it is the one chosen, and does not \
-       choose it. Wrap Wide or Wrap Slim chooses.\n\n\
+       choose it. Wrap Wide or Wrap Slim chooses. It covers everything the \
+       plugin prints, MeBi Help and the errors it raises included, but not \
+       Rocq's own messages.\n\n\
        Toggle one message kind: Debug, Info, Notice, Warning, Error, Trace, \
        Result, Show, DecodeResults, DumpResults, Detail. Info, Notice, \
        Warning, Error and Show are on by default; Debug, Trace and Result are \
@@ -371,7 +375,10 @@ let text : string list -> string option = function
        <name> is the one given by As (letters, digits, - _ and . only), else \
        one made from the term, such as lts-old; files of that name are \
        replaced. States are numbered as in the plain-text dump of the same \
-       system. A silent label is drawn as tau (see MeBi Help Config Weak), the \
+       system. A state and a label are drawn without the parentheses round all \
+       of them, and the labels without Some if every label that is not silent \
+       has it (so a bare None, with no silent label configured, keeps them \
+       all). A silent label is drawn as tau (see MeBi Help Config Weak), the \
        two arrows between a pair of states in opposite directions are bent \
        apart, and an LTS that is incomplete says so under the picture.\n\n\
        A system over the draw bound is refused: the layout's time grows \
@@ -406,6 +413,11 @@ let text : string list -> string option = function
           is what \\graph gets, so it is the place for spacing. For example:\n\
          \  MeBi Config Draw Style \"State\" \"fill=yellow!20\".\n\
          \  MeBi Config Draw Style \"Edge\" \"draw=blue\".\n\
+         \  MeBi Config Draw Style \"Label\" \"draw=gray!50, rounded \
+          corners=1pt\".\n\
+          (the last frames each label). A label sits beside the last stretch \
+          of its arrow, not on its middle: TikZ places it along that stretch \
+          only, and the layered layout makes an arrow of several.\n\
           The defaults:\n\
           %s\n\n\
           To style a picture by hand, leave <name>.style.tikz out and define \
@@ -435,10 +447,10 @@ let text : string list -> string option = function
 (* See the [.mli]. *)
 let show (path : string list) : unit =
   match text path with
-  | Some t -> Feedback.msg_notice (Pp.str t)
+  | Some t -> Feedback.msg_notice (Rocq_output.render_text t)
   | None ->
     Feedback.msg_notice
-      (Pp.str
+      (Rocq_output.render_text
          (Printf.sprintf
             "No help for [%s]. %s"
             (String.concat " " path)

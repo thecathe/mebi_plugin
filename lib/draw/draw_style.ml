@@ -70,21 +70,21 @@ let use : component -> string = function
 (* See the [.mli]. [initial] draws the arrow into the initial state (TikZ's
    [automata] library); [initial text=] leaves it unlabelled. *)
 let default : component -> string = function
-  | Layout -> "layered layout, level distance=16mm, sibling distance=8mm"
+  | Layout -> "layered layout, level distance=18mm, sibling distance=12mm"
   | State ->
-    "draw=black, fill=white, rounded corners=2pt, font=\\scriptsize, inner \
-     sep=3pt"
+    "draw=black, fill=white, rounded corners=7pt, font=\\small, inner \
+     xsep=4pt, inner ysep=2pt"
   | Initial -> "very thick, initial, initial text="
   | Terminal -> "double"
   | Edge -> "draw=black, ->, thin"
   | Label ->
-    "font=\\scriptsize, auto, fill=white, inner sep=1pt, align=center, \
+    "font=\\footnotesize, auto, fill=white, inner sep=1pt, align=center, \
      text=black"
   | Silent_edge -> "dashed, draw=gray"
-  | Silent_label -> "text=gray"
+  | Silent_label -> "text=gray, font=\\large\\boldmath"
   | Two_way -> "bend left=18"
   | Loop -> "loop above"
-  | Caption -> "font=\\scriptsize\\itshape, text=gray"
+  | Caption -> "font=\\footnotesize\\itshape, text=gray"
 ;;
 
 (* See the [.mli]. *)

@@ -1617,6 +1617,93 @@ let test_draw_escape () : unit =
     (Draw.escape "a\nb\tc")
 ;;
 
+let test_draw_unparen () : unit =
+  check_string
+    "a tuple loses its parentheses"
+    "Idle, 0"
+    (Draw.unparen "(Idle, 0)");
+  check_string
+    "only the outermost pair, though they may be doubled"
+    "Refunding (Some twenty), 30"
+    (Draw.unparen "((Refunding (Some twenty), 30))");
+  check_string
+    "two groups side by side are not one pair"
+    "(a) (b)"
+    (Draw.unparen "(a) (b)");
+  check_string "a call is not wrapped" "f (a)" (Draw.unparen "f (a)");
+  check_string "unbalanced is left alone" "(a" (Draw.unparen "(a");
+  check_string "unit would leave nothing, so stays" "()" (Draw.unparen "()");
+  check_string "spaces round it go" "a" (Draw.unparen "  ( a )  ");
+  check_string "no parentheses, no change" "Idle" (Draw.unparen "Idle")
+;;
+
+let test_draw_tidy () : unit =
+  let edge src label dst : Draw.edge = { src; label; dst } in
+  let node id text : Draw.node =
+    { id; text; initial = false; terminal = false }
+  in
+  let diagram edges : Draw.t =
+    { nodes = [ node 0 "(Idle, 0)"; node 1 "(Brewing tea, 10)" ]
+    ; edges
+    ; incomplete = false
+    }
+  in
+  let label_of (d : Draw.t) (i : int) : Draw.label =
+    (List.nth d.edges i).label
+  in
+  let all_some =
+    Draw.tidy
+      (diagram
+         [ edge 0 (Label "(Some (Insert ten))") 1
+         ; edge 1 Silent 0
+         ; edge 1 (Label "(Some (Serve tea))") 0
+         ])
+  in
+  check
+    "every label Some: the wrapper and its parentheses go"
+    true
+    (label_of all_some 0 = Label "Insert ten"
+     && label_of all_some 2 = Label "Serve tea");
+  check "a silent step stays silent" true (label_of all_some 1 = Silent);
+  check
+    "states lose their outer parentheses"
+    true
+    (List.map (fun (n : Draw.node) -> n.text) all_some.nodes
+     = [ "Idle, 0"; "Brewing tea, 10" ]);
+  let with_none =
+    Draw.tidy
+      (diagram
+         [ edge 0 (Label "(Some (Insert ten))") 1; edge 1 (Label "None") 0 ])
+  in
+  check
+    "a bare None (no silent label configured) keeps every Some"
+    true
+    (label_of with_none 0 = Label "Some (Insert ten)"
+     && label_of with_none 1 = Label "None");
+  let other =
+    Draw.tidy
+      (diagram [ edge 0 (Label "(Insert ten)") 1; edge 1 (Label "(Some A)") 0 ])
+  in
+  check
+    "a label that is not Some stops it for all"
+    true
+    (label_of other 0 = Label "Insert ten" && label_of other 1 = Label "Some A");
+  let lookalike =
+    Draw.tidy
+      (diagram [ edge 0 (Label "Somewhere") 1; edge 1 (Label "Some") 0 ])
+  in
+  check
+    "words that start with Some, but are not Some x, are left"
+    true
+    (label_of lookalike 0 = Label "Somewhere"
+     && label_of lookalike 1 = Label "Some");
+  check
+    "nothing but silent steps: nothing to strip"
+    true
+    (label_of (Draw.tidy (diagram [ edge 0 Silent 1 ])) 0 = Silent);
+  check "tidying twice is tidying once" true (Draw.tidy all_some = all_some)
+;;
+
 let test_draw_merge () : unit =
   let merged = Draw.merge a_diagram.edges in
   check_int "parallel arrows are one" 4 (List.length merged);
@@ -1706,8 +1793,8 @@ let test_draw_style () : unit =
     true
     (contains
        ~sub:
-         "graphs/mebi layout/.style={layered layout, level distance=16mm, \
-          sibling distance=8mm}"
+         "graphs/mebi layout/.style={layered layout, level distance=18mm, \
+          sibling distance=12mm}"
        default);
   check
     "initial and terminal states build on the state style"
@@ -1718,6 +1805,17 @@ let test_draw_style () : unit =
     "a silent edge draws its label in the silent label style"
     true
     (contains ~sub:"every edge quotes/.style={mebi silent label}" default);
+  check
+    "and that style makes tau larger and bold, which a user can undo"
+    true
+    (contains
+       ~sub:
+         "mebi silent label/.style={mebi label, text=gray, \
+          font=\\large\\boldmath}"
+       default
+     && contains
+          ~sub:"font=\\normalsize\\boldmath}"
+          (tikzset (set Silent_label "font=\\normalsize\\boldmath" empty)));
   check
     "every component is defined, once"
     true
@@ -1743,7 +1841,7 @@ let test_draw_style () : unit =
   check
     "the user's options follow the default's, so they win"
     true
-    (contains ~sub:"inner sep=3pt, fill=yellow!20}" (tikzset styled));
+    (contains ~sub:"inner ysep=2pt, fill=yellow!20}" (tikzset styled));
   check_string
     "the user's options are read back"
     "fill=yellow!20"
@@ -1918,6 +2016,18 @@ let test_draw_files () : unit =
                 "\137PNG"
                 (In_channel.with_open_bin png (fun ic ->
                    really_input_string ic 4))));
+     (* A frame round each label, the option [MeBi Help Config Draw] suggests. *)
+     let framed =
+       Draw_style.set Label "draw=gray!50, rounded corners=1pt" Draw_style.empty
+     in
+     ignore (Draw_output.write ~dir ~name:"f" ~style:framed a_diagram);
+     let made, problems =
+       Draw_output.render ~format:Pdf ~timeout:120. ~dir ~name:"f"
+     in
+     check
+       "a frame round each label compiles"
+       true
+       (problems = [] && made = [ Filename.concat dir "f.pdf" ]);
      let broken = Draw_style.set State "no such key=1" Draw_style.empty in
      ignore (Draw_output.write ~dir ~name:"b" ~style:broken a_diagram);
      let made, problems =
@@ -1955,6 +2065,17 @@ let test_wrap () : unit =
     "a tab marks columns too"
     true
     (layout ~header:"" "a\tb" = [ Verbatim "a\tb" ]);
+  check
+    "a divider is kept, though it is single-spaced"
+    true
+    (List.for_all
+       (fun s -> layout ~header:"" s = [ Verbatim s ])
+       [ "- - - - - - - - - - - - - - - -"; "==========="; "  * * *" ]);
+  check
+    "a dash starting prose is still prose"
+    true
+    (layout ~header:"" "- a b"
+     = [ Para { indent = 0; words = [ "-"; "a"; "b" ] } ]);
   check
     "JSON is kept"
     true
@@ -2099,6 +2220,62 @@ let test_wrap () : unit =
     (resolved () = No_wrap && preset_width Wide = 120 && preset_width Slim = 60)
 ;;
 
+(** [Utils.contains] and [Utils.line_of_offset], which put the true line in an
+    [origin:] header. *)
+let test_line_of_offset () : unit =
+  print_endline "utils: line_of_offset and contains";
+  let t : string = "ab\ncd\n\nMeBi x\n" in
+  check "offset 0 is line 1" true (Utils.line_of_offset t 0 = Some 1);
+  check
+    "the newline itself is still on its line"
+    true
+    (Utils.line_of_offset t 2 = Some 1);
+  check "after one newline is line 2" true (Utils.line_of_offset t 3 = Some 2);
+  check "a blank line counts" true (Utils.line_of_offset t 7 = Some 4);
+  check
+    "the end of the text is an offset"
+    true
+    (Utils.line_of_offset t (String.length t) = Some 5);
+  check
+    "outside the text is not"
+    true
+    (Utils.line_of_offset t (-1) = None
+     && Utils.line_of_offset t (String.length t + 1) = None);
+  check "empty text, offset 0" true (Utils.line_of_offset "" 0 = Some 1);
+  check
+    "contains finds a part, anywhere"
+    true
+    (Utils.contains ~sub:"MeBi" "Fail MeBi Run"
+     && Utils.contains ~sub:"" "x"
+     && Utils.contains ~sub:"ab" "ab"
+     && Utils.contains ~sub:"b" "ab");
+  check
+    "and does not find what is not there"
+    true
+    ((not (Utils.contains ~sub:"MeBi" "Mebi"))
+     && (not (Utils.contains ~sub:"abc" "ab"))
+     && not (Utils.contains ~sub:"a" ""));
+  (* the offset of every line start, in a random text, is its line *)
+  Random.init 7;
+  let ok = ref true in
+  for _ = 1 to 200 do
+    let lines =
+      List.init (1 + Random.int 30) (fun _ -> String.make (Random.int 12) 'x')
+    in
+    let text = String.concat "\n" lines in
+    let _ =
+      List.fold_left
+        (fun (i, off) l ->
+          if Utils.line_of_offset text off <> Some (i + 1) then ok := false;
+          i + 1, off + String.length l + 1)
+        (0, 0)
+        lines
+    in
+    ()
+  done;
+  check "the start of each line of a random text is that line" true !ok
+;;
+
 let () =
   print_endline "\n=== mebi model tests (pure OCaml, no Rocq) ===\n";
   test_of_lts_preserves_states ();
@@ -2134,8 +2311,11 @@ let () =
   test_clean_string ();
   test_dump_names ();
   test_wrap ();
+  test_line_of_offset ();
   test_json ();
   test_draw_escape ();
+  test_draw_unparen ();
+  test_draw_tidy ();
   test_draw_merge ();
   test_draw_picture ();
   test_draw_style ();

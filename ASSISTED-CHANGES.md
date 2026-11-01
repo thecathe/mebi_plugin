@@ -9515,6 +9515,304 @@ Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-01 (cont.) — `Output Wrap` reaches `MeBi Help`, `Message`, `Divider` and the errors
+
+**Bug fix**, to the feature two entries above. On branch `fix/wrap-text-paths`.
+Jonah, trying `Wrap Flow`: "`MeBi Help Premises` still overflows".
+
+The cause was mine. `Output Wrap` is applied in `Rocq_output.sink`, so it
+reached what goes through `Logger` and nothing else. `MeBi Help` printed with
+`Feedback.msg_notice (Pp.str t)`, `MeBi Message`, `Debug` and `Divider` the same
+way, and the plugin's own errors are `CErrors.user_err (Pp.str ...)` (14 sites
+in the solver and wrapper): none of them went through the sink, under any mode.
+That is every long paragraph of help text, and every long error.
+
+The fix is `Rocq_output.render_text`, which lays out any string as the mode says
+and is `Pp.str` itself under `Off`; Help, the three message commands and the 14
+raises call it. Because they now depend on `Rocq_output`, it moves from last to
+fourth in `src/mebi_plugin.mlpack` (it depends only on `Output`, `Logger` and
+`Utils`). Two smaller things came with it: a line of only dashes, equals signs,
+underscores or asterisks is a divider and is kept (`MeBi Divider` prints one,
+and as prose it would have been re-flowed), and the help line giving the two
+preset commands side by side had a double space, which made it count as aligned
+columns and stay 70 wide; it is two lines now.
+
+Checked: `tests.exe` 196/196 (2 more, the divider rule); `Test.v`'s `OutputWrap`
+now runs Help, Message, Divider and a plugin error under a mode; the packed
+`make` build of the plugin has no new warnings. By eye in `rocq compile`: Help,
+Message and a labelled Divider under `Flow` at printing width 50 and under
+`Width 36`, all inside their width, and an `Error:` under `Width 36` (the same
+error is one 127-column line under `Off`). Through `vsrocqtop`: `MeBi Help Config Output` under `Flow`
+arrives as a diagnostic wrapped at 78. **Not wrapped:** Rocq's own errors and
+warnings, and the short `MeBi: ...` messages raised inside tactics in
+`lib/rocq_tools/premise_search.ml`, which sit below `Rocq_output` and cannot
+call it.
+
+**What I got wrong.** I said the wrapping applied to "every message", and wrote
+"Every message kind is wrapped alike" into `doc/limitations.md`. I had traced
+only what goes through `Logger`, never grepped for the places that print without
+it (`Feedback.`, `Pp.str`: one search), and never ran Help under a mode, though I
+read its text in the wrap-up. `Test.v` could not have caught it: it runs the
+commands but cannot see their output. The new test block says so beside it.
+
+**A correction to the `origin:` finding (2026-11-01, dump names).** I recorded
+that under vsrocq the line number in the `origin:` header is wrong and that the
+choice was to drop it or show the document path instead. Asked why it was a
+choice, I measured what vsrocq's location carries: `Loc.bp` and `Loc.bol_pos` are
+**exact** (264, 325 and 358 for commands whose true offsets were 264, 325 and
+358), and only `line_nb` is wrong (12, 17, 19 for lines 15, 20, 23). So the true
+line is recoverable wherever the document can be read, and the third option, the
+path and the true line (checked against the saved file), is on the table. The
+item in `OUTSTANDING.md` and `doc/limitations.md` say so. Not changed; it is
+Jonah's call.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-11-01), cont.:** Bug fix 2 · New feature 1 · Docs 1
+(the `MeBi Help Config` overview line) · Tooling 0 · Refactor 0 ·
+Optimization 0.
+
+---
+
+## 2026-11-01 (cont.) — `MeBi Draw`: text fit for a picture, and a check for reinvention
+
+**New feature** (a change to what `MeBi Draw` writes, to a command agreed
+earlier the same day) and **Refactor**. On branch `feat/draw-tidy-text`.
+Jonah looked at the coffee machine drawn from the fixed LTS and asked for four
+things: drop `(Some (_))` from the labels, since `None` is already drawn as τ;
+drop the parentheses round each state, since a state is drawn in a box; put the
+labels on the middle of their arrows, white behind them, with an optional light
+frame; and note down a way to configure the colours, to be built only if cheap.
+He also asked that I check I was not re-implementing existing tools.
+
+What changed, in `lib/draw` and `Decode.Diagram`:
+
+- `Draw.unparen` and `Draw.tidy`. A state's and a label's text lose the
+  parentheses that enclose all of it (`(Idle, 0)` is `Idle, 0`; `(a) (b)` and
+  `f (a)` are left). A label loses `Some` only if **every** label that is not
+  silent has it: a diagram with a bare `None` (no silent label configured), or
+  with a label of another form, keeps them all, so the rule cannot hide a
+  difference. It works on the printed text, not on the term, so a user type
+  with its own `Some` constructor that every label carries would also lose it.
+  Tests: 196 -> 213.
+- **Refactor:** `Draw_output` had its own `mkdir_p`, which duplicates
+  `Utils.FileWriter.create_parent_dir` (in `lib/utils`, plain OCaml like
+  `lib/draw`). It now uses that one, so `lib/draw` depends on `lib/utils`;
+  there is still no `rocq-runtime`. Found by looking for helpers that already
+  existed, which I had not done when I wrote it.
+
+**What was not done, and why.** Centring a label on its arrow. The white
+fill is already the default, and a frame is a `Label` option
+(`MeBi Config Draw Style "Label" "draw=gray!50"`; a test compiles one). But
+the position is not reachable by style: I removed `auto` and added `midway`,
+and the labels stayed beside the arrowheads. TikZ's `pos` is measured along
+an arrow's *last stretch* only, and the layered layout routes an arrow as
+several, so a label always lands near the target. Making the label a node of
+the layout fixes it (prototyped, no overlaps; about 1.8 times the layout time
+at 31 states), as does a layout that places labels itself (Graphviz, which
+the author preferred in the comparison). Both are larger changes and are
+left for a decision. I spent two attempts on styling before finding this.
+
+**Colour configuration** is noted, not built: `doc/future-work.md`, "Colour
+by kind of action", and the devlog. A sketch and an estimate of about 150
+lines across seven files, a new command. Not low-effort enough to slip in.
+
+**The reuse check.** One duplication of existing code in the repo, fixed
+above. Nothing else in the repo runs a program or escapes LaTeX. Two helpers
+of mine have an external alternative that I did not use: `Draw_output.run`
+(a child process killed at a time limit) could be `timeout(1)`, which is GNU
+coreutils and not on every host; `find_exe` (a `PATH` search, only to give a
+friendly message) is partly redundant with the shell's "not found". Neither
+reimplements a layout, a TikZ library or a rasteriser: the layout is
+LuaTeX's, the PDF is `lualatex`'s and the PNG is `pdftocairo`'s or `gs`'s.
+
+Checked: `dune build`, `make` of the plugin and `Test.v`,
+`scripts/check_module_lists.py`, `dune exec test/tests.exe` (213/213, 215/215
+with a rasteriser on `PATH`). `CLAUDE.md`'s count was already stale (196 before
+this change, from other sessions' tests) and now says 213/215. **Not run:**
+the proof suites (nothing here is read by the model or the solver); vsrocq.
+
+**Session tally (2026-11-01, this entry):** New feature 1 · Refactor 1 ·
+Docs 1 · Bug fix 0 · Tooling 0 · Optimization 0.
+
+---
+
+## 2026-11-01 (cont.) — The `origin:` line names the document and its true line under vsrocq
+
+**Bug fix.** On branch `fix/origin-line`. Jonah, from their own example:
+`CoffeeMachineSimple.v` line 112 reported `origin: line 8`, "more than a few lines
+off", and asked for the true line number "if it isn't too costly", with the
+logical path included as well. That settles the choice left open above.
+
+What I had said was wrong in two ways. I wrote "short by a few lines": on
+their file it was short by 54 (the command at 111 reported 57; the Draw
+command at 135 reported 81), and later by 104 in their live edit. And I had
+framed the fix as a choice between a path and a number, when the offsets are
+exact: measured on their file, `Loc.bp` was 3092 and 4361 for commands at
+exactly those byte offsets.
+
+`Rocq_output.origin_location` (called by `Command.location`) now counts the
+newlines before `bp` in the document's saved file, found by mapping the logical
+path (`Lib.library_dp ()`) back through the load path, then the working
+directory, and prints `Logical.path, line N`. The text at `bp` must mention
+`MeBi`; if the file is missing or an unsaved edit has moved the command, it
+prints `Logical.path (line unknown)` instead of a wrong line. Files are cached
+by modification time and size, so the cost is one `stat` per command.
+`rocq compile` still prints the file and line, `rocq repl` (path `Top`) its own
+`line_nb`, which is right there, and dump names still use the logical path. The
+`origin:` item is gone from `OUTSTANDING.md`; the caveat stays in
+`doc/limitations.md`.
+
+Checked, through `vsrocqtop` over LSP on a copy of their file: `MEBI.Examples.Doc,
+line 112` when the load path maps it, `Doc, line 112` when nothing does,
+`MEBI.Examples.Doc (line unknown)` with three lines inserted into the buffer
+but not the file, and exact lines 10 and 14 past `τ ⇒ café 日本語 ñ` and
+4-byte characters in comments. `rocq compile` (`./O.v, line 7`) and `rocq repl`
+(`line 7`) are as before. `tests.exe` is 206/206 (10 more, for `Utils.contains`
+and `Utils.line_of_offset`). Not checked: CRLF files, and a document whose
+saved file is a different one from the loadpath's first match (the first that
+verifies wins).
+
+**A false alarm of my own making.** The first non-ASCII run showed a wrong line
+(12 for 10) and I took it for a defect in the offsets. It was my test driver:
+it read the file as raw bytes and JSON-encoded them as UTF-8, double-encoding
+every accented character, so vsrocq was sent a longer text than the file. The
+plugin was right. The driver now decodes first; the devlog's copy of it had the
+same flaw and is corrected.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-11-01), cont.:** Bug fix 3 · New feature 1 · Docs 1 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
+## 2026-11-01 (cont.) — `Flow` in vsrocq's panel: it follows the window, and overflows by a character
+
+**Docs.** On branch `docs/flow-panel-finding`. **No code change**, though Jonah
+asked for one: "vsrocq always seems to overflow by a character or so ... would
+it be possible to compensate for this in the plugin?", e.g. by offsetting the
+bound by one or two characters.
+
+I did not add one, because the cause is in the client and the plugin has no
+handle on it. The panel's `pp-display` (vsrocq 2.5.0, read from the installed
+extension, `pp-display/dist/pp-display.js`) lays boxes out itself, in pixels:
+it takes the pane's width from a `ResizeObserver`, measures each string with a
+canvas `measureText`, and breaks when the line so far plus the next chunk is
+wider than the pane. So `Flow` *does* follow the window, which closes the item
+that was open in `OUTSTANDING.md` (Jonah also reports the results display
+correctly). The width it breaks at is the client's, not a number we pass. A
+fixed offset would have to be added to every word's measured length, and the
+only way to do that from here is trailing spaces, which `white-space: pre` shows
+as extra spacing between words. For `Wide`, `Slim` and `Width n` an offset is
+just a smaller `n`, which the user can already set.
+
+The most likely cause, from the same code and **not seen on screen**: the
+`ResizeObserver` callback returns early when the width changed by 10 pixels or
+less (`Math.abs(e.contentRect.width - u.contentRect.width) <= 10`). A vertical
+scrollbar is about that wide, so a message long enough to make one appear after
+the layout is left that much too wide, and a pane with no scrollbar would not
+show it. If that is right it is a defect in vsrocq's display and could be
+reported upstream; I have not.
+
+`README.md` and `doc/limitations.md` now say this, in place of "not checked".
+
+**Session tally (2026-11-01), cont.:** Bug fix 3 · New feature 1 · Docs 3 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+**Final tally for this session's `Output` work (Claude, 2026-11-01).** Bug fix 3
+(dump names; `Wrap` missing Help and errors; the `origin:` line), New feature 1
+(`Output Wrap`, agreed before it was written), Docs 3 (the integration-method
+note in `CLAUDE.md`, merged as `7cd7665`, which the running tally above did not
+count; the `MeBi Help Config` overview line; the `Flow` finding). The `MeBi
+Draw` entries around these are from another session, with their own tallies.
+Everything is merged into `main` and nothing is pushed.
+
+---
+
+## 2026-11-01 (cont.) — `MeBi Draw`: a look closer to Graphviz's, and a direction
+
+**New feature** (a change to what `MeBi Draw` writes by default; Jonah asked
+for it) and **Docs**. On branch `feat/draw-look`. Jonah compared the drawn
+pictures with Graphviz's own, preferred Graphviz's, and asked three things: can
+the label of a long edge back to the start be put in the middle of it (by a
+rule: leave by the side of the state, place the line first and the label on
+the largest part of it); can the standalone TikZ be made to look more like
+Graphviz's (bigger text, less padding, rounder corners), so that the plugin
+does not have to rely on Graphviz; and, if it is to be involved, can it be
+packaged for other users.
+
+What changed, in `Draw_style.default`: states `\small` (was `\scriptsize`),
+`inner xsep=4pt, inner ysep=2pt` (was `inner sep=3pt`), `rounded corners=7pt`
+(was 2pt); labels and the caption `\footnotesize`; the layout's spacing 18mm
+and 12mm (was 16mm and 8mm), which the bigger text needs. Two tests quote the
+defaults and were updated; the help prints them from the code, and shows the
+new ones. Not run: `make` (strings only), the proof suites (nothing here is
+read by the model or the solver).
+
+**The back-edge label: a rule that works, in Graphviz; not in the plugin.**
+Found by experiment, in the author's scratch: a back edge (to a state still
+on a depth-first search's stack) is laid out reversed, leaves and enters by
+the side of the state, and its label node is pinned half way, with `minlen`
+from a first pass that reads the ranks off the y coordinates. Flipping it
+alone moved the label to the *other* end; side ports alone left it at an end;
+the first pass is what centres it, because the ranking's objective is flat
+along a chain. For a TikZ picture drawn from `dot -Tplain`, "route first,
+label second" (half the curve's arc length) does it with no first pass.
+Neither is in the plugin: the standalone engine (LuaTeX) cannot put a label on
+the middle of its arrow at all, and its version of the rule would cost a
+second LuaTeX run.
+
+**What I got wrong.** I implied earlier that Graphviz handles thousands of
+states in seconds. Measured with every label a node: 0.17 s at 100 states, 5.8
+s at 300, and 1,000 not finished in five minutes.
+
+**Direction, from Jonah:** the standalone engine stays the default and is
+improved until Graphviz is not needed; Graphviz is an *optional* engine, to be
+offered through `conf-graphviz` (a `depopts`) and the Nix flake, not bundled;
+the drawing side becomes a second plugin in the same package,
+`rocq-mebi.graph`, with the option of folding it back into the main plugin.
+The details are deferred to a later session. Recorded in `doc/future-work.md`
+and the devlog.
+
+**Session tally (2026-11-01, this entry):** New feature 1 · Docs 1 · Bug fix 0
+· Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
+## 2026-11-01 (cont.) — `MeBi Draw`: a larger, bold τ, and wrapping up the drawing work
+
+**New feature** (a change to the default look, asked for) and **Docs**. On branch
+`feat/draw-tau`. Jonah asked for the silent label's τ to be larger and
+bold, said he prefers the flipped back-edge picture to the side-port one, and
+asked for the session to be wrapped up, with the details of the next steps left
+to a fresh session.
+
+- `Draw_style.default Silent_label` is now `text=gray, font=\large\boldmath`
+  (was `text=gray`). It is a style, so it is still configurable:
+  `MeBi Config Draw Style "SilentLabel" "font=\normalsize\boldmath"` gives the
+  smaller one. I compared `\large` and `\normalsize` on the example and kept
+  `\large`: the τ glyph is small by nature, and `\normalsize` is barely above
+  the labels. `\boldmath` is in the LaTeX kernel, so no package is needed. A
+  test pins the default and the override; tests 223 -> 224 (226 with a
+  rasteriser). Not run: `make` (a string only), the proof suites.
+- **A correction to the previous entry.** It said the rule that worked for a
+  back edge includes leaving and entering by the side of the state. Jonah
+  prefers the shape *without* the side ports ("far easier to read"): the rule
+  is to lay the edge out reversed and pin its label half way with a first pass;
+  flipped alone leaves the label at the top, and I had generated the flipped and
+  pinned picture without looking at it. I have now: the label is in the middle.
+  `doc/future-work.md` says so. The rule is still only in the author's scratch,
+  not in the plugin.
+- **Wrap-up.** `OUTSTANDING.md` has a line for the deferred drawing work and
+  `doc/limitations.md` an entry for the standalone engine's label placement.
+  Nothing else open: the commands, the tidy text and the look are merged.
+
+**Session tally (2026-11-01, this entry):** New feature 1 · Docs 1 · Bug fix 0
+· Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

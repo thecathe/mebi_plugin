@@ -59,6 +59,18 @@ let render_hard (width : int) (lines : Output.Wrap.line list) : Pp.t =
   v 0 (prlist_with_sep cut str (Output.Wrap.fill ~width lines))
 ;;
 
+(** [render_text s] is the text [s] as a [Pp.t], laid out as
+    {!Output.Wrap.resolved} says: [Pp.str s] itself under [Wrap Off], else
+    paragraphs of boxes or filled lines (as {!render}, with no header). For
+    the plugin's text that does not go through {!Logger}: [MeBi Help],
+    [MeBi Message] and the errors it raises. Raises nothing. *)
+let render_text (s : string) : Pp.t =
+  match Output.Wrap.resolved () with
+  | No_wrap -> Pp.str s
+  | Flowing -> render_flow (Output.Wrap.layout ~header:"" s)
+  | Hard width -> render_hard width (Output.Wrap.layout ~header:"" s)
+;;
+
 (** Renders [m] as {!Output.Wrap.resolved} says: as one block, as boxes, or
     filled to a width. Raises nothing. *)
 let render (m : Output.message) : Pp.t =
@@ -98,6 +110,105 @@ let loc_provider () : string =
   | Some { fname = ToplevelInput; _ } ->
     Names.DirPath.to_string (Lib.library_dp ())
   | None -> "Unknown Location"
+;;
+
+(** [ids dp] are the components of [dp], outermost first. Raises nothing. *)
+let ids (dp : Names.DirPath.t) : string list =
+  List.rev_map Names.Id.to_string (Names.DirPath.repr dp)
+;;
+
+(** [strip_prefix prefix l] is [l] without [prefix], if [l] starts with it.
+    Raises nothing. *)
+let rec strip_prefix (prefix : string list) (l : string list)
+  : string list option
+  =
+  match prefix, l with
+  | [], rest -> Some rest
+  | p :: ps, x :: xs when String.equal p x -> strip_prefix ps xs
+  | _ -> None
+;;
+
+(** [candidate_files dp] are the paths a document named [dp] may be saved at:
+    for each load path binding whose logical path starts [dp], its physical
+    path followed by the rest of [dp] with [.v] on the end, and then the
+    document's base name in the working directory (a file no binding maps is
+    named by its base name alone). Raises nothing. *)
+let candidate_files (dp : Names.DirPath.t) : string list =
+  let d : string list = ids dp in
+  let mapped : string list =
+    List.filter_map
+      (fun (lp : Loadpath.t) ->
+        match strip_prefix (ids (Loadpath.logical lp)) d with
+        | Some (_ :: _ as rest) ->
+          Some
+            (List.fold_left Filename.concat (Loadpath.physical lp) rest ^ ".v")
+        | _ -> None)
+      (Loadpath.get_load_paths ())
+  in
+  mapped @ match List.rev d with base :: _ -> [ base ^ ".v" ] | [] -> []
+;;
+
+(** The saved files read so far, by path, with the modification time and size
+    they had, so that a file is read again only once it changes. *)
+let the_files : (string, (float * int) * string) Hashtbl.t = Hashtbl.create 4
+
+(** [read_saved path] is the text of the regular file [path], or [None] if it
+    cannot be read. Raises nothing. *)
+let read_saved (path : string) : string option =
+  match Unix.stat path with
+  | exception Unix.Unix_error _ -> None
+  | { st_kind = S_REG; st_mtime; st_size; _ } ->
+    (match Hashtbl.find_opt the_files path with
+     | Some (stamp, text) when stamp = (st_mtime, st_size) -> Some text
+     | _ ->
+       (match
+          Stdlib.In_channel.with_open_bin path Stdlib.In_channel.input_all
+        with
+        | exception Sys_error _ -> None
+        | text ->
+          Hashtbl.replace the_files path ((st_mtime, st_size), text);
+          Some text))
+  | _ -> None
+;;
+
+(** [document_line ~bp ~ep] is the true line of the command at the byte
+    offsets [bp] to [ep] of the document being checked, counted in its saved
+    file ({!candidate_files}), if that file is there and has a command (the
+    text [MeBi]) at that place. Under vsrocq the offsets are exact while
+    [Loc.line_nb] is not (it was 54 lines short on one example, 3 on
+    another), but vsrocq checks the editor's buffer, which may differ from the
+    saved file: an unsaved edit above the command moves it, and the check fails
+    rather than name a wrong line. Raises nothing. *)
+let document_line ~(bp : int) ~(ep : int) : int option =
+  let rec first : string list -> int option = function
+    | [] -> None
+    | path :: rest ->
+      (match read_saved path with
+       | Some text
+         when 0 <= bp
+              && bp <= ep
+              && ep <= String.length text
+              && Utils.contains ~sub:"MeBi" (String.sub text bp (ep - bp)) ->
+         Utils.line_of_offset text bp
+       | _ -> first rest)
+  in
+  first (candidate_files (Lib.library_dp ()))
+;;
+
+(* See the [.mli]. *)
+let origin_location () : string =
+  match Loc.get_current_command_loc () with
+  | Some { fname = InFile { file; _ }; line_nb; _ } ->
+    Printf.sprintf "%s, line %i" file line_nb
+  | Some { fname = ToplevelInput; line_nb; bp; ep; _ } ->
+    let name : string = Names.DirPath.to_string (Lib.library_dp ()) in
+    (match document_line ~bp ~ep with
+     | Some n -> Printf.sprintf "%s, line %i" name n
+     | None when String.equal name "Top" ->
+       (* [rocq repl]: no document, and its [line_nb] is right *)
+       Printf.sprintf "line %i" line_nb
+     | None -> Printf.sprintf "%s (line unknown)" name)
+  | None -> "unknown location"
 ;;
 
 (* See the [.mli]. *)

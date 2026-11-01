@@ -124,32 +124,57 @@ turns the pin into a positive test.
   layers.
 
 **Output**
-- **Under vsrocq, the line in an `origin:` header can be wrong** (*bug fix*,
-  with a choice in it; found 2026-11-01, not pinned: it needs vsrocq, which
-  `test/rocq/Test.v` does not run). vsrocq parses with no location, so
-  `Loc.line_nb` restarts and is short by a few lines: in a probe a command
-  at line 8, 20 and 40 reported 6, 18 and 38, and one at 17 reported 14
-  (after multi-line comments and sentences). `Command.location` in
-  `src/wrapper.ml` prints that number as the `origin:` line of every text
-  result and in the `"location"` field of JSON results. In `rocq repl` the
-  number is right, and in `rocq compile` (a file) it is. The plugin cannot
-  tell the first two from vsrocq. Either drop the line for a command with no
-  file, or print the document's logical path with no line (as the dump
-  names do since 2026-11-01, `Rocq_output.loc_provider`). Dump names are
-  not affected.
-- **`Output Wrap Flow` follows the window only where the client lays out
-  the boxes, and whether vsrocq's proof panel does is unchecked** (*limit*;
-  found 2026-11-01). Checked: `Flow` wraps at Rocq's printing width in
-  `rocq compile` and `rocq repl` (78, or `Set Printing Width`), and through
-  `vsrocqtop` over LSP a `Notice` or `Warning` arrives as text wrapped at
-  78 (vsrocq renders those with `Pp.string_of_ppcmds`, and has no width
-  setting of its own). An `Info`, which includes `Result`, goes to the proof
-  panel as boxes (`pp_of_rocqpp`); the panel is VS Code's, and what it does
-  with them was not seen. `Wide`, `Slim` and `Width <n>` fill to a fixed
-  width here and hold in any client, but do not follow the window.
+- **`MeBi Draw`'s standalone engine puts a label beside the last stretch of
+  its arrow, not on its middle, so labels collide where arrows meet**
+  (*limit*; found 2026-11-01; not pinned: the compile tests do not look at
+  the picture). TikZ's `pos` is measured along an arrow's last stretch only,
+  and the layered layout routes an arrow as several, so no style moves a
+  label to the middle (`auto` dropped, `midway` added: no change). The label
+  of a long arrow back to the initial state sits near the target. Ways out,
+  and the rule that works for a back edge, are in `doc/future-work.md`,
+  "`MeBi Draw`".
+- **Under vsrocq, the `origin:` line comes from the saved file, so an unsaved
+  edit makes it `(line unknown)`** (*limit*, by design; not pinned: it needs
+  vsrocq, which `test/rocq/Test.v` does not run). vsrocq parses with no source
+  file, and its `Loc.line_nb` is short, by 3 lines in one probe and by 54 in
+  the author's example, so it cannot be printed. Its character offsets
+  (`Loc.bp`, `bol_pos`) are exact, so `Rocq_output.origin_location` counts the
+  newlines before `bp` in the document's file, found through the load path from
+  its logical path (`Lib.library_dp ()`), and prints `Logical.path, line N`.
+  vsrocq checks the editor's buffer, not that file, so the text at `bp` must
+  mention `MeBi`; if the file is missing or an unsaved edit moved the command,
+  the header says `Logical.path (line unknown)` rather than a wrong line. In
+  `rocq compile` the line is the file's; in `rocq repl` (path `Top`) it is
+  `Loc.line_nb`, which is right there. Dump names use the logical path alone.
+- **`Output Wrap Flow` follows the window in vsrocq's proof panel, but can
+  overflow it by about a character** (*limit*, in vsrocq's display, not the
+  plugin; found 2026-11-01). `Flow` wraps at Rocq's printing width in `rocq
+  compile` and `rocq repl` (78, or `Set Printing Width`). Through `vsrocqtop`
+  over LSP a `Notice` or `Warning` arrives as text wrapped at 78 (vsrocq renders
+  those with `Pp.string_of_ppcmds` and has no width setting of its own). An
+  `Info`, which includes `Result`, goes to the proof panel as boxes, and there
+  the author sees it laid out correctly. The panel's `pp-display` (vsrocq 2.5.0,
+  `pp-display/dist/pp-display.js`) re-flows to the pane's width in pixels, with
+  a `ResizeObserver` and a canvas `measureText`, breaking when the line so far
+  plus the next word is wider than the pane. **The author sees it overflow by a
+  character or so.** A likely cause, from reading that code and *not seen*: it
+  ignores a resize of 10 pixels or less (`Math.abs(width change) <= 10`), which
+  is about a vertical scrollbar, so a message long enough to make one appear
+  after the layout is left that much too wide. Nothing in the plugin can move
+  that margin, and padding the words would show as extra spaces. `Wide`, `Slim`
+  and `Width <n>` fill to a fixed width here and hold in any client, but do not
+  follow the window; set one a column or two under the visible width if the
+  overflow matters.
 - **Wrapping reads the text, not the display** (*limit*, by design). A line
   with a run of two spaces or a tab is taken for aligned columns and kept, so
   a prose line that has a double space in it is not wrapped. A line starting
   with a brace, a square bracket or a double quote is taken for JSON and
-  kept. Width counts characters, so a wide glyph counts as one. Every message
-  kind is wrapped alike, `Debug` and `Trace` included.
+  kept, as is a divider (only dashes, equals signs, underscores, asterisks and
+  spaces). Width counts characters, so a wide glyph counts as one. Every kind of
+  message the plugin prints is wrapped alike, `Debug` and `Trace` included, and
+  so are `MeBi Help`, `Message`, `Debug`, `Divider` and the errors the plugin
+  raises (from 2026-11-01; until then those went round the wrapping, found
+  when `MeBi Help Premises` still overflowed). **Not wrapped:** Rocq's own
+  errors and warnings, and the short `MeBi: ...` messages raised inside
+  tactics (`lib/rocq_tools/premise_search.ml`), which cannot reach
+  `Rocq_output`.
