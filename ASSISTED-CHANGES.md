@@ -9717,8 +9717,16 @@ reported upstream; I have not.
 
 `README.md` and `doc/limitations.md` now say this, in place of "not checked".
 
-**Session tally (2026-11-01), cont.:** Bug fix 3 · New feature 1 · Docs 2 ·
+**Session tally (2026-11-01), cont.:** Bug fix 3 · New feature 1 · Docs 3 ·
 Tooling 0 · Refactor 0 · Optimization 0.
+
+**Final tally for this session's `Output` work (Claude, 2026-11-01).** Bug fix 3
+(dump names; `Wrap` missing Help and errors; the `origin:` line), New feature 1
+(`Output Wrap`, agreed before it was written), Docs 3 (the integration-method
+note in `CLAUDE.md`, merged as `7cd7665`, which the running tally above did not
+count; the `MeBi Help Config` overview line; the `Flow` finding). The `MeBi
+Draw` entries around these are from another session, with their own tallies.
+Everything is merged into `main` and nothing is pushed.
 
 ---
 
