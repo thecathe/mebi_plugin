@@ -23,6 +23,7 @@ needs a memory cap. To build one, uncomment it and run `make`; or use
 | `CADP/` | The MCS queue lock from CADP's demo: the model, its semantics, the specs and the proofs, one file per claim. See [CADP](#cadp) below. |
 | `Bisimilarity/` | The proofs for `Proc` and `CCS`, one directory per calculus: see below. |
 | `Evaluation/` | Benchmark series for width, semantic layers and nesting depth. `*Large.v` are scaled up for `bench/proofs.sh -s eval-large`. |
+| `CoffeeMachine.v` | The running example of the MeBi talk: a classic coffee machine, an upgrade that simulates it and a replica that is bisimilar to it, one module each, with their proofs. Built by default (about 3 s). `CoffeeMachineSimple.v` is a scratch experiment and is not built. |
 
 ### File roles in `Bisimilarity/`
 
