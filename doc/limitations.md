@@ -126,17 +126,24 @@ turns the pin into a positive test.
 **Output**
 - **Under vsrocq, the line in an `origin:` header can be wrong** (*bug fix*,
   with a choice in it; found 2026-11-01, not pinned: it needs vsrocq, which
-  `test/rocq/Test.v` does not run). vsrocq parses with no location, so
-  `Loc.line_nb` restarts and is short by a few lines: in a probe a command
-  at line 8, 20 and 40 reported 6, 18 and 38, and one at 17 reported 14
-  (after multi-line comments and sentences). `Command.location` in
+  `test/rocq/Test.v` does not run). vsrocq parses with no source file, and
+  `Loc.line_nb` is short by a few lines: in a probe a command at line 8, 20
+  and 40 reported 6, 18 and 38, one at 17 reported 14, and in a second
+  document 15, 20 and 23 reported 12, 17 and 19. `Command.location` in
   `src/wrapper.ml` prints that number as the `origin:` line of every text
-  result and in the `"location"` field of JSON results. In `rocq repl` the
-  number is right, and in `rocq compile` (a file) it is. The plugin cannot
-  tell the first two from vsrocq. Either drop the line for a command with no
-  file, or print the document's logical path with no line (as the dump
-  names do since 2026-11-01, `Rocq_output.loc_provider`). Dump names are
-  not affected.
+  result and in the `"location"` field of JSON results. In `rocq repl` and
+  in `rocq compile` (a file) the number is right; the plugin cannot tell
+  vsrocq from `rocq repl`.
+  **The character offsets are exact, though.** In that second document
+  `Loc.bp` and `Loc.bol_pos` were 264, 325 and 358, the true offsets of the
+  three commands, to the character. So the true line is the number of
+  newlines before `bp` in the document, which can be had where the plugin can
+  read the document: its logical path (`Lib.library_dp ()`) maps through the
+  loadpath to a `.v` file. That is the saved file, not an editor buffer with
+  unsaved edits, so the result would be checked (the text at `bp` should start
+  with `MeBi`) and the line left out when it does not match. The options are
+  in `OUTSTANDING.md`. Dump names are not affected (they use the logical
+  path).
 - **`Output Wrap Flow` follows the window only where the client lays out
   the boxes, and whether vsrocq's proof panel does is unchecked** (*limit*;
   found 2026-11-01). Checked: `Flow` wraps at Rocq's printing width in
@@ -151,5 +158,12 @@ turns the pin into a positive test.
   with a run of two spaces or a tab is taken for aligned columns and kept, so
   a prose line that has a double space in it is not wrapped. A line starting
   with a brace, a square bracket or a double quote is taken for JSON and
-  kept. Width counts characters, so a wide glyph counts as one. Every message
-  kind is wrapped alike, `Debug` and `Trace` included.
+  kept, as is a divider (only dashes, equals signs, underscores, asterisks and
+  spaces). Width counts characters, so a wide glyph counts as one. Every kind of
+  message the plugin prints is wrapped alike, `Debug` and `Trace` included, and
+  so are `MeBi Help`, `Message`, `Debug`, `Divider` and the errors the plugin
+  raises (from 2026-11-01; until then those went round the wrapping, found
+  when `MeBi Help Premises` still overflowed). **Not wrapped:** Rocq's own
+  errors and warnings, and the short `MeBi: ...` messages raised inside
+  tactics (`lib/rocq_tools/premise_search.ml`), which cannot reach
+  `Rocq_output`.

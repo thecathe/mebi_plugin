@@ -348,7 +348,9 @@ let text : string list -> string option = function
        window. Wide and Slim are two named widths, 120 and 60 until set with \
        Output Width Wide <n> or Output Width Slim <n> (at least 20); setting \
        one changes the wrapping at once if it is the one chosen, and does not \
-       choose it. Wrap Wide or Wrap Slim chooses.\n\n\
+       choose it. Wrap Wide or Wrap Slim chooses. It covers everything the \
+       plugin prints, MeBi Help and the errors it raises included, but not \
+       Rocq's own messages.\n\n\
        Toggle one message kind: Debug, Info, Notice, Warning, Error, Trace, \
        Result, Show, DecodeResults, DumpResults, Detail. Info, Notice, \
        Warning, Error and Show are on by default; Debug, Trace and Result are \
