@@ -484,6 +484,21 @@ minimal): nothing open. The last item, trace preservation, became
   status unclear.
 - CADP `Size2`/`Size3` proofs: see `OUTSTANDING.md`.
 
+**Notifications** (`MeBi Config Notify`, `lib/utils/notify.ml`)
+- **macOS and Windows.** Only `notify-send` is run, so only a Linux (or other
+  freedesktop) desktop gets a notification. macOS has `osascript -e 'display
+  notification ...'` with nothing to install, and would be a few lines, but it
+  cannot be tried here: the flake lists `aarch64-darwin` as untested for the
+  same reason.
+- **A terminal bell, for `rocq compile` in a terminal.** Left out on purpose. It
+  is written to stdout or stderr, and under vsrocq (where the plugin is used
+  in practice) stdout may be the language server's protocol channel, where a
+  stray `\a` could do harm; it would also tell the user nothing in an editor.
+  Worth adding only if it is written to a terminal known to be one
+  (`Unix.isatty`).
+- **Announce a proof when it is closed.** `Qed` is Rocq's command, not the
+  plugin's, so it is not announced; the last `MeBi Sim Solve` is.
+
 ## Set aside (deliberately)
 
 Kept so they are not rediscovered as new. Each could be reopened, with the
