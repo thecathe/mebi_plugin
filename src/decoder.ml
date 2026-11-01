@@ -565,6 +565,15 @@ module Make
         init
     ;;
 
+    (** [number_states states] numbers [states] from 0, in their order. *)
+    let number_states (states : Model.State.Set.t) : int SMap.t =
+      Model.State.Set.fold
+        (fun s (m, i) -> SMap.add s i m, i + 1)
+        states
+        (SMap.empty, 0)
+      |> fst
+    ;;
+
     (** [tables states labels] numbers [states] and [labels] in order, and
         is their tables' lines with the two numberings. *)
     let tables
@@ -573,12 +582,7 @@ module Make
           (labels : Model.Label.t list)
       : string list * int SMap.t * int LMap.t
       =
-      let sidx, _ =
-        Model.State.Set.fold
-          (fun s (m, i) -> SMap.add s i m, i + 1)
-          states
-          (SMap.empty, 0)
-      in
+      let sidx = number_states states in
       let lidx, _ =
         List.fold_left
           (fun (m, i) l -> if LMap.mem l m then m, i else LMap.add l i m, i + 1)
@@ -659,22 +663,27 @@ module Make
          @ moves "transitions" edges)
     ;;
 
+    (** [fsm_triples x] is every move of the FSM [x], as [(from, action, to)]. *)
+    let fsm_triples (x : Model.FSM.t)
+      : (Model.State.t * Model.Action.t * Model.State.t) list
+      =
+      Model.EdgeMap.fold
+        (fun from am acc ->
+          Model.Action.Map.fold
+            (fun (a : Model.Action.t) dests acc ->
+              Model.State.Set.fold
+                (fun d acc -> (from, a, d) :: acc)
+                dests
+                acc)
+            am
+            acc)
+        x.edges
+        []
+    ;;
+
     (* See the [.mli]. *)
     let fsm ~(detail : bool) (x : Model.FSM.t) : string =
-      let triples =
-        Model.EdgeMap.fold
-          (fun from am acc ->
-            Model.Action.Map.fold
-              (fun (a : Model.Action.t) dests acc ->
-                Model.State.Set.fold
-                  (fun d acc -> (from, a, d) :: acc)
-                  dests
-                  acc)
-              am
-              acc)
-          x.edges
-          []
-      in
+      let triples = fsm_triples x in
       let labels =
         Model.Label.Set.elements x.alphabet
         @ List.map (fun (_, (a : Model.Action.t), _) -> a.label) triples
