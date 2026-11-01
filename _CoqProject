@@ -9,6 +9,7 @@ src/META.rocq-mebi
 -I lib/showable/
 -I lib/model/
 -I lib/model/algorithms/
+-I lib/draw/
 -I src/
 -arg "-w all"
 
@@ -195,6 +196,13 @@ lib/model/algorithms/product.mli
 
 lib/model/model.ml
 lib/model/model.mli
+
+lib/draw/draw_style.ml
+lib/draw/draw_style.mli
+lib/draw/draw.ml
+lib/draw/draw.mli
+lib/draw/draw_output.ml
+lib/draw/draw_output.mli
 
 src/decoder.ml
 src/decoder.mli
