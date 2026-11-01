@@ -38,6 +38,22 @@ type t =
   ; incomplete : bool
   }
 
+(** [unparen s] is [s] without the parentheses that enclose all of it, if
+    any: ["(Idle, 0)"] is ["Idle, 0"], and ["((a))"] is ["a"], but ["(a) (b)"]
+    and ["f (a)"] are as they are, and so is ["()"], which would leave
+    nothing to draw. Surrounding spaces go too. Raises nothing. *)
+val unparen : string -> string
+
+(** [tidy d] is [d] with its text made fit for a picture. The printed terms
+    of a state and a label come wrapped in parentheses, which a state's box
+    and a label's place on its arrow make redundant, so each is {!unparen}'d.
+    And if every label that is not silent is [Some x], the wrapper says
+    nothing (a silent step is drawn as [τ], and was [None]), so each is
+    drawn as [x]. A label that is not [Some x] stops that, so that a
+    diagram with a bare [None] or a label of another form is left as it is.
+    Raises nothing. *)
+val tidy : t -> t
+
 (** [escape s] is [s] as LaTeX text: its special characters are written so
     that they print as themselves, and its line breaks and tabs become
     spaces. Raises nothing. *)

@@ -9574,6 +9574,69 @@ Optimization 0.
 
 ---
 
+## 2026-11-01 (cont.) — `MeBi Draw`: text fit for a picture, and a check for reinvention
+
+**New feature** (a change to what `MeBi Draw` writes, to a command agreed
+earlier the same day) and **Refactor**. On branch `feat/draw-tidy-text`.
+Jonah looked at the coffee machine drawn from the fixed LTS and asked for four
+things: drop `(Some (_))` from the labels, since `None` is already drawn as τ;
+drop the parentheses round each state, since a state is drawn in a box; put the
+labels on the middle of their arrows, white behind them, with an optional light
+frame; and note down a way to configure the colours, to be built only if cheap.
+He also asked that I check I was not re-implementing existing tools.
+
+What changed, in `lib/draw` and `Decode.Diagram`:
+
+- `Draw.unparen` and `Draw.tidy`. A state's and a label's text lose the
+  parentheses that enclose all of it (`(Idle, 0)` is `Idle, 0`; `(a) (b)` and
+  `f (a)` are left). A label loses `Some` only if **every** label that is not
+  silent has it: a diagram with a bare `None` (no silent label configured), or
+  with a label of another form, keeps them all, so the rule cannot hide a
+  difference. It works on the printed text, not on the term, so a user type
+  with its own `Some` constructor that every label carries would also lose it.
+  Tests: 196 -> 213.
+- **Refactor:** `Draw_output` had its own `mkdir_p`, which duplicates
+  `Utils.FileWriter.create_parent_dir` (in `lib/utils`, plain OCaml like
+  `lib/draw`). It now uses that one, so `lib/draw` depends on `lib/utils`;
+  there is still no `rocq-runtime`. Found by looking for helpers that already
+  existed, which I had not done when I wrote it.
+
+**What was not done, and why.** Centring a label on its arrow. The white
+fill is already the default, and a frame is a `Label` option
+(`MeBi Config Draw Style "Label" "draw=gray!50"`; a test compiles one). But
+the position is not reachable by style: I removed `auto` and added `midway`,
+and the labels stayed beside the arrowheads. TikZ's `pos` is measured along
+an arrow's *last stretch* only, and the layered layout routes an arrow as
+several, so a label always lands near the target. Making the label a node of
+the layout fixes it (prototyped, no overlaps; about 1.8 times the layout time
+at 31 states), as does a layout that places labels itself (Graphviz, which
+the author preferred in the comparison). Both are larger changes and are
+left for a decision. I spent two attempts on styling before finding this.
+
+**Colour configuration** is noted, not built: `doc/future-work.md`, "Colour
+by kind of action", and the devlog. A sketch and an estimate of about 150
+lines across seven files, a new command. Not low-effort enough to slip in.
+
+**The reuse check.** One duplication of existing code in the repo, fixed
+above. Nothing else in the repo runs a program or escapes LaTeX. Two helpers
+of mine have an external alternative that I did not use: `Draw_output.run`
+(a child process killed at a time limit) could be `timeout(1)`, which is GNU
+coreutils and not on every host; `find_exe` (a `PATH` search, only to give a
+friendly message) is partly redundant with the shell's "not found". Neither
+reimplements a layout, a TikZ library or a rasteriser: the layout is
+LuaTeX's, the PDF is `lualatex`'s and the PNG is `pdftocairo`'s or `gs`'s.
+
+Checked: `dune build`, `make` of the plugin and `Test.v`,
+`scripts/check_module_lists.py`, `dune exec test/tests.exe` (213/213, 215/215
+with a rasteriser on `PATH`). `CLAUDE.md`'s count was already stale (196 before
+this change, from other sessions' tests) and now says 213/215. **Not run:**
+the proof suites (nothing here is read by the model or the solver); vsrocq.
+
+**Session tally (2026-11-01, this entry):** New feature 1 · Refactor 1 ·
+Docs 1 · Bug fix 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

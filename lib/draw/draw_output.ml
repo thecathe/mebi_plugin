@@ -155,20 +155,12 @@ let run ~(timeout : float) ~(dir : string) (argv : string list) : status =
         wait ())
 ;;
 
-(** [mkdir_p dir] makes [dir] and any of its parents that are missing. *)
-let rec mkdir_p (dir : string) : unit =
-  if not (Sys.file_exists dir)
-  then (
-    let parent : string = Filename.dirname dir in
-    if not (String.equal parent dir) then mkdir_p parent;
-    Sys.mkdir dir 0o755)
-;;
-
-(* See the [.mli]. *)
+(* See the [.mli]. [Utils.FileWriter.create_parent_dir] makes the directory
+   that will hold a file, so it is given one in [dir]. *)
 let write ~(dir : string) ~(name : string) ~(style : Draw_style.t) (d : Draw.t)
   : string list
   =
-  mkdir_p dir;
+  Utils.FileWriter.create_parent_dir (Filename.concat dir name);
   let files : (string * string) list =
     [ name ^ ".tikz", Draw.picture d
     ; name ^ ".style.tikz", Draw_style.tikzset style

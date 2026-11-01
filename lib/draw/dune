@@ -1,10 +1,10 @@
 ; Plain OCaml, like lib/utils and lib/model: no rocq-runtime, so test/ links it
 ; without a Rocq runtime. Only unix, to run lualatex and a rasteriser as child
-; processes.
+; processes, and lib/utils, for the directory a file goes in.
 (library
  (name draw)
  (public_name rocq-mebi.draw)
- (libraries unix)
+ (libraries rocq-mebi.utils unix)
  (modules draw_style draw draw_output)
  (wrapped false))
 

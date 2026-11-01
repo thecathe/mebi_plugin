@@ -397,17 +397,43 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   `lualatex` run does, which needs nothing else installed. Such a
   diagram also compiles under plain `latex`, which a Forester `\tex` block
   probably needs (unverified: `graphdrawing` needs LuaTeX).
-- **Shorter label text.** A label is printed as its Rocq term, so an
-  `option` label reads `(Some (Insert ten))`. Dropping the outer `Some` of
-  a non-silent label would read better, but it is a guess about the user's
-  label type; it would want its own setting (a `Labels` option).
+- **Colour by kind of action** (noted 2026-11-01 at the author's request;
+  not built, and a new capability to agree first). A colour is per *part*
+  today (`Style`), so colouring the arrows of each action meant
+  post-processing the TikZ with a script, three times as the author's
+  wishes changed (per label, then per *kind*: every `Insert X` alike, every
+  `Select X`, `Serve X`, `Return X`). A sketch:
+  `MeBi Config Draw Kind "<Constructor>" "<colour>"`. A label's kind is its
+  first word once tidied (`Insert ten` is `Insert`). `Draw_style` keeps the
+  kinds, and the style file defines `mebi kind <name>` for each: the arrow's
+  colour, its label's text colour and a light frame of the same colour
+  (`draw=<colour>!40`). The override has to sit inside a named style: set
+  inline on one arrow it does not take effect. `Draw.picture` adds the style
+  to the arrows of a configured kind only (TikZ rejects a style it does not
+  know). Optionally a palette cycled over the kinds when none is given.
+  Touches `draw_style`, `draw`, `draw_output` (what `write` is given), `api`,
+  `g_mebi.mlg`, `help.ml`, the tests and the README: about 150 lines, which
+  is why it was not slipped in beside a small change.
+- **A label's second half.** A label is the term printed, tidied (no outer
+  parentheses, no `Some` when every label has one). When a colour already
+  says `Insert`, only the argument (`ten`) would do; that needs the kind
+  above.
 - **A state's number in its box,** to cross-reference the plain-text dump
   (they share a numbering, `Decode.Diagram`), if wanted: a `State` style
   cannot add it, as that is content, not look.
+- **Labels on the arrow, not beside it.** The author asked for each label
+  centred on its arrow, white behind it, with an optional light frame. The
+  white fill is the default, and the frame is a `Label` option
+  (`draw=gray!50`), but the centring is not available by style: TikZ's `pos`
+  runs along an arrow's *last stretch* only, and the layered layout routes an
+  arrow as several, so a label sits near the target whatever the style says
+  (tried 2026-11-01: `auto` dropped, `midway` added, no change). It needs the
+  label to be a node of the layout (prototyped: no overlaps, but about 1.8
+  times the layout time at 31 states and twice the height) or a layout that
+  places labels itself (Graphviz, above).
 - **Overlapping labels** where many arrows cross (the top of the coffee
-  machine). `Layout`'s spacing and `Label`'s placement are configurable
-  but do not cure it: it is the layered layout, and a bigger bound makes
-  it worse.
+  machine). `Layout`'s spacing and `Label`'s style are configurable but do
+  not cure it: it is the layered layout, and a bigger bound makes it worse.
 
 **Reusable theory** (agreed 2026-10-11: machinery a user could reuse
 goes into `theories/` once two examples use it, which keeps `examples/`

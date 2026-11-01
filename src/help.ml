@@ -374,7 +374,10 @@ let text : string list -> string option = function
        <name> is the one given by As (letters, digits, - _ and . only), else \
        one made from the term, such as lts-old; files of that name are \
        replaced. States are numbered as in the plain-text dump of the same \
-       system. A silent label is drawn as tau (see MeBi Help Config Weak), the \
+       system. A state and a label are drawn without the parentheses round all \
+       of them, and the labels without Some if every label that is not silent \
+       has it (so a bare None, with no silent label configured, keeps them \
+       all). A silent label is drawn as tau (see MeBi Help Config Weak), the \
        two arrows between a pair of states in opposite directions are bent \
        apart, and an LTS that is incomplete says so under the picture.\n\n\
        A system over the draw bound is refused: the layout's time grows \
@@ -409,6 +412,11 @@ let text : string list -> string option = function
           is what \\graph gets, so it is the place for spacing. For example:\n\
          \  MeBi Config Draw Style \"State\" \"fill=yellow!20\".\n\
          \  MeBi Config Draw Style \"Edge\" \"draw=blue\".\n\
+         \  MeBi Config Draw Style \"Label\" \"draw=gray!50, rounded \
+          corners=1pt\".\n\
+          (the last frames each label). A label sits beside the last stretch \
+          of its arrow, not on its middle: TikZ places it along that stretch \
+          only, and the layered layout makes an arrow of several.\n\
           The defaults:\n\
           %s\n\n\
           To style a picture by hand, leave <name>.style.tikz out and define \

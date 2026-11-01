@@ -1617,6 +1617,93 @@ let test_draw_escape () : unit =
     (Draw.escape "a\nb\tc")
 ;;
 
+let test_draw_unparen () : unit =
+  check_string
+    "a tuple loses its parentheses"
+    "Idle, 0"
+    (Draw.unparen "(Idle, 0)");
+  check_string
+    "only the outermost pair, though they may be doubled"
+    "Refunding (Some twenty), 30"
+    (Draw.unparen "((Refunding (Some twenty), 30))");
+  check_string
+    "two groups side by side are not one pair"
+    "(a) (b)"
+    (Draw.unparen "(a) (b)");
+  check_string "a call is not wrapped" "f (a)" (Draw.unparen "f (a)");
+  check_string "unbalanced is left alone" "(a" (Draw.unparen "(a");
+  check_string "unit would leave nothing, so stays" "()" (Draw.unparen "()");
+  check_string "spaces round it go" "a" (Draw.unparen "  ( a )  ");
+  check_string "no parentheses, no change" "Idle" (Draw.unparen "Idle")
+;;
+
+let test_draw_tidy () : unit =
+  let edge src label dst : Draw.edge = { src; label; dst } in
+  let node id text : Draw.node =
+    { id; text; initial = false; terminal = false }
+  in
+  let diagram edges : Draw.t =
+    { nodes = [ node 0 "(Idle, 0)"; node 1 "(Brewing tea, 10)" ]
+    ; edges
+    ; incomplete = false
+    }
+  in
+  let label_of (d : Draw.t) (i : int) : Draw.label =
+    (List.nth d.edges i).label
+  in
+  let all_some =
+    Draw.tidy
+      (diagram
+         [ edge 0 (Label "(Some (Insert ten))") 1
+         ; edge 1 Silent 0
+         ; edge 1 (Label "(Some (Serve tea))") 0
+         ])
+  in
+  check
+    "every label Some: the wrapper and its parentheses go"
+    true
+    (label_of all_some 0 = Label "Insert ten"
+     && label_of all_some 2 = Label "Serve tea");
+  check "a silent step stays silent" true (label_of all_some 1 = Silent);
+  check
+    "states lose their outer parentheses"
+    true
+    (List.map (fun (n : Draw.node) -> n.text) all_some.nodes
+     = [ "Idle, 0"; "Brewing tea, 10" ]);
+  let with_none =
+    Draw.tidy
+      (diagram
+         [ edge 0 (Label "(Some (Insert ten))") 1; edge 1 (Label "None") 0 ])
+  in
+  check
+    "a bare None (no silent label configured) keeps every Some"
+    true
+    (label_of with_none 0 = Label "Some (Insert ten)"
+     && label_of with_none 1 = Label "None");
+  let other =
+    Draw.tidy
+      (diagram [ edge 0 (Label "(Insert ten)") 1; edge 1 (Label "(Some A)") 0 ])
+  in
+  check
+    "a label that is not Some stops it for all"
+    true
+    (label_of other 0 = Label "Insert ten" && label_of other 1 = Label "Some A");
+  let lookalike =
+    Draw.tidy
+      (diagram [ edge 0 (Label "Somewhere") 1; edge 1 (Label "Some") 0 ])
+  in
+  check
+    "words that start with Some, but are not Some x, are left"
+    true
+    (label_of lookalike 0 = Label "Somewhere"
+     && label_of lookalike 1 = Label "Some");
+  check
+    "nothing but silent steps: nothing to strip"
+    true
+    (label_of (Draw.tidy (diagram [ edge 0 Silent 1 ])) 0 = Silent);
+  check "tidying twice is tidying once" true (Draw.tidy all_some = all_some)
+;;
+
 let test_draw_merge () : unit =
   let merged = Draw.merge a_diagram.edges in
   check_int "parallel arrows are one" 4 (List.length merged);
@@ -1918,6 +2005,18 @@ let test_draw_files () : unit =
                 "\137PNG"
                 (In_channel.with_open_bin png (fun ic ->
                    really_input_string ic 4))));
+     (* A frame round each label, the option [MeBi Help Config Draw] suggests. *)
+     let framed =
+       Draw_style.set Label "draw=gray!50, rounded corners=1pt" Draw_style.empty
+     in
+     ignore (Draw_output.write ~dir ~name:"f" ~style:framed a_diagram);
+     let made, problems =
+       Draw_output.render ~format:Pdf ~timeout:120. ~dir ~name:"f"
+     in
+     check
+       "a frame round each label compiles"
+       true
+       (problems = [] && made = [ Filename.concat dir "f.pdf" ]);
      let broken = Draw_style.set State "no such key=1" Draw_style.empty in
      ignore (Draw_output.write ~dir ~name:"b" ~style:broken a_diagram);
      let made, problems =
@@ -2147,6 +2246,8 @@ let () =
   test_wrap ();
   test_json ();
   test_draw_escape ();
+  test_draw_unparen ();
+  test_draw_tidy ();
   test_draw_merge ();
   test_draw_picture ();
   test_draw_style ();
