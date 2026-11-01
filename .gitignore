@@ -43,7 +43,9 @@ RocqMakefile*
 .vscode
 .claude
 
-# ignore dumps
+# ignore dumps, and the diagrams MeBi Draw writes
 **/_dumps
+**/_diagrams
+**/_diagrams_test
 src/_dump
 .lia.cache

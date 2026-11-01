@@ -144,11 +144,15 @@ module type S = sig
       -> Libnames.qualid list
       -> Model.FSM.t M.mm
 
-    (** A [MeBi Run] command: what to build or check, from which term and
-        relation. *)
+    (** A [MeBi Run] or [MeBi Draw] command: what to build, check or draw,
+        from which term and relation. [DrawLTS] and [DrawFSM] also take the
+        name to give the diagram's files ([As "<name>"]), if the user gave
+        one. *)
     type t =
       | MakeLTS of rocq_args
       | MakeFSM of rocq_args
+      | DrawLTS of rocq_args * string option
+      | DrawFSM of rocq_args * string option
       | Saturate of rocq_args
       | Minimize of rocq_args
       | Merge of rocq_pair
@@ -175,6 +179,32 @@ module type S = sig
         [None]. Raises as {!extract_lts}, when run. *)
     val do_make_fsm
       :  Constrexpr.constr_expr * Libnames.qualid
+      -> Libnames.qualid list
+      -> Model.Bisimilarity.t option M.mm
+
+    (** [do_draw_lts (t, lts) name using] draws the LTS of [t]
+        ([MeBi Draw LTS]): writes its TikZ files, as {!Draw_output.write}, and
+        makes the PDF or PNG [MeBi Config Draw Format] asks for, under the
+        draw bounds ({!Api.the_draw_config}). A program that is missing, fails
+        or times out is warned about, and the files made so far are kept.
+        [None].
+
+        @raise CErrors.UserError
+          when run, if [name] is not a valid file name
+          ({!Draw_output.valid_name}), if the LTS is over the draw bound, or if
+          the files cannot be written (raised here). Raises as
+          {!extract_lts}. *)
+    val do_draw_lts
+      :  Constrexpr.constr_expr * Libnames.qualid
+      -> string option
+      -> Libnames.qualid list
+      -> Model.Bisimilarity.t option M.mm
+
+    (** [do_draw_fsm (t, lts) name using] is {!do_draw_lts} for the FSM of
+        [t] ([MeBi Draw FSM]). Raises as {!do_draw_lts}, when run. *)
+    val do_draw_fsm
+      :  Constrexpr.constr_expr * Libnames.qualid
+      -> string option
       -> Libnames.qualid list
       -> Model.Bisimilarity.t option M.mm
 
