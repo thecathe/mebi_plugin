@@ -54,7 +54,7 @@ bench/proofs.sh -s cadp-large -a Default -t old   # force an answer policy, to c
 
 | suite | files | cost |
 |---|---|---|
-| `default` | the six `PluginProofs.v` marked `### Success` in `_CoqProject`, plus `CCS/PluginProofs.v` and `CCS/LawProofs.v` | ~3 min a mode, run 8 at a time (`-j`) |
+| `default` | seven files: `Proc/Test1`, `Test2` and `Test3` `PluginProofs.v`, `CADP/MutualExclusion.v` and `CADP/GluedLayered.v`, and `CCS/PluginProofs.v` and `CCS/LawProofs.v` | ~3 min a mode, run 8 at a time (`-j`) |
 | `abp` | `CCS/ABPProofs.v`, `CCS/ABPBisimProofs.v` | ~4 min and ~4.3GB each |
 | `test4` | `Proc/Test4/NormProofs.v`, `NormBisimProofs.v` | ~0.5 + ~4 min, ~2.8GB peak |
 | `eval` | `examples/Evaluation/{Width,Layers,Depth}.v` | ~40s |

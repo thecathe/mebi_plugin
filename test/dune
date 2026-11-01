@@ -1,13 +1,14 @@
-; Links rocq-mebi.model only -- no plugin, no rocq-runtime. If this stops
-; building because a Rocq dependency crept back into lib/utils, lib/terms or
-; lib/model, that is the regression this target exists to catch.
+; Links rocq-mebi.model and rocq-mebi.draw only -- no plugin, no rocq-runtime.
+; If this stops building because a Rocq dependency crept back into lib/utils,
+; lib/terms, lib/model or lib/draw, that is the regression this target exists
+; to catch.
 ;
 ; No (public_name): this is a test binary, and installing it would drop it into
 ; the opam switch's bin/.
 (test
  (name tests)
  (modules tests)
- (libraries rocq-mebi.model))
+ (libraries rocq-mebi.model rocq-mebi.draw unix))
 
 ; Throwaway scaling probe for the saturation algorithm (see satscale.ml).
 ; Same constraint as the test binary above: model only, no rocq-runtime.

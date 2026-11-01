@@ -22,6 +22,7 @@
   rocq-mebi.terms
   rocq-mebi.rocq_tools
   rocq-mebi.model
+  rocq-mebi.draw
   yojson
   benchmark)
  (modules

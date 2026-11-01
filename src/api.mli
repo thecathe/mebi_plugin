@@ -61,6 +61,23 @@ val describe_output : unit -> string
     ([MeBi Config Output Format Text|JSON]), and says so. Raises nothing. *)
 val set_output_format : output_format -> unit
 
+(** [describe_wrap ()] is a sentence saying how messages are wrapped now
+    ('Wrap'), what [Wide] and [Slim] stand for, and how to change them, for
+    messages. Raises nothing. *)
+val describe_wrap : unit -> string
+
+(** [set_output_wrap m] sets how messages are wrapped
+    ([MeBi Config Output Wrap Off|Flow|Wide|Slim|Width n]), and says so. A
+    [Width n] under {!Output.Wrap.min_width} is warned about and ignored.
+    Raises nothing. *)
+val set_output_wrap : Output.Wrap.mode -> unit
+
+(** [set_output_preset_width p n] makes [p] stand for [n] columns
+    ([MeBi Config Output Width Wide|Slim n]), and says so. It does not choose
+    [p]: {!set_output_wrap} does. An [n] under {!Output.Wrap.min_width} is
+    warned about and ignored. Raises nothing. *)
+val set_output_preset_width : Output.Wrap.preset -> int -> unit
+
 (** [make_enc p] is the encoding module unpacked from [p]. Raises
     nothing. *)
 val make_enc : (module Encoding.Packed.PackedS) -> (module Encoding.S)
@@ -166,6 +183,76 @@ val default_bounds : bounds_args
 (** The {!bounds_args} now in force ([MeBi Config Bounds]). *)
 val the_bounds_args : bounds_args ref
 
+(** The default {!draw_config}[.draw_bounds]: 50 states. LuaTeX's layout took
+    about 3 seconds at 50 states, 21 at 100 and 88 at 150 (one synthetic graph
+    of each size, about 1.4 transitions a state; it is time that limits it,
+    not memory: [doc/measurements/draw-layout-time.md]). *)
+val default_draw_bounds : bounds_args
+
+(** The default time, in seconds, each program [MeBi Draw] runs may take
+    ({!Draw_output.run}): 60. *)
+val default_draw_time : int
+
+(** The default directory [MeBi Draw] writes into: [./_diagrams/], relative
+    to the compile directory. *)
+val default_draw_dir : string
+
+(** How [MeBi Draw] draws ([MeBi Config Draw] and [MeBi Config Bounds Draw]). *)
+type draw_config =
+  { mutable draw_format : Draw_output.format
+    (** what to make: [PDF] by default ({!Draw_output.format}) *)
+  ; mutable draw_bounds : bounds_args
+    (** the most states, or transitions, to draw: one or the other, as
+        {!the_bounds_args} is; a larger system is refused, since the layout's
+        time grows quickly with its size *)
+  ; mutable draw_time : int
+    (** seconds each program may take before it is killed *)
+  ; mutable draw_dir : string (** where the files go *)
+  ; mutable draw_style : Draw_style.t (** the user's styles ({!Draw_style}) *)
+  }
+
+(** [draw_config_default ()]: a fresh default {!draw_config}, as its fields
+    are mutable. *)
+val draw_config_default : unit -> draw_config
+
+(** The {!draw_config} now in force. *)
+val the_draw_config : draw_config ref
+
+(** [reset_draw_bounds ()] restores {!default_draw_bounds} and
+    {!default_draw_time}; [Reset Bounds] does. Raises nothing. *)
+val reset_draw_bounds : unit -> unit
+
+(** [reset_draw_config ()] restores every draw setting, bounds and styles
+    included ([MeBi Config Reset Draw]). Raises nothing. *)
+val reset_draw_config : unit -> unit
+
+(** [set_draw_format f] chooses what [MeBi Draw] makes, and shows the change.
+    Raises nothing. *)
+val set_draw_format : Draw_output.format -> unit
+
+(** [set_draw_bounds b] sets the most states, or transitions, [MeBi Draw]
+    draws, and shows the change. Raises nothing. *)
+val set_draw_bounds : bounds_args -> unit
+
+(** [set_draw_time s] sets the seconds each program may take, and shows the
+    change. Raises nothing. *)
+val set_draw_time : int -> unit
+
+(** [set_draw_dir d] sets where [MeBi Draw] writes, and shows the change.
+    Raises nothing. *)
+val set_draw_dir : string -> unit
+
+(** [set_draw_style component opts] sets the TikZ options of the component
+    named [component] ({!Draw_style.of_string}), which follow its default's;
+    blank [opts] restore the default. An unknown component, or options with
+    unbalanced braces, is warned about and ignored. Shows the change. Raises
+    nothing. *)
+val set_draw_style : string -> string -> unit
+
+(** [describe_draw ()] is a sentence saying how [MeBi Draw] draws now, for
+    messages. Raises nothing. *)
+val describe_draw : unit -> string
+
 (** How the bisimilarity check saturates each FSM: whole, on demand with
     the partition on the silent-SCC quotient, or ([Saturation_auto], the
     default) on demand only above the saturation bound, with a warning. See
@@ -191,8 +278,9 @@ val set_game_bound : int -> unit
 val set_saturation_mode : saturation_mode -> unit
 
 (** [reset_bounds_args ()] restores the default exploration and saturation
-    bounds, the game bound, the memory bound (its default), the saturation mode, and the premise search's
-    depth and range ([MeBi Reset Bounds]). Raises nothing. *)
+    bounds, the game bound, the memory bound (its default), the saturation mode, the premise search's
+    depth and range, and the draw bounds and time limit
+    ({!reset_draw_bounds}) ([MeBi Reset Bounds]). Raises nothing. *)
 val reset_bounds_args : unit -> unit
 
 (** [set_the_bounds_args b] sets {!the_bounds_args}, shows the change, and,

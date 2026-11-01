@@ -158,7 +158,7 @@ A full `dune build` takes ~1m40s, almost all of it the `MeBi Benchmark` vernacul
 `dune build @check` also produces the `.cmi`/`.cmt` files merlin needs, so it doubles as the "make my editor happy" command.
 
 ### Running tests
-`dune exec test/tests.exe` runs a small pure-OCaml test suite (no Rocq runtime) exercising `lib/model` directly — FSM construction, saturation, minimization, bisimilarity, JSON round-tripping. It's a fast first signal for changes to `lib/model`/`lib/terms`/`lib/utils`, but it doesn't exercise the proof solver (`src/proof_solver*`) or anything Rocq-facing.
+`dune exec test/tests.exe` runs a small pure-OCaml test suite (no Rocq runtime) exercising `lib/model` directly — FSM construction, saturation, minimization, bisimilarity, JSON round-tripping — and `lib/draw` (the TikZ a diagram is written as, its styles, and, where `lualatex` is installed, a real compile of it). It's a fast first signal for changes to `lib/model`/`lib/terms`/`lib/utils`/`lib/draw`, but it doesn't exercise the proof solver (`src/proof_solver*`) or anything Rocq-facing.
 
 `test/rocq/Test.v` runs the solver on small cases; the end-to-end coverage is the proof files under `examples/`: the `PluginProofs.v` files in `examples/Bisimilarity/**`, and the CADP proofs in `examples/CADP/` (`MutualExclusion.v`, `GluedLayered.v`, `Fifo.v`, ...). Most are commented out of `_CoqProject` by default (full proof search is slow — some examples need tens of thousands of tactic iterations); `CCS/PluginProofs.v`, `CCS/LawProofs.v` and `examples/Evaluation/{Width,Layers,Depth}.v` are built by default. Uncomment the ones you need and run `make -j$(nproc)` to exercise them; see the comment next to each line in `_CoqProject` for which are cheap vs. expensive.
 
@@ -214,6 +214,27 @@ Inductive testLTS : nat -> bool -> nat -> Prop :=
 
 MeBi Run LTS 0 Using testLTS.
 ```
+
+### Drawing an LTS or FSM
+
+```
+MeBi Draw LTS <term> Using <relation> [As "<name>"] [<relation>...].
+MeBi Draw FSM <term> Using <relation> [As "<name>"] [<relation>...].
+```
+
+Draws the LTS (or FSM) of `<term>` as a [TikZ](https://tikz.dev/) picture, laid out by LuaTeX's `graphdrawing` library (a layered layout), and writes three files into `./_diagrams/`: `<name>.tikz`, the picture, to `\input` into a LuaLaTeX document; `<name>.style.tikz`, its styles; and `<name>.tex`, a document that draws the two. The initial state has an arrow in, a state with no way out has a double border, silent steps are dashed and labelled τ, and two arrows between a pair of states in opposite directions are bent apart. States are numbered as in the plain-text dump of the same system. `<name>` is given by `As` (letters, digits, `-`, `_` and `.`), else made from the term (`lts-old`); files of that name are replaced.
+
+With `Config Draw Format PDF` (the default) it also runs `lualatex` to make `<name>.pdf`; with `PNG`, a PNG of that, by `pdftocairo` or `gs`; with `TeX`, only the three files. A program that is not on `PATH`, fails, or runs past its time limit is warned about, and the files made so far are kept. A system over the draw bound (50 states by default) is refused, because LuaTeX's layout time grows quickly with size: about 3 seconds at 50 states, 21 at 100 and 88 at 150 ([`doc/measurements/draw-layout-time.md`](doc/measurements/draw-layout-time.md)).
+
+The picture names a TikZ style for each part of it and sets none; `<name>.style.tikz` defines them, from a built-in default for each followed by your own options, which win. They are configurable per part:
+
+```
+MeBi Config Draw Style "State" "fill=yellow!20".          (* a TikZ option list, after the default's *)
+MeBi Config Draw Style "Edge" "draw=blue, thick".
+MeBi Config Draw Style "State" "".                        (* back to the default *)
+```
+
+The parts are `Layout` (the `\graph` options, so spacing), `State`, `Initial`, `Terminal`, `Edge`, `Label`, `SilentEdge`, `SilentLabel`, `TwoWay`, `Loop` and `Caption`. To style a picture from LaTeX instead, leave `<name>.style.tikz` out and define the same names (`mebi state`, `mebi edge`, ...) in your document. `MeBi Help Config Draw` lists the defaults.
 
 ### Bisimilarity, merging, minimizing, saturating
 
@@ -297,7 +318,13 @@ It states `weak_bisimilar`; if the two are not bisimilar, nothing is opened. `As
 
 ```
 MeBi Config Reset.                                 (* everything below *)
-MeBi Config Reset [Bounds|Weak|FailIf|Output].
+MeBi Config Reset [Bounds|Weak|FailIf|Output|Draw].
+MeBi Config Draw Format TeX|PDF|PNG.               (* what MeBi Draw makes; default PDF *)
+MeBi Config Draw Dir "<dir>".                      (* default ./_diagrams/ *)
+MeBi Config Draw Style "<Component>" "<TikZ options>".
+MeBi Config Bounds Draw States <n>.                (* most states drawn; default 50 *)
+MeBi Config Bounds Draw Transitions <n>.           (* or most transitions; the last set is the one in force *)
+MeBi Config Bounds Draw Time <s>.                  (* seconds each program may run; default 60 *)
 MeBi Config Bounds As Num States <n>.
 MeBi Config Bounds As Num Transitions <n>.
 MeBi Config Bounds Saturation <n>.
@@ -315,6 +342,10 @@ MeBi Config Weak1 / Weak2 As <term> Of <relation>.
 MeBi Config FailIf Empty/Incomplete/NotBisimilar/Oversaturated True/False.
 MeBi Config Output "<Kind>" True/False.
 MeBi Config Output Format Text/JSON.                (* how results are printed and dumped; Text (plain text) is the default *)
+MeBi Config Output Wrap Off/Flow/Wide/Slim.            (* fit messages to a width; Off (one block) is the default *)
+MeBi Config Output Wrap Width <n>.
+MeBi Config Output Width Wide <n>.                  (* what Wide stands for (120 until set); Slim is 60 *)
+MeBi Config Output Width Slim <n>.
 MeBi Config Solver MutualCofix True|False|Auto.
 MeBi Config Solver Answers Default|Greedy|Minimal|Auto.
 ```
@@ -360,6 +391,13 @@ MeBi Config Solver Answers Default|Greedy|Minimal|Auto.
 
   `Format JSON` prints the full structure instead, as before 2026-10-19, with the header as an `"origin"` field. `Output "Detail"` adds each move's derivation tree (`0 -0-> 1  via s_l(s_pre)`); in JSON it also keeps the constructors' bindings and the annotations of weak actions. Unless set, `Detail` is off for plain text and on for JSON; once set, it holds for both. Each printed result is tagged with its form (`[plain text]`, `[JSON, without detail]`, ...), and the first one in a session is preceded by a `Notice` saying how to change it. Benchmark samples are always JSON. `Reset Output` restores the defaults.
 
+- `Output Wrap Off|Flow|Wide|Slim` and `Output Wrap Width <n>` fit messages to a width, so that a long line is not left running off the edge of the window. A paragraph of prose is broken between words and its continuation lines indented; rows of aligned columns (the `states:`, `labels:` and moves of a result) and JSON are never cut.
+  - `Off` is the default: a message is one block, as before.
+  - `Width <n>` breaks at `<n>` columns (at least 20) in the plugin, so it holds in every client, but does not follow the window.
+  - `Wide` and `Slim` are two named widths for `Width <n>`, 120 and 60 until set with `Output Width Wide <n>` and `Output Width Slim <n>`. Setting one changes the wrapping at once if it is the one chosen, and does not choose it; `Output Wrap Wide` or `Output Wrap Slim` does.
+  - `Flow` hands the breaking to whatever shows the message: Rocq prints text at its printing width (78, or `Set Printing Width`), and a client that lays the boxes out itself can follow its own window. vsrocq shows a `Notice` or `Warning` as text, so in `Flow` those wrap at 78; its `Info` messages (which includes `Result`) are sent to the proof panel as boxes. Whether that panel re-flows them to its width has not been checked (`doc/limitations.md`, "Output"). Use `Wide` or `Slim` where a fixed width is wanted.
+  - `Reset Output` turns wrapping off and resets `Wide` and `Slim`.
+
 ### Diagnostics
 
 ```
@@ -378,7 +416,7 @@ MeBi Help.
 MeBi Help <topic>.
 ```
 
-`MeBi Help` lists the topics: `Run`, `Sim`, `Benchmark`, `Premises`, `Config`, and `Config Bounds`, `Config Bounds Saturation`, `Config Saturation`, `Config Weak`, `Config FailIf`, `Config Solver`, `Config Output`. `MeBi Help Config Bounds Saturation` gives the memory guidance above, computed from the same measured figures the plugin's errors and notices use.
+`MeBi Help` lists the topics: `Run`, `Draw`, `Sim`, `Benchmark`, `Premises`, `Config`, and `Config Bounds`, `Config Bounds Saturation`, `Config Saturation`, `Config Weak`, `Config FailIf`, `Config Solver`, `Config Output`, `Config Draw`. `MeBi Help Config Bounds Saturation` gives the memory guidance above, computed from the same measured figures the plugin's errors and notices use.
 
 
 

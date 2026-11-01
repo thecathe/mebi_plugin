@@ -130,8 +130,8 @@ module FileWriter = struct
      rather than being hand-rolled per field: the previous version guarded
      on the raw [tm_mon] while printing it, which is exactly the coupling
      that let the month go out by one unnoticed. *)
-  let get_local_timestamp : string =
-    match Unix.localtime (Unix.time ()) with
+  let format_timestamp (t : float) : string =
+    match Unix.localtime t with
     | { tm_sec; tm_min; tm_hour; tm_mday; tm_mon; tm_year; _ } ->
       Printf.sprintf
         "%d %02d %02d - %02d:%02d:%02d"
@@ -141,5 +141,20 @@ module FileWriter = struct
         tm_hour
         tm_min
         tm_sec
+  ;;
+
+  (* See the [.mli]. This used to be a [string], so it was evaluated once
+     when the plugin loaded and every dump of the session carried that time. *)
+  let get_local_timestamp () : string = format_timestamp (Unix.time ())
+
+  (* See the [.mli]. *)
+  let fresh_path ~(stem : string) ~(ext : string) : string =
+    let rec go (n : int) : string =
+      let p : string =
+        if n <= 1 then stem ^ ext else Printf.sprintf "%s (%i)%s" stem n ext
+      in
+      if Sys.file_exists p then go (n + 1) else p
+    in
+    go 1
   ;;
 end

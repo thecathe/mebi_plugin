@@ -28,7 +28,8 @@ let the_output_config : output_config ref = ref (output_config_default ())
 (* See the [.mli]. *)
 let reset_output_config () : unit =
   the_output_config := output_config_default ();
-  Logger.reset_config ()
+  Logger.reset_config ();
+  Output.Wrap.reset ()
 ;;
 
 (* See the [.mli]. *)
@@ -80,6 +81,68 @@ let describe_output () : string =
 let set_output_format (f : output_format) : unit =
   !the_output_config.format <- f;
   Logger.notice (Printf.sprintf "(MeBi Config: %s)" (describe_output ()))
+;;
+
+(* See the [.mli]. *)
+let describe_wrap () : string =
+  let wide : int = Output.Wrap.preset_width Wide in
+  let slim : int = Output.Wrap.preset_width Slim in
+  let how : string =
+    match Output.Wrap.mode () with
+    | Off -> "Messages are not wrapped (the default)."
+    | Flow ->
+      "Messages are wrapped as flowing paragraphs: where they break is up to \
+       whatever shows them (Rocq prints text at its printing width, 78 unless \
+       Set Printing Width says otherwise)."
+    | Width n -> Printf.sprintf "Messages are wrapped at %i columns." n
+    | Preset Wide ->
+      Printf.sprintf "Messages are wrapped at %i columns (Wide)." wide
+    | Preset Slim ->
+      Printf.sprintf "Messages are wrapped at %i columns (Slim)." slim
+  in
+  Printf.sprintf
+    "%s Wide is %i columns and Slim %i. [MeBi Config Output Wrap Off | Flow | \
+     Wide | Slim | Width <n>] chooses, [MeBi Config Output Width Wide | Slim \
+     <n>] sets a preset; see [MeBi Help Config Output]."
+    how
+    wide
+    slim
+;;
+
+(** [too_narrow n] warns that [n] is under {!Output.Wrap.min_width}, and that
+    wrapping is as it was. Raises nothing. *)
+let too_narrow (n : int) : unit =
+  Printf.sprintf
+    "A width is at least %i columns, not %i; wrapping is as it was."
+    Output.Wrap.min_width
+    n
+  |> Logger.warning
+;;
+
+(* See the [.mli]. *)
+let set_output_wrap (m : Output.Wrap.mode) : unit =
+  match m with
+  | Width n when Bool.not (Output.Wrap.valid n) -> too_narrow n
+  | _ ->
+    Output.Wrap.set_mode m;
+    Logger.notice (Printf.sprintf "(MeBi Config: %s)" (describe_wrap ()))
+;;
+
+(* See the [.mli]. *)
+let set_output_preset_width (p : Output.Wrap.preset) (n : int) : unit =
+  if Bool.not (Output.Wrap.valid n)
+  then too_narrow n
+  else (
+    Output.Wrap.set_preset_width p n;
+    let name : string = match p with Wide -> "Wide" | Slim -> "Slim" in
+    Logger.notice
+      (Printf.sprintf
+         "(MeBi Config: %s is %i columns%s.)"
+         name
+         n
+         (if Output.Wrap.mode () = Preset p
+          then ", and messages are wrapped at that now"
+          else Printf.sprintf "; [MeBi Config Output Wrap %s] selects it" name)))
 ;;
 
 (* See the [.mli]. *)
@@ -178,6 +241,127 @@ let default_bounds : bounds_args = States 100
 (* See the [.mli]. *)
 let the_bounds_args : bounds_args ref = ref default_bounds
 
+(* See the [.mli]. *)
+let default_draw_bounds : bounds_args = States 50
+
+(* See the [.mli]. *)
+let default_draw_time : int = 60
+
+(* See the [.mli]. *)
+let default_draw_dir : string = "./_diagrams/"
+
+(* See the [.mli]. *)
+type draw_config =
+  { mutable draw_format : Draw_output.format
+  ; mutable draw_bounds : bounds_args
+  ; mutable draw_time : int
+  ; mutable draw_dir : string
+  ; mutable draw_style : Draw_style.t
+  }
+
+(* See the [.mli]. *)
+let draw_config_default () : draw_config =
+  { draw_format = Draw_output.Pdf
+  ; draw_bounds = default_draw_bounds
+  ; draw_time = default_draw_time
+  ; draw_dir = default_draw_dir
+  ; draw_style = Draw_style.empty
+  }
+;;
+
+(* See the [.mli]. *)
+let the_draw_config : draw_config ref = ref (draw_config_default ())
+
+(* See the [.mli]. *)
+let reset_draw_bounds () : unit =
+  !the_draw_config.draw_bounds <- default_draw_bounds;
+  !the_draw_config.draw_time <- default_draw_time
+;;
+
+(* See the [.mli]. *)
+let reset_draw_config () : unit = the_draw_config := draw_config_default ()
+
+(* See the [.mli]. *)
+let set_draw_format (f : Draw_output.format) : unit =
+  !the_draw_config.draw_format <- f;
+  Printf.sprintf
+    "(MeBi Config: Set Draw Format to: %s.)"
+    (Draw_output.format_name f)
+  |> Logger.show
+;;
+
+(* See the [.mli]. *)
+let set_draw_bounds (x : bounds_args) : unit =
+  !the_draw_config.draw_bounds <- x;
+  Printf.sprintf
+    "(MeBi Config: Set Draw Bounds to: %s.)"
+    (match x with
+     | States i -> Printf.sprintf "%i States" i
+     | Transitions i -> Printf.sprintf "%i Transitions" i)
+  |> Logger.show
+;;
+
+(* See the [.mli]. *)
+let set_draw_time (s : int) : unit =
+  !the_draw_config.draw_time <- s;
+  Printf.sprintf "(MeBi Config: Set Draw Time to: %i seconds.)" s |> Logger.show
+;;
+
+(* See the [.mli]. *)
+let set_draw_dir (d : string) : unit =
+  !the_draw_config.draw_dir <- d;
+  Printf.sprintf "(MeBi Config: Set Draw Dir to: %s.)" d |> Logger.show
+;;
+
+(* See the [.mli]. *)
+let set_draw_style (component : string) (opts : string) : unit =
+  match Draw_style.of_string component with
+  | None ->
+    Printf.sprintf
+      "Unrecognised draw component \"%s\". Valid components are: %s"
+      component
+      (String.concat ", " (List.map Draw_style.name Draw_style.components))
+    |> Logger.warning
+  | Some c when not (Draw_style.balanced opts) ->
+    Printf.sprintf
+      "The options for %s have unbalanced braces, which would break the style \
+       file. The style is unchanged."
+      (Draw_style.name c)
+    |> Logger.warning
+  | Some c ->
+    !the_draw_config.draw_style
+    <- Draw_style.set c opts !the_draw_config.draw_style;
+    (if String.equal (String.trim opts) ""
+     then
+       Printf.sprintf
+         "(MeBi Config: Draw Style %s is back to its default.)"
+         (Draw_style.name c)
+     else
+       Printf.sprintf
+         "(MeBi Config: Set Draw Style %s to: %s.)"
+         (Draw_style.name c)
+         opts)
+    |> Logger.show
+;;
+
+(* See the [.mli]. *)
+let describe_draw () : string =
+  let c : draw_config = !the_draw_config in
+  Printf.sprintf
+    "MeBi Draw makes %s into %s, for at most %s, with %i seconds for each \
+     program it runs. Style: %s."
+    (match c.draw_format with
+     | Draw_output.Tex -> "the TeX files"
+     | Pdf -> "a PDF as well as the TeX files"
+     | Png -> "a PDF and a PNG as well as the TeX files")
+    c.draw_dir
+    (match c.draw_bounds with
+     | States i -> Printf.sprintf "%i states" i
+     | Transitions i -> Printf.sprintf "%i transitions" i)
+    c.draw_time
+    (Draw_style.describe c.draw_style)
+;;
+
 (** The most weak actions saturation may produce before the plugin refuses
     (or, with [FailIf Oversaturated False], warns): see
     [Wrapper.check_saturation_size]. *)
@@ -248,6 +432,7 @@ let set_game_bound (x : int) : unit =
 (* See the [.mli]. *)
 let reset_bounds_args () : unit =
   the_bounds_args := default_bounds;
+  reset_draw_bounds ();
   the_saturation_bound := default_saturation_bound;
   the_game_bound := None;
   Memory_guard.reset ();
@@ -465,5 +650,6 @@ let reset_all () : unit =
   reset_weak_args ();
   reset_the_fail_flags ();
   reset_output_config ();
+  reset_draw_config ();
   Logger.show "(MeBi: Reset Config.)"
 ;;

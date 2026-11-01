@@ -1665,6 +1665,73 @@ MeBi Help Config Weak.
 MeBi Help Config FailIf.
 MeBi Help Config Solver.
 MeBi Help Config Output.
+MeBi Help Draw.
+MeBi Help Config Draw.
+
+(* [MeBi Draw]: writes the TeX files only ([Format TeX]), so that no
+   LuaLaTeX is needed to run this file; that the diagrams compile is
+   [test/tests.ml]'s, which skips it where there is none. Each [Fail] below
+   is for the reason in its comment (checked by running it without the
+   [Fail]). *)
+MeBi Divider "Theories.Test.Draw".
+Module Draw.
+  Inductive act := Ca | Cb | Cc.
+  Inductive lts : nat -> option act -> nat -> Prop :=
+  | d0 : lts 0 (Some Ca) 1
+  | d1 : lts 1 (Some Cb) 2
+  | d2 : lts 1 None 3
+  | d3 : lts 2 (Some Cc) 0
+  | d4 : lts 1 (Some Ca) 1.
+
+  MeBi Config Draw Dir "./_diagrams_test/".
+  MeBi Config Draw Format TeX.
+
+  (* every form: the name made from the term, one given, and extra relations *)
+  MeBi Draw LTS 0 Using lts.
+  MeBi Draw LTS 0 Using lts As "lts-named".
+  MeBi Draw FSM 0 Using lts As "fsm-named".
+  MeBi Draw FSM 0 Using lts.
+  MeBi Draw LTS 0 Using lts lts.
+  MeBi Draw LTS 0 Using lts As "lts-named-more" lts.
+
+  (* with a silent label: [None] is drawn as tau *)
+  MeBi Config Weak As Option act.
+  MeBi Draw LTS 0 Using lts As "lts-silent".
+  MeBi Config Reset Weak.
+
+  (* a style is set, and an empty one restores the default; an unknown
+     component, and braces that do not close, are warned about *)
+  MeBi Config Draw Style "State" "fill=yellow!20".
+  MeBi Config Draw Style "State" "".
+  MeBi Config Draw Style "NoSuchComponent" "red".
+  MeBi Config Draw Style "State" "fill={".
+
+  (* the bound is one of states or transitions, the last set *)
+  MeBi Config Bounds Draw States 3.
+  (* 4 states, over a bound of 3 states *)
+  Fail MeBi Draw LTS 0 Using lts.
+  MeBi Config Bounds Draw Transitions 4.
+  (* 5 moves, over a bound of 4 transitions; the 4 states no longer count *)
+  Fail MeBi Draw FSM 0 Using lts.
+  MeBi Config Bounds Draw Transitions 5.
+  MeBi Draw FSM 0 Using lts.
+  MeBi Config Bounds Draw Time 30.
+
+  (* [Reset Bounds] restores the bound and the time limit *)
+  MeBi Config Bounds Draw States 3.
+  MeBi Config Reset Bounds.
+  MeBi Draw LTS 0 Using lts.
+
+  (* [Reset Draw] restores them too; then a name TeX could not open *)
+  MeBi Config Bounds Draw States 3.
+  MeBi Config Reset Draw.
+  MeBi Config Draw Dir "./_diagrams_test/".
+  MeBi Config Draw Format TeX.
+  MeBi Draw LTS 0 Using lts.
+  (* a space cannot be in a file name TeX opens *)
+  Fail MeBi Draw LTS 0 Using lts As "not a name".
+  MeBi Config Reset Draw.
+End Draw.
 
 (* [weak_bisimilar] is strictly finer than [mutual_sim] (mutual similarity),
    proved by hand on the textbook pair [a.b + a] and [a.b]: each simulates
@@ -2441,6 +2508,47 @@ Module OutputFormat.
   MeBi Config Output "DecodeResults" False.
   MeBi Config Reset Weak.
 End OutputFormat.
+
+(* [MeBi Config Output Wrap Off|Flow|Wide|Slim|Width n] and
+   [Output Width Wide|Slim n] (2026-11-01): each mode prints the result of a
+   tiny FSM, so every renderer runs, and the widths that are refused (under
+   20) only warn. What the wrapping does to the text is checked in the
+   pure-OCaml tests ([test/tests.ml], "output: wrap"). Then back to this
+   file's output settings, as above. *)
+MeBi Divider "Theories.Test.OutputWrap".
+Module OutputWrap.
+  Inductive act := a | b.
+  Inductive tm := done | pre (x : act) (k : tm) | tau (k : tm).
+  Inductive step : tm -> option act -> tm -> Prop :=
+  | s_pre x k : step (pre x k) (Some x) k
+  | s_tau k : step (tau k) None k.
+  MeBi Config Weak As Option act.
+  MeBi Config Output "Result" True.
+  MeBi Config Output Wrap Flow.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Wrap Width 30.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Width Wide 90.
+  MeBi Config Output Width Slim 40.
+  MeBi Config Output Wrap Wide.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Wrap Slim.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  (* under 20: warned, and the wrapping is as it was (Slim, 40) *)
+  MeBi Config Output Wrap Width 19.
+  MeBi Config Output Width Slim 19.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Wrap Off.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Wrap Wide.
+  MeBi Config Reset Output.
+  MeBi Config Output "Info" False.
+  MeBi Config Output "Notice" False.
+  MeBi Config Output "Result" False.
+  MeBi Config Output "Show" False.
+  MeBi Config Output "DecodeResults" False.
+  MeBi Config Reset Weak.
+End OutputWrap.
 
 (* Proofs through a premise that fixes a step premise's source
    (2026-10-19; external feedback, item 4). Each relation has a

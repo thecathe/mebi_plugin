@@ -39,6 +39,12 @@ Decision 2 would change every checked-in proof bound if it went against
 - **Whether `theories/Traces.v` may keep one example user.** The rule of
   2026-10-11 puts machinery in `theories/` once two examples use it, and
   only CADP does yet. Otherwise, it moves to `examples/CADP/`.
+- **What an `origin:` line should say under vsrocq**, where its line number
+  can be a few lines short (`doc/limitations.md`, "Output"): drop the line, or
+  print the document's logical path.
+- **Whether `Output Wrap Flow` follows the window in vsrocq's proof panel**
+  (a look in VS Code; `doc/limitations.md`, "Output"). If it does not,
+  `Wide` and `Slim` are the way.
 
 ## Next up (agreed, not started)
 

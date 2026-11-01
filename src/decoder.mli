@@ -96,6 +96,20 @@ module type S = sig
         states' terms. [detail] adds nothing. Raises nothing. *)
     val result : detail:bool -> result -> string
   end
+
+  (** Diagrams of an LTS or FSM ([MeBi Draw]), with each state and label as
+      its Rocq term printed. A state has the number it has in the
+      {!Plain} text of the same system, and a silent label is {!Draw.Silent}. *)
+  module Diagram : sig
+    (** [lts x] is the LTS [x] as a diagram. Each arrow is a transition.
+        Raises {!Bi_encoding.S.CannotDecode} if an encoding stands for no term
+        (propagated). *)
+    val lts : lts -> Draw.t
+
+    (** [fsm x] is the FSM [x] as a diagram. Each arrow is one move, as
+        {!Plain.fsm} lists them. Raises as {!lts}. *)
+    val fsm : fsm -> Draw.t
+  end
 end
 
 module Make

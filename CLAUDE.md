@@ -184,7 +184,9 @@ per-Solve tables that `bench/compare.sh` diffs between two builds; see
    next `dune build`.
 
 For pure-OCaml model changes with no Rocq/proof-solver involvement,
-`dune exec test/tests.exe` (expect 111/111) is a much faster first signal, but
+`dune exec test/tests.exe` (expect 169/169 with `lualatex` on `PATH` but no
+`pdftocairo` or `gs`, 171/171 with one; a host without `lualatex` prints more
+`skip` lines and a lower total) is a much faster first signal, but
 does not substitute for the proof-suite run above when the change touches
 anything the proof solver reads.
 
@@ -197,11 +199,20 @@ session has them.
 - Commit per completed step. Run `dune fmt` before committing.
 - Gate a commit on the build. A `git commit` chained after a build in one
   command commits a broken tree.
-- Push branches to `fork` (`thecathe/mebi_plugin`) and open PRs there.
-  Never push to `origin` (`dcastrop`): it gets a single PR, when Jonah
-  says. (50 commits reached `origin/main` by mistake on 2026-09-29, from
-  a session whose git setup sent the push there. Before any push, read
-  `git remote -v` and `git branch -vv`, and name the remote explicitly.)
+- Integration: topic branches merge into `main` of the fork with a local
+  `git merge --no-ff` (never squash), agreed with Jonah on 2026-11-01. A
+  push is separate and waits for Jonah. The primary checkout is usually on a
+  topic branch, so merge from a worktree on `main` (`git worktree add
+  ../<name> main`) and remove it afterwards.
+- Push branches only to the fork (`thecathe/mebi_plugin`) and open PRs
+  there. Never push to the upstream repository (`dcastrop/mebi_plugin`):
+  it gets a single PR, when Jonah says. Remote names differ between
+  clones: in some, `origin` is upstream and the fork is a second remote,
+  `fork`; in others, `origin` is the fork and upstream is not configured
+  at all. Go by the URL, not the name. (50 commits reached `origin/main`
+  by mistake on 2026-09-29, from a session whose git setup sent the push
+  there. Before any push, read `git remote -v` and `git branch -vv`, and
+  name the remote explicitly.)
 - A new capability is flagged and agreed before code (see the top of this
   file).
 
@@ -289,7 +300,13 @@ session has them.
   intended: turn it into a positive test. Check every `Fail` fails for the
   intended *reason*: cut the file at that line, drop the `Fail`, and read the
   error.
-- `lib/utils`, `lib/terms`, `lib/model` and `lib/showable` must never gain a
-  `rocq-runtime` dependency — they need to stay linkable from
+- `lib/utils`, `lib/terms`, `lib/model`, `lib/showable` and `lib/draw` must
+  never gain a `rocq-runtime` dependency — they need to stay linkable from
   `test/tests.exe` without a Rocq runtime. That test binary failing to build
   is the tripwire if this is accidentally violated.
+- `MeBi Draw` writes into `./_diagrams/` (gitignored, like `_dumps/`), and
+  `test/rocq/Test.v` into `_diagrams_test/`, with `Format TeX` so it needs no
+  LuaLaTeX. That a diagram compiles is `test/tests.ml`'s, which runs a real
+  `lualatex` where there is one and prints `skip` where there is not. The
+  layout's time grows quickly with size (`doc/measurements/draw-layout-time.md`),
+  so keep a test diagram small.

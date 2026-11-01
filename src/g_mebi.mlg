@@ -274,12 +274,117 @@ VERNAC COMMAND EXTEND MeBi_Benchmark_LTS CLASSIFIED AS QUERY
   }
 END 
 
+(* Draw -- an LTS or FSM as a TikZ diagram, laid out by LuaTeX. [As "<name>"]
+   names the files; it comes after the first relation, as [As <name>] does
+   for [Run Bisim], because a trailing [reference_list] would read it as more
+   relations. *)
+VERNAC COMMAND EXTEND MeBi_Draw_LTS CLASSIFIED AS QUERY
+| ["MeBi" "Draw" "LTS" constr(x) "Using" reference(r)] ->
+  {
+    let module W : Wrapper.S = (val Wrapper.get ()) in
+    let _ = W.Command.run [] (W.Command.DrawLTS ((x, r), None))
+            |> W.M.run ~reset_encoding:true
+    in
+    Logger.info "(Finished Drawing LTS.)";
+    ()
+  }
+
+| ["MeBi" "Draw" "LTS" constr(x) "Using" reference(r) reference_list(rs)] ->
+  {
+    let module W : Wrapper.S = (val Wrapper.get ()) in
+    let _ = W.Command.run rs (W.Command.DrawLTS ((x, r), None))
+            |> W.M.run ~reset_encoding:true
+    in
+    Logger.info "(Finished Drawing LTS.)";
+    ()
+  }
+
+| ["MeBi" "Draw" "LTS" constr(x) "Using" reference(r) "As" string(n)] ->
+  {
+    let module W : Wrapper.S = (val Wrapper.get ()) in
+    let _ = W.Command.run [] (W.Command.DrawLTS ((x, r), Some n))
+            |> W.M.run ~reset_encoding:true
+    in
+    Logger.info "(Finished Drawing LTS.)";
+    ()
+  }
+
+| ["MeBi" "Draw" "LTS" constr(x) "Using" reference(r) "As" string(n) reference_list(rs)] ->
+  {
+    let module W : Wrapper.S = (val Wrapper.get ()) in
+    let _ = W.Command.run rs (W.Command.DrawLTS ((x, r), Some n))
+            |> W.M.run ~reset_encoding:true
+    in
+    Logger.info "(Finished Drawing LTS.)";
+    ()
+  }
+END
+
+VERNAC COMMAND EXTEND MeBi_Draw_FSM CLASSIFIED AS QUERY
+| ["MeBi" "Draw" "FSM" constr(x) "Using" reference(r)] ->
+  {
+    let module W : Wrapper.S = (val Wrapper.get ()) in
+    let _ = W.Command.run [] (W.Command.DrawFSM ((x, r), None))
+            |> W.M.run ~reset_encoding:true
+    in
+    Logger.info "(Finished Drawing FSM.)";
+    ()
+  }
+
+| ["MeBi" "Draw" "FSM" constr(x) "Using" reference(r) reference_list(rs)] ->
+  {
+    let module W : Wrapper.S = (val Wrapper.get ()) in
+    let _ = W.Command.run rs (W.Command.DrawFSM ((x, r), None))
+            |> W.M.run ~reset_encoding:true
+    in
+    Logger.info "(Finished Drawing FSM.)";
+    ()
+  }
+
+| ["MeBi" "Draw" "FSM" constr(x) "Using" reference(r) "As" string(n)] ->
+  {
+    let module W : Wrapper.S = (val Wrapper.get ()) in
+    let _ = W.Command.run [] (W.Command.DrawFSM ((x, r), Some n))
+            |> W.M.run ~reset_encoding:true
+    in
+    Logger.info "(Finished Drawing FSM.)";
+    ()
+  }
+
+| ["MeBi" "Draw" "FSM" constr(x) "Using" reference(r) "As" string(n) reference_list(rs)] ->
+  {
+    let module W : Wrapper.S = (val Wrapper.get ()) in
+    let _ = W.Command.run rs (W.Command.DrawFSM ((x, r), Some n))
+            |> W.M.run ~reset_encoding:true
+    in
+    Logger.info "(Finished Drawing FSM.)";
+    ()
+  }
+END
+
 VERNAC COMMAND EXTEND MeBi_Config_Reset CLASSIFIED AS QUERY
 | ["MeBi" "Config" "Reset"]          -> { Api.reset_all            () }
 | ["MeBi" "Config" "Reset" "Bounds"] -> { Api.reset_bounds_args    () }
 | ["MeBi" "Config" "Reset" "Weak"]   -> { Api.reset_weak_args      () }
 | ["MeBi" "Config" "Reset" "FailIf"] -> { Api.reset_the_fail_flags () }
 | ["MeBi" "Config" "Reset" "Output"] -> { Api.reset_output_config  () }
+| ["MeBi" "Config" "Reset" "Draw"]   -> { Api.reset_draw_config    () }
+END
+
+(* Config -- how [MeBi Draw] draws: what it makes, where, and the look of each
+   component. [Style <component> "<TikZ options>"]: see [Draw_style]. The
+   bounds on how large a diagram may be are under [Bounds Draw]. *)
+VERNAC COMMAND EXTEND MeBi_Config_Draw CLASSIFIED AS QUERY
+| ["MeBi" "Config" "Draw" "Format" "TeX"] ->
+  { Api.set_draw_format Draw_output.Tex }
+| ["MeBi" "Config" "Draw" "Format" "PDF"] ->
+  { Api.set_draw_format Draw_output.Pdf }
+| ["MeBi" "Config" "Draw" "Format" "PNG"] ->
+  { Api.set_draw_format Draw_output.Png }
+| ["MeBi" "Config" "Draw" "Dir" string(d)] ->
+  { Api.set_draw_dir d }
+| ["MeBi" "Config" "Draw" "Style" string(c) string(o)] ->
+  { Api.set_draw_style c o }
 END
 
 (* Config -- graph bounds *)
@@ -292,8 +397,14 @@ VERNAC COMMAND EXTEND MeBi_Config_Bounds CLASSIFIED AS QUERY
   { Api.set_saturation_bound x }
 | ["MeBi" "Config" "Bounds" "Game" int(x)] -> 
   { Api.set_game_bound x }
-| ["MeBi" "Config" "Bounds" "Memory" int(x)] -> 
+| ["MeBi" "Config" "Bounds" "Memory" int(x)] ->
   { Api.set_memory_bound x }
+| ["MeBi" "Config" "Bounds" "Draw" "States" int(x)] ->
+  { Api.set_draw_bounds (Api.States x) }
+| ["MeBi" "Config" "Bounds" "Draw" "Transitions" int(x)] ->
+  { Api.set_draw_bounds (Api.Transitions x) }
+| ["MeBi" "Config" "Bounds" "Draw" "Time" int(x)] ->
+  { Api.set_draw_time x }
 | ["MeBi" "Config" "Premise" "Depth" int(x)] -> 
   { Api.set_premise_depth x }
 | ["MeBi" "Config" "Premise" "Range" int(x)] -> 
@@ -401,12 +512,27 @@ VERNAC COMMAND EXTEND MeBi_Config_Output CLASSIFIED AS QUERY
   { Api.set_output_format Api.Text }
 | ["MeBi" "Config" "Output" "Format" "JSON"] ->
   { Api.set_output_format Api.Json }
+| ["MeBi" "Config" "Output" "Wrap" "Off"] ->
+  { Api.set_output_wrap Output.Wrap.Off }
+| ["MeBi" "Config" "Output" "Wrap" "Flow"] ->
+  { Api.set_output_wrap Output.Wrap.Flow }
+| ["MeBi" "Config" "Output" "Wrap" "Wide"] ->
+  { Api.set_output_wrap (Output.Wrap.Preset Output.Wrap.Wide) }
+| ["MeBi" "Config" "Output" "Wrap" "Slim"] ->
+  { Api.set_output_wrap (Output.Wrap.Preset Output.Wrap.Slim) }
+| ["MeBi" "Config" "Output" "Wrap" "Width" int(n)] ->
+  { Api.set_output_wrap (Output.Wrap.Width n) }
+| ["MeBi" "Config" "Output" "Width" "Wide" int(n)] ->
+  { Api.set_output_preset_width Output.Wrap.Wide n }
+| ["MeBi" "Config" "Output" "Width" "Slim" int(n)] ->
+  { Api.set_output_preset_width Output.Wrap.Slim n }
 END
 
 (* Help -- topics and text in [src/help.ml] *)
 VERNAC COMMAND EXTEND MeBi_Help CLASSIFIED AS QUERY
 | ["MeBi" "Help"] -> { Help.show [] }
 | ["MeBi" "Help" "Run"] -> { Help.show [ "Run" ] }
+| ["MeBi" "Help" "Draw"] -> { Help.show [ "Draw" ] }
 | ["MeBi" "Help" "Sim"] -> { Help.show [ "Sim" ] }
 | ["MeBi" "Help" "Benchmark"] -> { Help.show [ "Benchmark" ] }
 | ["MeBi" "Help" "Premises"] -> { Help.show [ "Premises" ] }
@@ -419,6 +545,7 @@ VERNAC COMMAND EXTEND MeBi_Help CLASSIFIED AS QUERY
 | ["MeBi" "Help" "Config" "FailIf"] -> { Help.show [ "Config"; "FailIf" ] }
 | ["MeBi" "Help" "Config" "Solver"] -> { Help.show [ "Config"; "Solver" ] }
 | ["MeBi" "Help" "Config" "Output"] -> { Help.show [ "Config"; "Output" ] }
+| ["MeBi" "Help" "Config" "Draw"] -> { Help.show [ "Config"; "Draw" ] }
 END
 
 VERNAC COMMAND EXTEND MeBi_Divider CLASSIFIED AS QUERY

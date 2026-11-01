@@ -9236,6 +9236,285 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-10-31 — `CLAUDE.md`: say which remote is which by URL, not by name
+
+**Docs.** On branch `docs/claude-md-remote-names`, at Jonah's request ("clean
+up that now in `CLAUDE.md`"). Found while setting up an audit of the plugin.
+
+The "Conventions" in `CLAUDE.md` said to push to a remote called `fork` and
+never to `origin`. That describes one clone. In the clone on the main
+development host `origin` **is** the fork (`thecathe/mebi_plugin`) and the
+upstream repository is not configured at all, deliberately, so the rule named
+a remote that does not exist there. It now names the two repositories by
+URL, says that remote names differ between clones, and keeps the advice to
+read `git remote -v` and `git branch -vv` and to name the remote explicitly
+before any push. No remote or branch was changed.
+
+The copy of `CLAUDE.md` that reached the upstream repository has the same
+text (read-only fetch of its default branch on 2026-10-31: identical to
+`main` before this change). It is not changed there; that follow-up is
+tracked outside this repository.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-10-31):** Docs 1 · Bug fix 0 · New feature 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
+## 2026-10-31 — `bench/README.md`: the default suite is seven files, not eight
+
+**Docs.** On branch `docs/bench-readme-default-suite`, at Jonah's request
+("go ahead and make the eight vs seven fix"). Found while setting up an audit
+of the plugin, and traced before it was changed.
+
+The "Running the proof suites" table described the `default` suite as "the six
+`PluginProofs.v` marked `### Success` in `_CoqProject`, plus
+`CCS/PluginProofs.v` and `CCS/LawProofs.v`": eight files. `proofs.sh` runs
+seven. Nothing was commented out or missing. The sentence is from the
+harness's first commit (`20cd2aa`, 2026-10-04), when the CADP proofs were three
+`PluginProofs.v` files (three Proc and three CADP made "six"). The CADP
+restructure of 2026-10-13 (`e9dd143`) made them two files, `MutualExclusion.v`
+and `GluedLayered.v`, which neither match "`PluginProofs.v`" nor make six, and
+the sentence was not updated. The row now lists the seven files, as
+`proofs.sh`'s own header comment already did. The script, and the rest of the
+README, are unchanged ("run 8 at a time" is `-j`'s default).
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-10-31), cont.:** Docs 1 · Bug fix 0 · New feature 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
+## 2026-11-01 — Dump names: a live timestamp, a location under vsrocq, and no more silent overwrites
+
+**Bug fix.** On branch `fix/dump-names`, after Jonah reported that dump names
+were sometimes "Unknown Location" and that their timestamp was "always from
+the moment it was compiled, rather than live". Both were reproduced before
+anything was changed, and the consequence was worse than cosmetic: **dumps
+overwrote one another.**
+
+Two causes, one consequence:
+
+1. `Utils.FileWriter.get_local_timestamp` was a `string`, not a function, so
+   it was evaluated once when the plugin loaded (the name carried the load
+   time; in a vsrocq session, when the document first loaded the plugin).
+2. `Rocq_output.loc_provider` answered `"Unknown Location"` for anything but
+   a command read from a file. Under vsrocq every command is: vsrocq parses
+   with `loc = None` (`document.ml`, `parsed_state`), which Rocq turns into
+   `Loc.initial ToplevelInput`. `rocq repl` does the same. Only `rocq compile`
+   has a file.
+
+With a frozen time and a constant location, two commands writing a result of
+the same title wrote the same file, and the second replaced the first. In a
+`vsrocqtop` session driven over LSP by a script, two `MeBi Run LTS` commands
+left **one** file, named `... | Unknown Location | Finished Extracting LTS.txt`,
+and its time was 3 seconds before it was written. Jonah's own `_dumps/` had
+three files, all stamped `10:43:24` and last written between 11:57 and 12:24.
+
+The fix, in two commits:
+
+- `lib/utils`: `get_local_timestamp ()` is a function, read at each write (the
+  formatting is `format_timestamp`, so a test can pin it); `fresh_path` gives
+  `name (2).txt`, `name (3).txt` ... rather than overwrite, so two dumps made in
+  the same second under the same title both survive.
+- `src/rocq_output.ml`: a command with no file is named by the logical path of
+  the document (`Lib.library_dp ()`): under vsrocq `MyProj.Sub.Doc` where the
+  loadpath maps the file, `Doc` where nothing does; `Top` in `rocq repl`. A
+  file keeps `line N | file`.
+  The `"Unknown Location"` fallback remains only for a command with no location
+  at all, which was not seen to happen.
+
+Checked in `rocq compile`, `rocq repl` and a real `vsrocqtop` session, and
+`dune exec test/tests.exe` is 114/114 (three new checks, pure OCaml). Not run:
+the proof suites, since nothing here is read by `lib/model` or the solver.
+
+**A correction to 2026-09-29.** That session saw the frozen timestamp and wrote
+"Noticed, deliberately not changed ... that reads as intentional -- it groups a
+session's dumps together, and the filename already carries the source line". I
+inferred the intent and it was wrong on both counts: the filename did not carry
+the line under an editor, and the grouping is what made dumps overwrite each
+other. The `.mli` did say "computed once", but a doc comment describing what the
+code does is not evidence that it was wanted. Dumps from separate runs now
+accumulate in `_dumps/` instead of replacing each other, which is what the
+name's timestamp was always for.
+
+**Noticed, not changed.** Under vsrocq `Loc.line_nb` is not the file's line:
+a command at line 8, 20 and 40 reported 6, 18 and 38, and one at 17 reported
+14 (3 short, after multi-line comments and sentences). vsrocq's own source says
+as much (`document.ml`, "we could count the \n between start and stop and
+increase Loc.line_nb"). The `origin:` line at the top of every text result and
+the `"location"` field of JSON results use the same number (`Command.location`
+in `wrapper.ml`), so under vsrocq they can name the wrong line. In `rocq repl`
+they are right. This is a separate fix, with a choice in it (drop the line
+for a command with no file, or print the document and no line), so it is raised
+rather than made.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-11-01):** Bug fix 1 · Docs 0 · New feature 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
+## 2026-11-01 — `MeBi Config Output Wrap`: messages fitted to a width
+
+**New feature**, flagged and agreed before it was written. On branch
+`feat/output-wrap`, after Jonah reported that long messages run off the edge
+of the window and asked whether the text could be bound to the viewport, or
+boxed by hand, through the plugin API. The plan (modes `Off`, `Flow` and
+`Width n`) was put to Jonah first; they agreed and added two named widths,
+`Wide` and `Slim`, "just user-configurable shorthands for `Width n`".
+
+What it adds, and nothing else (`Off` is the default, so nothing changes
+until it is chosen):
+
+```
+MeBi Config Output Wrap Off | Flow | Wide | Slim.
+MeBi Config Output Wrap Width <n>.
+MeBi Config Output Width Wide <n>.     (* 120 until set *)
+MeBi Config Output Width Slim <n>.     (* 60 until set *)
+```
+
+Why messages could not wrap: `Rocq_output.render` made the whole body one
+`str`, so there was no break point in it for anything to use. The layer is
+now two parts. `Output.Wrap` (`lib/utils`, plain OCaml, so `test/tests.exe`
+covers it) classifies each line of a message, as prose to break between words
+or as text to keep (aligned columns: a run of two spaces or a tab; JSON), and
+fills prose to a width with a hanging indent. `Rocq_output` turns that into
+`Pp`: a box with break points per paragraph for `Flow`, or the filled lines
+for the fixed widths. The old rendering is kept as it was for `Off`.
+
+Two choices of mine, for Jonah to overrule:
+- **The spelling.** Jonah wrote `MeBi Set Output Width Wide n.`; there is no
+  `MeBi Set` family, every one of the ~40 config commands is `MeBi Config`,
+  so these are under `MeBi Config Output`. A `Set` alias is two lines of
+  grammar if wanted.
+- **A preset's setter does not choose it.** `Output Width Wide 140` sets what
+  `Wide` is (and takes effect at once if `Wide` is the mode now); `Output Wrap
+  Wide` chooses it. Both say which they did. Widths under 20 are warned
+  about and ignored, as an unknown option is.
+
+Checked: `dune exec test/tests.exe` 139/139 (25 new, in "output: wrap",
+including a randomised fill-and-keep-every-word property); `Test.v` runs every
+mode and the refused widths (`OutputWrap`); the packed `make` build of the
+plugin has no warnings (bar the makefile generator's own `-docroot` notes). By eye, in `rocq compile` at `Set Printing Width 44`,
+the first-result notice (about 270 characters) reflows with a hanging indent and the
+`states:`/`labels:`/moves are untouched, `Width`, `Slim` and `Wide` hold every
+line to their width, a preset change applies at once, and `Reset Output` goes
+back to `Off`. Through a real `vsrocqtop` over LSP, `Flow` arrives at 78 and
+`Width 50` at 50. **Not seen:** what VS Code's proof panel does with `Flow`'s
+boxes (an `Info`/`Result` goes there as boxes); the README and
+`doc/limitations.md` say so, and it is in `OUTSTANDING.md`. The proof suites
+were not run: nothing here is read by `lib/model` or the solver, and `Off` is
+the default.
+
+**Mistakes on the way.** (1) `Wrap.layout` first dropped a header that
+classified as JSON-like (`Verbatim _ -> ls`); found by rereading before any
+test, fixed to drop only an empty one, and pinned. (2) The randomised test
+first asserted that every line fits, which is false by design when a word is
+wider than the room after the hanging indent (the code was right, the
+property too strong); it now says "fits, bar one oversize word". (3) The first
+help text said vsrocq's panel "can follow its own window", which I had not
+seen, only that vsrocq sends boxes to it; reworded to what was checked.
+(4) The `MeBi Help Config` overview still said only "which messages are shown, and
+the results' format" until the wrap-up check, after the topic itself was done;
+fixed in `docs/help-config-wrap`.
+
+**Landing it.** `main` moved while this was in review (`feat/draw-lts`, `MeBi
+Draw`, from another session), so the branch was rebased onto it. Two textual
+conflicts, both additive (`test/tests.ml`, and this log), resolved by keeping both
+sides. The combined tree was rebuilt: `tests.exe` 194/194, `Test.v` rebuilt, the
+packed `make` build of the plugin warning-free. Merged to `main` with `--no-ff`
+as `9fc34e9`.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-11-01), cont.:** New feature 1 · Bug fix 1 · Docs 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
+## 2026-11-01 (cont.) — `MeBi Draw`: an LTS or FSM as a TikZ diagram
+
+**New feature**, raised before it was written. Jonah asked whether state
+diagrams of the dumped LTSs and FSMs could be generated for LaTeX, and
+possibly Forester, and for the feasibility to be looked at first. The
+research found no existing OCaml route and these options: Graphviz DOT then
+`dot2tex` (needs Python and Graphviz, neither on the host; upstream
+unmaintained), or LuaTeX's own `graphdrawing` library, which needs nothing
+else. Jonah then chose commands inside the plugin, for coffee-machine-sized
+systems, with the size bound configurable, and asked for two things beyond
+the plan: the bound should be states **or** transitions, as `Bounds As Num`
+is, and the look of each part (arrows, labels, states) should be
+configurable. Forester was set aside.
+
+What was built, on branch `feat/draw-lts` (seven commits, listed below, and this entry):
+
+- `lib/draw` (new, plain OCaml, no `rocq-runtime`): `Draw_style` (ten
+  components, each a TikZ style with a built-in default followed by the
+  user's options), `Draw` (the picture, as TikZ named styles only, laid out
+  by the layered layout), `Draw_output` (writes `<name>.tikz`,
+  `<name>.style.tikz`, `<name>.tex`; runs `lualatex` and `pdftocairo` or
+  `gs` as child processes killed at a time limit; a missing tool, failure
+  or timeout is a value, not an exception).
+- `MeBi Draw LTS|FSM`, `MeBi Config Draw Format|Dir|Style`,
+  `MeBi Config Bounds Draw States|Transitions|Time`, `MeBi Config Reset
+  Draw`, `MeBi Help Draw`, `MeBi Help Config Draw`. A system over the
+  bound (50 states) is refused before any term is decoded.
+- **Refactor**, its own commit: `Decode.Plain` numbered states and listed an
+  FSM's moves inline; both are functions now so that a diagram numbers its
+  states as the text dump does. The plain-text LTS and FSM of
+  `examples/CoffeeMachineSimple.v` are byte-identical before and after.
+
+Checked: `dune build` (which runs `Test.v`), `make` of the plugin and
+`Test.v`, `scripts/check_module_lists.py`, and `dune exec test/tests.exe`:
+114 -> 169 tests (171 with a rasteriser on `PATH`), including a real
+`lualatex` compile of a diagram with every feature, of one with a style
+TeX rejects, and (with Ghostscript on `PATH`) a PNG. `Test.v` gets a `Draw`
+module; each `Fail` was checked for its reason by running it without the
+`Fail`. The real coffee machine was drawn through the plugin and looked at.
+**Not run:** the proof suites, since nothing here is read by `lib/model` or
+the solver. **Not tested:** Forester (set aside; unverified whether its
+`\tex` can use `graphdrawing`, which needs LuaTeX), LaTeX engines or TeX
+Live versions other than 2025, and any system above about 150 states.
+
+**What went wrong, and was corrected:**
+- The `Stdlib.Option` trap that `CLAUDE.md` already documents: the library
+  built and passed under dune and failed under `make` ("Unbound value
+  Option.value"). Found by running `make`, fixed in its own commit
+  (`fix(draw)`), not folded into the first.
+- Timing figures quoted before they were re-measured. The numbers in the
+  first report came from a throwaway prototype whose markup differed from
+  what the plugin writes (60 states: 8.1 s then, 3.4 s now). They were
+  re-measured with the plugin's own output and the code, help and README
+  were corrected (`doc/measurements/draw-layout-time.md`). The first report
+  also guessed that a memory cap had killed a 150-state run; the re-run
+  needed 219MB, and finished in 88 s. It is time that limits it.
+- Two defaults were chosen by looking at the coffee machine, not by
+  argument: the bend on arrows between a pair of states in both directions
+  (they overlapped as one line; `TwoWay`, in its own commit), and the layout
+  spacing, which was *not* changed, because more spacing did not clear the
+  collisions at the top of the picture. Those collisions remain: they are
+  the layered layout's, and the picture is only a draft where many arrows
+  cross.
+
+Known limits, in `doc/future-work.md`: past the bound the way on is
+Graphviz and fixed coordinates (which would also suit a plain-`latex`
+consumer such as, probably, Forester); labels are printed as their Rocq
+term (`(Some (Insert ten))`), with no trimming of the `Some`; a state's number
+is not in its box.
+
+Commits: `0662a44` library, `9614312` refactor, `5c91fcd` TwoWay,
+`1dbcca3` Option fix, `b5a7dda` commands, `6b6e221` docs, `7132178` PNG test.
+
+**Session tally (2026-11-01, this entry):** New feature 1 · Refactor 1 ·
+Docs 1 · Bug fix 0 (the `Option` slip was in code not yet released) ·
+Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
