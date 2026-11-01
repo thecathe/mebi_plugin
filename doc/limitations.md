@@ -122,3 +122,18 @@ turns the pin into a positive test.
 - **Deep derivations make `Qed` dominate.** At 64 layers, `Qed` takes
   71s against 7s of solving, and `Qed` grows ~13× per doubling of the
   layers.
+
+**Output**
+- **Under vsrocq, the line in an `origin:` header can be wrong** (*bug fix*,
+  with a choice in it; found 2026-11-01, not pinned: it needs vsrocq, which
+  `test/rocq/Test.v` does not run). vsrocq parses with no location, so
+  `Loc.line_nb` restarts and is short by a few lines: in a probe a command
+  at line 8, 20 and 40 reported 6, 18 and 38, and one at 17 reported 14
+  (after multi-line comments and sentences). `Command.location` in
+  `src/wrapper.ml` prints that number as the `origin:` line of every text
+  result and in the `"location"` field of JSON results. In `rocq repl` the
+  number is right, and in `rocq compile` (a file) it is. The plugin cannot
+  tell the first two from vsrocq. Either drop the line for a command with no
+  file, or print the document's logical path with no line (as the dump
+  names do since 2026-11-01, `Rocq_output.loc_provider`). Dump names are
+  not affected.
