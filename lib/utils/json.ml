@@ -26,12 +26,12 @@ let write_file
   =
   let filepath : string =
     Printf.sprintf
-      "%s | %s | %s%s"
-      Utils.FileWriter.get_local_timestamp
+      "%s | %s | %s"
+      (Utils.FileWriter.get_local_timestamp ())
       (Utils.FileWriter.get_loc ())
       name
-      ext
     |> Filename.concat dir
+    |> fun stem -> Utils.FileWriter.fresh_path ~stem ~ext
   in
   (* [create_parent_dir] takes the path of the file being written, not the
      directory to hold it. It used to be handed [dir] itself, whose parent

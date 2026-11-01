@@ -68,8 +68,17 @@ module FileWriter : sig
       @raise Sys_error if a directory cannot be created (propagated). *)
   val create_parent_dir : string -> unit
 
-  (** The local time, as ["yyyy mm dd - hh:mm:ss"], when the plugin was
-      loaded: it is computed once, so every dump of a session has the same
-      one. *)
-  val get_local_timestamp : string
+  (** [format_timestamp t] is the local time of the Unix time [t], as
+      ["yyyy mm dd - hh:mm:ss"]. Raises nothing. *)
+  val format_timestamp : float -> string
+
+  (** [get_local_timestamp ()] is the local time now, as {!format_timestamp}:
+      read each time it is called, so each dump carries the
+      time it was written. Raises nothing. *)
+  val get_local_timestamp : unit -> string
+
+  (** [fresh_path ~stem ~ext] is [stem ^ ext] if no such file exists, else
+      the first of ["stem (2)ext"], ["stem (3)ext"] ... that does not, so
+      that a dump never overwrites another. Raises nothing. *)
+  val fresh_path : stem:string -> ext:string -> string
 end
