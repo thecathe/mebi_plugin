@@ -28,7 +28,8 @@ let the_output_config : output_config ref = ref (output_config_default ())
 (* See the [.mli]. *)
 let reset_output_config () : unit =
   the_output_config := output_config_default ();
-  Logger.reset_config ()
+  Logger.reset_config ();
+  Output.Wrap.reset ()
 ;;
 
 (* See the [.mli]. *)
@@ -80,6 +81,68 @@ let describe_output () : string =
 let set_output_format (f : output_format) : unit =
   !the_output_config.format <- f;
   Logger.notice (Printf.sprintf "(MeBi Config: %s)" (describe_output ()))
+;;
+
+(* See the [.mli]. *)
+let describe_wrap () : string =
+  let wide : int = Output.Wrap.preset_width Wide in
+  let slim : int = Output.Wrap.preset_width Slim in
+  let how : string =
+    match Output.Wrap.mode () with
+    | Off -> "Messages are not wrapped (the default)."
+    | Flow ->
+      "Messages are wrapped as flowing paragraphs: where they break is up to \
+       whatever shows them (Rocq prints text at its printing width, 78 unless \
+       Set Printing Width says otherwise)."
+    | Width n -> Printf.sprintf "Messages are wrapped at %i columns." n
+    | Preset Wide ->
+      Printf.sprintf "Messages are wrapped at %i columns (Wide)." wide
+    | Preset Slim ->
+      Printf.sprintf "Messages are wrapped at %i columns (Slim)." slim
+  in
+  Printf.sprintf
+    "%s Wide is %i columns and Slim %i. [MeBi Config Output Wrap Off | Flow | \
+     Wide | Slim | Width <n>] chooses, [MeBi Config Output Width Wide | Slim \
+     <n>] sets a preset; see [MeBi Help Config Output]."
+    how
+    wide
+    slim
+;;
+
+(** [too_narrow n] warns that [n] is under {!Output.Wrap.min_width}, and that
+    wrapping is as it was. Raises nothing. *)
+let too_narrow (n : int) : unit =
+  Printf.sprintf
+    "A width is at least %i columns, not %i; wrapping is as it was."
+    Output.Wrap.min_width
+    n
+  |> Logger.warning
+;;
+
+(* See the [.mli]. *)
+let set_output_wrap (m : Output.Wrap.mode) : unit =
+  match m with
+  | Width n when Bool.not (Output.Wrap.valid n) -> too_narrow n
+  | _ ->
+    Output.Wrap.set_mode m;
+    Logger.notice (Printf.sprintf "(MeBi Config: %s)" (describe_wrap ()))
+;;
+
+(* See the [.mli]. *)
+let set_output_preset_width (p : Output.Wrap.preset) (n : int) : unit =
+  if Bool.not (Output.Wrap.valid n)
+  then too_narrow n
+  else (
+    Output.Wrap.set_preset_width p n;
+    let name : string = match p with Wide -> "Wide" | Slim -> "Slim" in
+    Logger.notice
+      (Printf.sprintf
+         "(MeBi Config: %s is %i columns%s.)"
+         name
+         n
+         (if Output.Wrap.mode () = Preset p
+          then ", and messages are wrapped at that now"
+          else Printf.sprintf "; [MeBi Config Output Wrap %s] selects it" name)))
 ;;
 
 (* See the [.mli]. *)

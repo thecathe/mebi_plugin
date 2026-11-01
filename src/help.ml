@@ -321,6 +321,9 @@ let text : string list -> string option = function
     Some
       "MeBi Config Output \"<Kind>\" True | False.\n\
        MeBi Config Output Format Text | JSON.\n\
+       MeBi Config Output Wrap Off | Flow | Wide | Slim.\n\
+       MeBi Config Output Wrap Width <n>.\n\
+       MeBi Config Output Width Wide <n>.  MeBi Config Output Width Slim <n>.\n\
        MeBi Config Reset Output.\n\n\
        Results (the FSMs, LTSs and verdicts shown with Output \"Result\" True, \
        and dumps) are plain text by default: the states and labels numbered \
@@ -331,7 +334,20 @@ let text : string list -> string option = function
        move's derivation tree (in JSON, the constructors' bindings and the \
        annotations of weak actions too); it is off for plain text and on for \
        JSON unless set, and once set holds for both. Reset Output restores \
-       plain text, detail as the format has it.\n\n\
+       plain text, detail as the format has it, and wrapping off.\n\n\
+       Wrapping fits a message to a width. A paragraph of prose is broken \
+       between words and the continuation indented; rows of aligned columns \
+       (the states, labels and moves of a result) and JSON are never cut. Off \
+       (the default) leaves a message as one block. Flow breaks it where \
+       whatever shows it says: Rocq prints text at its printing width (78, or \
+       Set Printing Width), and a client that lays out the boxes itself can \
+       follow its own window. vsrocq shows a Notice or Warning as text at \
+       78, and sends an Info to its proof panel as boxes. Width <n> breaks at <n> \
+       columns here, so it holds in every client but does not follow the \
+       window. Wide and Slim are two named widths, 120 and 60 until set with \
+       Output Width Wide <n> or Output Width Slim <n> (at least 20); setting \
+       one changes the wrapping at once if it is the one chosen, and does not \
+       choose it. Wrap Wide or Wrap Slim chooses.\n\n\
        Toggle one message kind: Debug, Info, Notice, Warning, Error, Trace, \
        Result, Show, DecodeResults, DumpResults, Detail. Info, Notice, \
        Warning, Error and Show are on by default; Debug, Trace and Result are \

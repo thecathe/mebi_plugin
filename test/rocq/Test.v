@@ -2509,6 +2509,47 @@ Module OutputFormat.
   MeBi Config Reset Weak.
 End OutputFormat.
 
+(* [MeBi Config Output Wrap Off|Flow|Wide|Slim|Width n] and
+   [Output Width Wide|Slim n] (2026-11-01): each mode prints the result of a
+   tiny FSM, so every renderer runs, and the widths that are refused (under
+   20) only warn. What the wrapping does to the text is checked in the
+   pure-OCaml tests ([test/tests.ml], "output: wrap"). Then back to this
+   file's output settings, as above. *)
+MeBi Divider "Theories.Test.OutputWrap".
+Module OutputWrap.
+  Inductive act := a | b.
+  Inductive tm := done | pre (x : act) (k : tm) | tau (k : tm).
+  Inductive step : tm -> option act -> tm -> Prop :=
+  | s_pre x k : step (pre x k) (Some x) k
+  | s_tau k : step (tau k) None k.
+  MeBi Config Weak As Option act.
+  MeBi Config Output "Result" True.
+  MeBi Config Output Wrap Flow.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Wrap Width 30.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Width Wide 90.
+  MeBi Config Output Width Slim 40.
+  MeBi Config Output Wrap Wide.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Wrap Slim.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  (* under 20: warned, and the wrapping is as it was (Slim, 40) *)
+  MeBi Config Output Wrap Width 19.
+  MeBi Config Output Width Slim 19.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Wrap Off.
+  MeBi Run LTS (pre a (tau (pre b done))) Using step.
+  MeBi Config Output Wrap Wide.
+  MeBi Config Reset Output.
+  MeBi Config Output "Info" False.
+  MeBi Config Output "Notice" False.
+  MeBi Config Output "Result" False.
+  MeBi Config Output "Show" False.
+  MeBi Config Output "DecodeResults" False.
+  MeBi Config Reset Weak.
+End OutputWrap.
+
 (* Proofs through a premise that fixes a step premise's source
    (2026-10-19; external feedback, item 4). Each relation has a
    congruence-like rule [r p p' l q q' : fix p p' -> fix q q' ->

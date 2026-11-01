@@ -9358,6 +9358,74 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-11-01 — `MeBi Config Output Wrap`: messages fitted to a width
+
+**New feature**, flagged and agreed before it was written. On branch
+`feat/output-wrap`, after Jonah reported that long messages run off the edge
+of the window and asked whether the text could be bound to the viewport, or
+boxed by hand, through the plugin API. The plan (modes `Off`, `Flow` and
+`Width n`) was put to Jonah first; they agreed and added two named widths,
+`Wide` and `Slim`, "just user-configurable shorthands for `Width n`".
+
+What it adds, and nothing else (`Off` is the default, so nothing changes
+until it is chosen):
+
+```
+MeBi Config Output Wrap Off | Flow | Wide | Slim.
+MeBi Config Output Wrap Width <n>.
+MeBi Config Output Width Wide <n>.     (* 120 until set *)
+MeBi Config Output Width Slim <n>.     (* 60 until set *)
+```
+
+Why messages could not wrap: `Rocq_output.render` made the whole body one
+`str`, so there was no break point in it for anything to use. The layer is
+now two parts. `Output.Wrap` (`lib/utils`, plain OCaml, so `test/tests.exe`
+covers it) classifies each line of a message, as prose to break between words
+or as text to keep (aligned columns: a run of two spaces or a tab; JSON), and
+fills prose to a width with a hanging indent. `Rocq_output` turns that into
+`Pp`: a box with break points per paragraph for `Flow`, or the filled lines
+for the fixed widths. The old rendering is kept as it was for `Off`.
+
+Two choices of mine, for Jonah to overrule:
+- **The spelling.** Jonah wrote `MeBi Set Output Width Wide n.`; there is no
+  `MeBi Set` family, every one of the ~40 config commands is `MeBi Config`,
+  so these are under `MeBi Config Output`. A `Set` alias is two lines of
+  grammar if wanted.
+- **A preset's setter does not choose it.** `Output Width Wide 140` sets what
+  `Wide` is (and takes effect at once if `Wide` is the mode now); `Output Wrap
+  Wide` chooses it. Both say which they did. Widths under 20 are warned
+  about and ignored, as an unknown option is.
+
+Checked: `dune exec test/tests.exe` 139/139 (25 new, in "output: wrap",
+including a randomised fill-and-keep-every-word property); `Test.v` runs every
+mode and the refused widths (`OutputWrap`); the packed `make` build of the
+plugin has no warnings (bar the makefile generator's own `-docroot` notes). By eye, in `rocq compile` at `Set Printing Width 44`,
+the first-result notice (about 270 characters) reflows with a hanging indent and the
+`states:`/`labels:`/moves are untouched, `Width`, `Slim` and `Wide` hold every
+line to their width, a preset change applies at once, and `Reset Output` goes
+back to `Off`. Through a real `vsrocqtop` over LSP, `Flow` arrives at 78 and
+`Width 50` at 50. **Not seen:** what VS Code's proof panel does with `Flow`'s
+boxes (an `Info`/`Result` goes there as boxes); the README and
+`doc/limitations.md` say so, and it is in `OUTSTANDING.md`. The proof suites
+were not run: nothing here is read by `lib/model` or the solver, and `Off` is
+the default.
+
+**Mistakes on the way.** (1) `Wrap.layout` first dropped a header that
+classified as JSON-like (`Verbatim _ -> ls`); found by rereading before any
+test, fixed to drop only an empty one, and pinned. (2) The randomised test
+first asserted that every line fits, which is false by design when a word is
+wider than the room after the hanging indent (the code was right, the
+property too strong); it now says "fits, bar one oversize word". (3) The first
+help text said vsrocq's panel "can follow its own window", which I had not
+seen, only that vsrocq sends boxes to it; reworded to what was checked.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-11-01), cont.:** New feature 1 · Bug fix 1 · Docs 0 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## 2026-11-01 (cont.) — `MeBi Draw`: an LTS or FSM as a TikZ diagram
 
 **New feature**, raised before it was written. Jonah asked whether state

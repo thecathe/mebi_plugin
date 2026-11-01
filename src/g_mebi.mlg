@@ -512,6 +512,20 @@ VERNAC COMMAND EXTEND MeBi_Config_Output CLASSIFIED AS QUERY
   { Api.set_output_format Api.Text }
 | ["MeBi" "Config" "Output" "Format" "JSON"] ->
   { Api.set_output_format Api.Json }
+| ["MeBi" "Config" "Output" "Wrap" "Off"] ->
+  { Api.set_output_wrap Output.Wrap.Off }
+| ["MeBi" "Config" "Output" "Wrap" "Flow"] ->
+  { Api.set_output_wrap Output.Wrap.Flow }
+| ["MeBi" "Config" "Output" "Wrap" "Wide"] ->
+  { Api.set_output_wrap (Output.Wrap.Preset Output.Wrap.Wide) }
+| ["MeBi" "Config" "Output" "Wrap" "Slim"] ->
+  { Api.set_output_wrap (Output.Wrap.Preset Output.Wrap.Slim) }
+| ["MeBi" "Config" "Output" "Wrap" "Width" int(n)] ->
+  { Api.set_output_wrap (Output.Wrap.Width n) }
+| ["MeBi" "Config" "Output" "Width" "Wide" int(n)] ->
+  { Api.set_output_preset_width Output.Wrap.Wide n }
+| ["MeBi" "Config" "Output" "Width" "Slim" int(n)] ->
+  { Api.set_output_preset_width Output.Wrap.Slim n }
 END
 
 (* Help -- topics and text in [src/help.ml] *)
