@@ -387,6 +387,28 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   `Auto` picks nested (42 steps) where mutual takes 29. A data point for
   `Product.estimate`, if it is revisited.
 
+**`MeBi Draw`** (`MeBi Help Draw`; measurements in
+`doc/measurements/draw-layout-time.md`)
+- **Bigger diagrams.** LuaTeX's layered layout is the limit: about 21 s at
+  100 states and 88 s at 150. The way past it is to lay the graph out
+  outside TeX, with Graphviz's `dot`, and draw nodes at fixed coordinates
+  (`dot2tex` does this; it needs Python and Graphviz, and its upstream is
+  unmaintained). Not built: the first version stays within what one
+  `lualatex` run does, which needs nothing else installed. Such a
+  diagram also compiles under plain `latex`, which a Forester `\tex` block
+  probably needs (unverified: `graphdrawing` needs LuaTeX).
+- **Shorter label text.** A label is printed as its Rocq term, so an
+  `option` label reads `(Some (Insert ten))`. Dropping the outer `Some` of
+  a non-silent label would read better, but it is a guess about the user's
+  label type; it would want its own setting (a `Labels` option).
+- **A state's number in its box,** to cross-reference the plain-text dump
+  (they share a numbering, `Decode.Diagram`), if wanted: a `State` style
+  cannot add it, as that is content, not look.
+- **Overlapping labels** where many arrows cross (the top of the coffee
+  machine). `Layout`'s spacing and `Label`'s placement are configurable
+  but do not cure it: it is the layered layout, and a bigger bound makes
+  it worse.
+
 **Reusable theory** (agreed 2026-10-11: machinery a user could reuse
 goes into `theories/` once two examples use it, which keeps `examples/`
 minimal): nothing open. The last item, trace preservation, became
