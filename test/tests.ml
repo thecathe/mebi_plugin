@@ -1806,6 +1806,17 @@ let test_draw_style () : unit =
     true
     (contains ~sub:"every edge quotes/.style={mebi silent label}" default);
   check
+    "and that style makes tau larger and bold, which a user can undo"
+    true
+    (contains
+       ~sub:
+         "mebi silent label/.style={mebi label, text=gray, \
+          font=\\large\\boldmath}"
+       default
+     && contains
+          ~sub:"font=\\normalsize\\boldmath}"
+          (tikzset (set Silent_label "font=\\normalsize\\boldmath" empty)));
+  check
     "every component is defined, once"
     true
     (List.for_all

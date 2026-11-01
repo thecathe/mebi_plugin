@@ -81,7 +81,7 @@ let default : component -> string = function
     "font=\\footnotesize, auto, fill=white, inner sep=1pt, align=center, \
      text=black"
   | Silent_edge -> "dashed, draw=gray"
-  | Silent_label -> "text=gray"
+  | Silent_label -> "text=gray, font=\\large\\boldmath"
   | Two_way -> "bend left=18"
   | Loop -> "loop above"
   | Caption -> "font=\\footnotesize\\itshape, text=gray"
