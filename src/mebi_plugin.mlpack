@@ -1,6 +1,7 @@
 Utils
 Output
 Logger
+Rocq_output
 Json
 Memory_guard
 Base_
@@ -57,5 +58,4 @@ Proof_solver_tactics
 Proof_solver_step
 Proof_solver
 Help
-Rocq_output
 G_mebi

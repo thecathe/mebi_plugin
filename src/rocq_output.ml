@@ -59,6 +59,18 @@ let render_hard (width : int) (lines : Output.Wrap.line list) : Pp.t =
   v 0 (prlist_with_sep cut str (Output.Wrap.fill ~width lines))
 ;;
 
+(** [render_text s] is the text [s] as a [Pp.t], laid out as
+    {!Output.Wrap.resolved} says: [Pp.str s] itself under [Wrap Off], else
+    paragraphs of boxes or filled lines (as {!render}, with no header). For
+    the plugin's text that does not go through {!Logger}: [MeBi Help],
+    [MeBi Message] and the errors it raises. Raises nothing. *)
+let render_text (s : string) : Pp.t =
+  match Output.Wrap.resolved () with
+  | No_wrap -> Pp.str s
+  | Flowing -> render_flow (Output.Wrap.layout ~header:"" s)
+  | Hard width -> render_hard width (Output.Wrap.layout ~header:"" s)
+;;
+
 (** Renders [m] as {!Output.Wrap.resolved} says: as one block, as boxes, or
     filled to a width. Raises nothing. *)
 let render (m : Output.message) : Pp.t =

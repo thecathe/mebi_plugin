@@ -176,6 +176,15 @@ module Wrap = struct
     go 0
   ;;
 
+  (** [is_rule s] is whether [s] is only dashes, equals signs, underscores,
+      asterisks and spaces: a divider, which re-flowing would only break.
+      Raises nothing. *)
+  let is_rule (s : string) : bool =
+    String.for_all
+      (fun c -> c = '-' || c = '=' || c = '_' || c = '*' || c = ' ')
+      s
+  ;;
+
   (** [rstrip s] is [s] without trailing spaces, tabs and carriage returns.
       Raises nothing. *)
   let rstrip (s : string) : string =
@@ -198,6 +207,7 @@ module Wrap = struct
       let rest : string = String.sub l indent (String.length l - indent) in
       match rest.[0] with
       | '{' | '}' | '[' | ']' | '"' -> Verbatim l
+      | _ when is_rule rest -> Verbatim l
       | _ when has_columns rest -> Verbatim l
       | _ ->
         Para
