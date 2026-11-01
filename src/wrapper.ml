@@ -1366,15 +1366,10 @@ module Make (Enc : Encoding.S) :
       | _ -> []
     ;;
 
-    (** [location ()] is the file and line of the command running now.
-        Raises nothing. *)
-    let location () : string =
-      match Loc.get_current_command_loc () with
-      | Some { fname = InFile { file; _ }; line_nb; _ } ->
-        Printf.sprintf "%s, line %i" file line_nb
-      | Some { line_nb; _ } -> Printf.sprintf "line %i" line_nb
-      | None -> "unknown location"
-    ;;
+    (** [location ()] is where the command running now is: its file and line,
+        or under an editor the document and its true line
+        ({!Rocq_output.origin_location}). Raises nothing. *)
+    let location () : string = Rocq_output.origin_location ()
 
     (** [set_origin command terms using] makes {!the_origin} the command
         [command] at the current location, on the terms [terms] as the user

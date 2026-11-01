@@ -9637,6 +9637,56 @@ Docs 1 · Bug fix 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-01 (cont.) — The `origin:` line names the document and its true line under vsrocq
+
+**Bug fix.** On branch `fix/origin-line`. Jonah, from their own example:
+`CoffeeMachineSimple.v` line 112 reported `origin: line 8`, "more than a few lines
+off", and asked for the true line number "if it isn't too costly", with the
+logical path included as well. That settles the choice left open above.
+
+What I had said was wrong in two ways. I wrote "short by a few lines": on
+their file it was short by 54 (the command at 111 reported 57; the Draw
+command at 135 reported 81), and later by 104 in their live edit. And I had
+framed the fix as a choice between a path and a number, when the offsets are
+exact: measured on their file, `Loc.bp` was 3092 and 4361 for commands at
+exactly those byte offsets.
+
+`Rocq_output.origin_location` (called by `Command.location`) now counts the
+newlines before `bp` in the document's saved file, found by mapping the logical
+path (`Lib.library_dp ()`) back through the load path, then the working
+directory, and prints `Logical.path, line N`. The text at `bp` must mention
+`MeBi`; if the file is missing or an unsaved edit has moved the command, it
+prints `Logical.path (line unknown)` instead of a wrong line. Files are cached
+by modification time and size, so the cost is one `stat` per command.
+`rocq compile` still prints the file and line, `rocq repl` (path `Top`) its own
+`line_nb`, which is right there, and dump names still use the logical path. The
+`origin:` item is gone from `OUTSTANDING.md`; the caveat stays in
+`doc/limitations.md`.
+
+Checked, through `vsrocqtop` over LSP on a copy of their file: `MEBI.Examples.Doc,
+line 112` when the load path maps it, `Doc, line 112` when nothing does,
+`MEBI.Examples.Doc (line unknown)` with three lines inserted into the buffer
+but not the file, and exact lines 10 and 14 past `τ ⇒ café 日本語 ñ` and
+4-byte characters in comments. `rocq compile` (`./O.v, line 7`) and `rocq repl`
+(`line 7`) are as before. `tests.exe` is 206/206 (10 more, for `Utils.contains`
+and `Utils.line_of_offset`). Not checked: CRLF files, and a document whose
+saved file is a different one from the loadpath's first match (the first that
+verifies wins).
+
+**A false alarm of my own making.** The first non-ASCII run showed a wrong line
+(12 for 10) and I took it for a defect in the offsets. It was my test driver:
+it read the file as raw bytes and JSON-encoded them as UTF-8, double-encoding
+every accented character, so vsrocq was sent a longer text than the file. The
+plugin was right. The driver now decodes first; the devlog's copy of it had the
+same flaw and is corrected.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-11-01), cont.:** Bug fix 3 · New feature 1 · Docs 1 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

@@ -2209,6 +2209,62 @@ let test_wrap () : unit =
     (resolved () = No_wrap && preset_width Wide = 120 && preset_width Slim = 60)
 ;;
 
+(** [Utils.contains] and [Utils.line_of_offset], which put the true line in an
+    [origin:] header. *)
+let test_line_of_offset () : unit =
+  print_endline "utils: line_of_offset and contains";
+  let t : string = "ab\ncd\n\nMeBi x\n" in
+  check "offset 0 is line 1" true (Utils.line_of_offset t 0 = Some 1);
+  check
+    "the newline itself is still on its line"
+    true
+    (Utils.line_of_offset t 2 = Some 1);
+  check "after one newline is line 2" true (Utils.line_of_offset t 3 = Some 2);
+  check "a blank line counts" true (Utils.line_of_offset t 7 = Some 4);
+  check
+    "the end of the text is an offset"
+    true
+    (Utils.line_of_offset t (String.length t) = Some 5);
+  check
+    "outside the text is not"
+    true
+    (Utils.line_of_offset t (-1) = None
+     && Utils.line_of_offset t (String.length t + 1) = None);
+  check "empty text, offset 0" true (Utils.line_of_offset "" 0 = Some 1);
+  check
+    "contains finds a part, anywhere"
+    true
+    (Utils.contains ~sub:"MeBi" "Fail MeBi Run"
+     && Utils.contains ~sub:"" "x"
+     && Utils.contains ~sub:"ab" "ab"
+     && Utils.contains ~sub:"b" "ab");
+  check
+    "and does not find what is not there"
+    true
+    ((not (Utils.contains ~sub:"MeBi" "Mebi"))
+     && (not (Utils.contains ~sub:"abc" "ab"))
+     && not (Utils.contains ~sub:"a" ""));
+  (* the offset of every line start, in a random text, is its line *)
+  Random.init 7;
+  let ok = ref true in
+  for _ = 1 to 200 do
+    let lines =
+      List.init (1 + Random.int 30) (fun _ -> String.make (Random.int 12) 'x')
+    in
+    let text = String.concat "\n" lines in
+    let _ =
+      List.fold_left
+        (fun (i, off) l ->
+          if Utils.line_of_offset text off <> Some (i + 1) then ok := false;
+          i + 1, off + String.length l + 1)
+        (0, 0)
+        lines
+    in
+    ()
+  done;
+  check "the start of each line of a random text is that line" true !ok
+;;
+
 let () =
   print_endline "\n=== mebi model tests (pure OCaml, no Rocq) ===\n";
   test_of_lts_preserves_states ();
@@ -2244,6 +2300,7 @@ let () =
   test_clean_string ();
   test_dump_names ();
   test_wrap ();
+  test_line_of_offset ();
   test_json ();
   test_draw_escape ();
   test_draw_unparen ();

@@ -28,6 +28,17 @@ val loc_provider : unit -> string
     and the errors the plugin raises. Raises nothing. *)
 val render_text : string -> Pp.t
 
+(** [origin_location ()] says where the command now running is, for the
+    [origin:] header of a printed result and the ["location"] of a JSON one:
+    ["file, line N"] for a command read from a file; for one from an editor
+    (which has no file), ["Logical.path, line N"] with the {i true} line, counted
+    from the exact character offset vsrocq gives (its [line_nb] is not
+    reliable) in the document's saved file, found through the load path; or
+    ["Logical.path (line unknown)"] when that file is missing or no longer
+    matches (an unsaved edit). In [rocq repl] (path [Top], no file) it is
+    ["line N"]. Raises nothing. *)
+val origin_location : unit -> string
+
 (** [install ()] makes {!Logger} print through {!sink} and name dumps with
     {!loc_provider}. Raises nothing. *)
 val install : unit -> unit
