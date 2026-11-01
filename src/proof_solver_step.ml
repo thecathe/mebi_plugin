@@ -1568,7 +1568,7 @@ struct
          -- reached the focus before this constructor's goal. A user error,
          not an uncaught exception (which Rocq reports as its own anomaly). *)
       CErrors.user_err
-        (Pp.str
+        (Rocq_output.render_text
            (Printf.sprintf
               "MeBi: cannot continue the proof: the next constructor to apply \
                is for an LTS, but the focused goal is not one of its steps:\n\
@@ -1622,7 +1622,7 @@ struct
       @raise CErrors.UserError always (raised here). *)
   let outside_block_error (x : EConstr.t) (y : EConstr.t) : 'a =
     CErrors.user_err
-      (Pp.str
+      (Rocq_output.render_text
          (Printf.sprintf
             "MeBi: reached a weak_sim goal for a pair outside the mutual cofix \
              block computed up front, so the proof cannot close it:\n\
@@ -1786,7 +1786,7 @@ struct
     | Premise_search.Proved Premise_search.ByCases -> Tacs.prove_bounded ()
     | Premise_search.Refuted | Premise_search.Unknown ->
       CErrors.user_err
-        (Pp.str
+        (Rocq_output.render_text
            (Printf.sprintf
               "MeBi: cannot prove the constructor premise\n\
               \  %s\n\

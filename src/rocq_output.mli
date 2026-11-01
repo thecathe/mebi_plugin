@@ -21,6 +21,13 @@ val sink : Logger.sink
     [rocq repl]). Raises nothing. *)
 val loc_provider : unit -> string
 
+(** [render_text s] is the text [s] as a [Pp.t], laid out as the wrapping mode
+    says ([MeBi Config Output Wrap]): [Pp.str s] itself when it is [Off]; else
+    paragraphs as boxes ([Flow]) or filled to a width. For text that does not
+    go through {!Logger}: [MeBi Help], [MeBi Message], [Debug] and [Divider],
+    and the errors the plugin raises. Raises nothing. *)
+val render_text : string -> Pp.t
+
 (** [install ()] makes {!Logger} print through {!sink} and name dumps with
     {!loc_provider}. Raises nothing. *)
 val install : unit -> unit

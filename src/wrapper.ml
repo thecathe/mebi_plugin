@@ -637,7 +637,7 @@ module Make (Enc : Encoding.S) :
       @raise CErrors.UserError always (raised here). *)
   let refuse_walk (why : string) : 'a =
     CErrors.user_err
-      (Pp.str
+      (Rocq_output.render_text
          (Printf.sprintf
             "MeBi: deciding weak similarity walks every pair of states \
              reachable from the two start states, and an FSM here is saturated \
@@ -771,7 +771,7 @@ module Make (Enc : Encoding.S) :
       match name with
       | Some n when not (Draw_output.valid_name n) ->
         CErrors.user_err
-          (Pp.str
+          (Rocq_output.render_text
              (Printf.sprintf
                 "MeBi Draw: \"%s\" cannot name a diagram's files. Use letters, \
                  digits, '-', '_' and '.', and do not start with '-' or '.'."
@@ -796,7 +796,7 @@ module Make (Enc : Encoding.S) :
       if over
       then
         CErrors.user_err
-          (Pp.str
+          (Rocq_output.render_text
              (Printf.sprintf
                 "MeBi Draw: %s has %i states and %i transitions, over the draw \
                  bound of %s. LuaTeX's layout slows quickly as a diagram grows \
@@ -849,7 +849,7 @@ module Make (Enc : Encoding.S) :
         try Draw_output.write ~dir:c.draw_dir ~name ~style:c.draw_style d with
         | Sys_error e ->
           CErrors.user_err
-            (Pp.str
+            (Rocq_output.render_text
                (Printf.sprintf
                   "MeBi Draw: could not write the diagram into %s: %s. Choose \
                    another directory with [MeBi Config Draw Dir \"<dir>\"]."
@@ -1029,7 +1029,7 @@ module Make (Enc : Encoding.S) :
               (Decode.state (Model.State.Set.min_elt c))
           in
           CErrors.user_err
-            (Pp.str
+            (Rocq_output.render_text
                (Printf.sprintf
                   "MeBi: the two systems share %i state(s), e.g. [%s], that \
                    move differently on each side: two different relations \
@@ -1140,7 +1140,7 @@ module Make (Enc : Encoding.S) :
         |> handle_results Result "Not Bisimilar" r.result;
         let* msg = not_bisimilar_msg args r in
         CErrors.user_err
-          (Pp.str
+          (Rocq_output.render_text
              ("MeBi: "
               ^ msg
               ^ " [MeBi Config FailIf NotBisimilar False] makes this a warning."
@@ -1262,7 +1262,7 @@ module Make (Enc : Encoding.S) :
         if !Api.the_fail_flags.non_bisimilar
         then
           CErrors.user_err
-            (Pp.str
+            (Rocq_output.render_text
                ("MeBi: "
                 ^ msg
                 ^ " [MeBi Config FailIf NotBisimilar False] makes this a \

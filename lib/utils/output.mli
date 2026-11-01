@@ -109,8 +109,9 @@ module Wrap : sig
   (** One line of a message, as far as wrapping is concerned. *)
   type line =
     | Verbatim of string
-    (** kept exactly: a blank line, a row of aligned columns (a run of two
-        or more spaces, or a tab, after the indent), or a line of JSON
+    (** kept exactly: a blank line, a divider (only dashes, equals signs,
+        underscores, asterisks and spaces), a row of aligned columns (a run of
+        two or more spaces, or a tab, after the indent), or a line of JSON
         (starting with a brace, a square bracket or a double quote) *)
     | Para of
         { indent : int

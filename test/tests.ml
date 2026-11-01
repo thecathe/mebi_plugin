@@ -1956,6 +1956,17 @@ let test_wrap () : unit =
     true
     (layout ~header:"" "a\tb" = [ Verbatim "a\tb" ]);
   check
+    "a divider is kept, though it is single-spaced"
+    true
+    (List.for_all
+       (fun s -> layout ~header:"" s = [ Verbatim s ])
+       [ "- - - - - - - - - - - - - - - -"; "==========="; "  * * *" ]);
+  check
+    "a dash starting prose is still prose"
+    true
+    (layout ~header:"" "- a b"
+     = [ Para { indent = 0; words = [ "-"; "a"; "b" ] } ]);
+  check
     "JSON is kept"
     true
     (List.for_all

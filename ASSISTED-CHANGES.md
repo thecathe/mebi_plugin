@@ -9515,6 +9515,65 @@ Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-01 (cont.) — `Output Wrap` reaches `MeBi Help`, `Message`, `Divider` and the errors
+
+**Bug fix**, to the feature two entries above. On branch `fix/wrap-text-paths`.
+Jonah, trying `Wrap Flow`: "`MeBi Help Premises` still overflows".
+
+The cause was mine. `Output Wrap` is applied in `Rocq_output.sink`, so it
+reached what goes through `Logger` and nothing else. `MeBi Help` printed with
+`Feedback.msg_notice (Pp.str t)`, `MeBi Message`, `Debug` and `Divider` the same
+way, and the plugin's own errors are `CErrors.user_err (Pp.str ...)` (14 sites
+in the solver and wrapper): none of them went through the sink, under any mode.
+That is every long paragraph of help text, and every long error.
+
+The fix is `Rocq_output.render_text`, which lays out any string as the mode says
+and is `Pp.str` itself under `Off`; Help, the three message commands and the 14
+raises call it. Because they now depend on `Rocq_output`, it moves from last to
+fourth in `src/mebi_plugin.mlpack` (it depends only on `Output`, `Logger` and
+`Utils`). Two smaller things came with it: a line of only dashes, equals signs,
+underscores or asterisks is a divider and is kept (`MeBi Divider` prints one,
+and as prose it would have been re-flowed), and the help line giving the two
+preset commands side by side had a double space, which made it count as aligned
+columns and stay 70 wide; it is two lines now.
+
+Checked: `tests.exe` 196/196 (2 more, the divider rule); `Test.v`'s `OutputWrap`
+now runs Help, Message, Divider and a plugin error under a mode; the packed
+`make` build of the plugin has no new warnings. By eye in `rocq compile`: Help,
+Message and a labelled Divider under `Flow` at printing width 50 and under
+`Width 36`, all inside their width, and an `Error:` under `Width 36` (the same
+error is one 127-column line under `Off`). Through `vsrocqtop`: `MeBi Help Config Output` under `Flow`
+arrives as a diagnostic wrapped at 78. **Not wrapped:** Rocq's own errors and
+warnings, and the short `MeBi: ...` messages raised inside tactics in
+`lib/rocq_tools/premise_search.ml`, which sit below `Rocq_output` and cannot
+call it.
+
+**What I got wrong.** I said the wrapping applied to "every message", and wrote
+"Every message kind is wrapped alike" into `doc/limitations.md`. I had traced
+only what goes through `Logger`, never grepped for the places that print without
+it (`Feedback.`, `Pp.str`: one search), and never ran Help under a mode, though I
+read its text in the wrap-up. `Test.v` could not have caught it: it runs the
+commands but cannot see their output. The new test block says so beside it.
+
+**A correction to the `origin:` finding (2026-11-01, dump names).** I recorded
+that under vsrocq the line number in the `origin:` header is wrong and that the
+choice was to drop it or show the document path instead. Asked why it was a
+choice, I measured what vsrocq's location carries: `Loc.bp` and `Loc.bol_pos` are
+**exact** (264, 325 and 358 for commands whose true offsets were 264, 325 and
+358), and only `line_nb` is wrong (12, 17, 19 for lines 15, 20, 23). So the true
+line is recoverable wherever the document can be read, and the third option, the
+path and the true line (checked against the saved file), is on the table. The
+item in `OUTSTANDING.md` and `doc/limitations.md` say so. Not changed; it is
+Jonah's call.
+
+Revert: `git revert -m 1 <merge commit>`.
+
+**Session tally (2026-11-01), cont.:** Bug fix 2 · New feature 1 · Docs 1
+(the `MeBi Help Config` overview line) · Tooling 0 · Refactor 0 ·
+Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

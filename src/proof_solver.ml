@@ -298,7 +298,7 @@ let explicit_whole_game_settings () : string list =
     @raise CErrors.UserError always (raised here). *)
 let refuse_goal () : 'a =
   CErrors.user_err
-    (Pp.str
+    (Rocq_output.render_text
        "MeBi: [MeBi Sim Begin] proves a goal [weak_sim ...] or [weak_bisimilar \
         ...], and the goal in focus is neither. For an existential goal, give \
         the witness first ([exists t.]); for a conjunction such as \
@@ -384,7 +384,7 @@ let check_goal_arguments
     @raise CErrors.UserError always (raised here). *)
 let refuse_whole_game (setting : string) (why : string) : 'a =
   CErrors.user_err
-    (Pp.str
+    (Rocq_output.render_text
        (Printf.sprintf
           "MeBi: [%s] plans the whole proof up front, walking every pair of \
            states the proof can reach, and an FSM here is saturated on demand \
@@ -487,7 +487,7 @@ module Init (Solver : S) = struct
       else if !Api.the_fail_flags.non_bisimilar
       then
         CErrors.user_err
-          (Pp.str
+          (Rocq_output.render_text
              "MeBi: the goal is weak_sim, but the left state is not weakly \
               simulated by the right one (no weak simulation relates them), so \
               there is no proof to find. [MeBi Config FailIf NotBisimilar \
@@ -899,7 +899,7 @@ let guard (f : unit -> 'a) : 'a =
   | e when CErrors.noncritical e && internal (root e) ->
     let e = root e in
     CErrors.user_err
-      (Pp.str
+      (Rocq_output.render_text
          (Printf.sprintf
             "MeBi: the proof search stopped on an internal error it does not \
              handle:\n\
