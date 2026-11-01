@@ -61,6 +61,23 @@ val describe_output : unit -> string
     ([MeBi Config Output Format Text|JSON]), and says so. Raises nothing. *)
 val set_output_format : output_format -> unit
 
+(** [describe_wrap ()] is a sentence saying how messages are wrapped now
+    ('Wrap'), what [Wide] and [Slim] stand for, and how to change them, for
+    messages. Raises nothing. *)
+val describe_wrap : unit -> string
+
+(** [set_output_wrap m] sets how messages are wrapped
+    ([MeBi Config Output Wrap Off|Flow|Wide|Slim|Width n]), and says so. A
+    [Width n] under {!Output.Wrap.min_width} is warned about and ignored.
+    Raises nothing. *)
+val set_output_wrap : Output.Wrap.mode -> unit
+
+(** [set_output_preset_width p n] makes [p] stand for [n] columns
+    ([MeBi Config Output Width Wide|Slim n]), and says so. It does not choose
+    [p]: {!set_output_wrap} does. An [n] under {!Output.Wrap.min_width} is
+    warned about and ignored. Raises nothing. *)
+val set_output_preset_width : Output.Wrap.preset -> int -> unit
+
 (** [make_enc p] is the encoding module unpacked from [p]. Raises
     nothing. *)
 val make_enc : (module Encoding.Packed.PackedS) -> (module Encoding.S)

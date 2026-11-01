@@ -342,6 +342,10 @@ MeBi Config Weak1 / Weak2 As <term> Of <relation>.
 MeBi Config FailIf Empty/Incomplete/NotBisimilar/Oversaturated True/False.
 MeBi Config Output "<Kind>" True/False.
 MeBi Config Output Format Text/JSON.                (* how results are printed and dumped; Text (plain text) is the default *)
+MeBi Config Output Wrap Off/Flow/Wide/Slim.            (* fit messages to a width; Off (one block) is the default *)
+MeBi Config Output Wrap Width <n>.
+MeBi Config Output Width Wide <n>.                  (* what Wide stands for (120 until set); Slim is 60 *)
+MeBi Config Output Width Slim <n>.
 MeBi Config Solver MutualCofix True|False|Auto.
 MeBi Config Solver Answers Default|Greedy|Minimal|Auto.
 ```
@@ -386,6 +390,13 @@ MeBi Config Solver Answers Default|Greedy|Minimal|Auto.
   ```
 
   `Format JSON` prints the full structure instead, as before 2026-10-19, with the header as an `"origin"` field. `Output "Detail"` adds each move's derivation tree (`0 -0-> 1  via s_l(s_pre)`); in JSON it also keeps the constructors' bindings and the annotations of weak actions. Unless set, `Detail` is off for plain text and on for JSON; once set, it holds for both. Each printed result is tagged with its form (`[plain text]`, `[JSON, without detail]`, ...), and the first one in a session is preceded by a `Notice` saying how to change it. Benchmark samples are always JSON. `Reset Output` restores the defaults.
+
+- `Output Wrap Off|Flow|Wide|Slim` and `Output Wrap Width <n>` fit messages to a width, so that a long line is not left running off the edge of the window. A paragraph of prose is broken between words and its continuation lines indented; rows of aligned columns (the `states:`, `labels:` and moves of a result) and JSON are never cut.
+  - `Off` is the default: a message is one block, as before.
+  - `Width <n>` breaks at `<n>` columns (at least 20) in the plugin, so it holds in every client, but does not follow the window.
+  - `Wide` and `Slim` are two named widths for `Width <n>`, 120 and 60 until set with `Output Width Wide <n>` and `Output Width Slim <n>`. Setting one changes the wrapping at once if it is the one chosen, and does not choose it; `Output Wrap Wide` or `Output Wrap Slim` does.
+  - `Flow` hands the breaking to whatever shows the message: Rocq prints text at its printing width (78, or `Set Printing Width`), and a client that lays the boxes out itself can follow its own window. vsrocq shows a `Notice` or `Warning` as text, so in `Flow` those wrap at 78; its `Info` messages (which includes `Result`) are sent to the proof panel as boxes. Whether that panel re-flows them to its width has not been checked (`doc/limitations.md`, "Output"). Use `Wide` or `Slim` where a fixed width is wanted.
+  - `Reset Output` turns wrapping off and resets `Wide` and `Slim`.
 
 ### Diagnostics
 
