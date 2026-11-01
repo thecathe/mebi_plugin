@@ -44,7 +44,7 @@ let find_exe (cmd : string) : string option =
 
 (* See the [.mli]. *)
 let show_elapsed (secs : float) : string =
-  let s : int = int_of_float (Float.max 0. secs) in
+  let s : int = int_of_float (Stdlib.Float.max 0. secs) in
   if s < 60
   then Printf.sprintf "%is" s
   else if s < 3600
@@ -153,7 +153,7 @@ let timed ~(command : string) (f : unit -> 'a) : 'a =
 
 (* See the [.mli]. *)
 let set_after (secs : int) : unit =
-  let secs : int = Int.max 0 secs in
+  let secs : int = Stdlib.Int.max 0 secs in
   the_threshold := Some secs;
   warned := false;
   Logger.show
