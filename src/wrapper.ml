@@ -1449,33 +1449,40 @@ module Make (Enc : Encoding.S) :
       Logger.trace __FUNCTION__;
       let open M.Syntax in
       Config.load_the_bounds_args ();
-      let* () = Config.load_weak_args () in
-      let* () =
+      (* The command as the user typed it, and the terms it was given. *)
+      let command, terms =
         match x with
-        | MakeLTS a -> set_origin "Run LTS" [ a ] refs
-        | MakeFSM a -> set_origin "Run FSM" [ a ] refs
-        | DrawLTS (a, _) -> set_origin "Draw LTS" [ a ] refs
-        | DrawFSM (a, _) -> set_origin "Draw FSM" [ a ] refs
-        | Saturate a -> set_origin "Run Saturate" [ a ] refs
-        | Minimize a -> set_origin "Run Minimize" [ a ] refs
-        | Merge { a; b } -> set_origin "Run Merge" [ a; b ] refs
-        | CheckBisim { a; b } -> set_origin "Sim Begin" [ a; b ] refs
-        | RunBisim { a; b } -> set_origin "Run Bisim" [ a; b ] refs
-        | CheckSim { a; b } -> set_origin "Run Sim" [ a; b ] refs
-        | BenchmarkGraph (a, _) -> set_origin "Benchmark LTS" [ a ] refs
+        | MakeLTS a -> "Run LTS", [ a ]
+        | MakeFSM a -> "Run FSM", [ a ]
+        | DrawLTS (a, _) -> "Draw LTS", [ a ]
+        | DrawFSM (a, _) -> "Draw FSM", [ a ]
+        | Saturate a -> "Run Saturate", [ a ]
+        | Minimize a -> "Run Minimize", [ a ]
+        | Merge { a; b } -> "Run Merge", [ a; b ]
+        | CheckBisim { a; b } -> "Sim Begin", [ a; b ]
+        | RunBisim { a; b } -> "Run Bisim", [ a; b ]
+        | CheckSim { a; b } -> "Run Sim", [ a; b ]
+        | BenchmarkGraph (a, _) -> "Benchmark LTS", [ a ]
       in
-      match x with
-      | MakeLTS args -> do_make_lts args refs
-      | MakeFSM args -> do_make_fsm args refs
-      | DrawLTS (args, name) -> do_draw_lts args name refs
-      | DrawFSM (args, name) -> do_draw_fsm args name refs
-      | Saturate args -> do_saturate args refs
-      | Minimize args -> do_minimize args refs
-      | Merge args -> do_merge args refs
-      | CheckBisim args -> do_check_bisim args refs
-      | RunBisim args -> do_run_bisim args refs
-      | CheckSim args -> do_check_sim args refs
-      | BenchmarkGraph args -> do_benchmark_graph args refs
+      let m : Model.Bisimilarity.t option M.mm =
+        let* () = Config.load_weak_args () in
+        let* () = set_origin command terms refs in
+        match x with
+        | MakeLTS args -> do_make_lts args refs
+        | MakeFSM args -> do_make_fsm args refs
+        | DrawLTS (args, name) -> do_draw_lts args name refs
+        | DrawFSM (args, name) -> do_draw_fsm args name refs
+        | Saturate args -> do_saturate args refs
+        | Minimize args -> do_minimize args refs
+        | Merge args -> do_merge args refs
+        | CheckBisim args -> do_check_bisim args refs
+        | RunBisim args -> do_run_bisim args refs
+        | CheckSim args -> do_check_sim args refs
+        | BenchmarkGraph args -> do_benchmark_graph args refs
+      in
+      (* The work happens when [m] is run, not here, so that is what is timed
+         ([MeBi Config Notify]). *)
+      fun st -> Notify.timed ~command (fun () -> m st)
     ;;
   end
 end

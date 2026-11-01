@@ -20,6 +20,7 @@ let topics : string list list =
   ; [ "Config"; "Solver" ]
   ; [ "Config"; "Output" ]
   ; [ "Config"; "Draw" ]
+  ; [ "Config"; "Notify" ]
   ]
 ;;
 
@@ -154,7 +155,7 @@ let text : string list -> string option = function
          !Premise_search.max_range)
   | [ "Config" ] ->
     Some
-      "MeBi Config Reset [Bounds | Weak | FailIf | Output | Draw].\n\n\
+      "MeBi Config Reset [Bounds | Weak | FailIf | Output | Draw | Notify].\n\n\
        Settings, each with its own topic:\n\
       \  MeBi Help Config Bounds.     how big an LTS (and its saturation) may \
        get\n\
@@ -165,7 +166,9 @@ let text : string list -> string option = function
       \  MeBi Help Config Output.     which messages are shown, how they wrap, \
        and the results' format (plain text by default)\n\
       \  MeBi Help Config Draw.       what MeBi Draw makes, how big, and how \
-       it looks"
+       it looks\n\
+      \  MeBi Help Config Notify.     a desktop notification when a long \
+       command ends"
   | [ "Config"; "Bounds" ] ->
     let lo, hi = Api.mb_per_extracted_state in
     Some
@@ -441,6 +444,29 @@ let text : string list -> string option = function
                    (Draw_style.name comp)
                    (Draw_style.default comp))
                Draw_style.components)))
+  | [ "Config"; "Notify" ] ->
+    Some
+      (Printf.sprintf
+         "MeBi Config Notify After <seconds>.\n\
+          MeBi Config Notify Off.\n\
+          MeBi Config Notify Test.\n\
+          MeBi Config Reset Notify.\n\n\
+          A desktop notification when a long command ends, so a long run can \
+          be left going. Off by default (now: %s). After <seconds> turns it \
+          on: a MeBi Run, Draw or Benchmark command, or a MeBi Sim command \
+          (Solve, Step, Begin), that takes that long or longer ends with a \
+          notification naming it and how long it took, whether it succeeded or \
+          ended with an error. After 0 announces every command. A command run \
+          from inside another does not announce itself.\n\n\
+          It runs notify-send (the libnotify package) and needs a notification \
+          server in the desktop session; MeBi needs neither. Where notify-send \
+          is not on PATH, or nothing receives the message, the command \
+          finishes as it would have, with one warning saying why. Test sends \
+          one now, whatever the setting, and says whether it went: use it \
+          before a demonstration. Off, and Reset Notify, turn it off."
+         (match Notify.threshold () with
+          | None -> "off"
+          | Some s -> Printf.sprintf "on, after %i seconds" s))
   | _ -> None
 ;;
 

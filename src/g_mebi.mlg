@@ -25,20 +25,20 @@ DECLARE PLUGIN "rocq-mebi.mebi"
 VERNAC COMMAND EXTEND MeBi_Sim CLASSIFIED AS QUERY
 |![ proof ] 
   [ "MeBi" "Sim" "Solve" int(bound) ] ->
-  { fun ~pstate -> Proof_solver.guard (fun () -> Proof_solver.solve ~bound pstate) }
+  { fun ~pstate -> Proof_solver.guard ~command:"Sim Solve" (fun () -> Proof_solver.solve ~bound pstate) }
 
 |![ proof ] 
   [ "MeBi" "Sim" "Step" ] ->
-  { fun ~pstate -> Proof_solver.guard (fun () -> Proof_solver.step pstate) }
+  { fun ~pstate -> Proof_solver.guard ~command:"Sim Step" (fun () -> Proof_solver.step pstate) }
 
 |![ proof ] 
   [ "MeBi" "Sim" "Begin" reference(a) constr(x) "And" reference(b) constr(y) ] -> 
-  { fun ~pstate -> Proof_solver.guard (fun () -> Proof_solver.init pstate [] (x,a) (y,b)) }
+  { fun ~pstate -> Proof_solver.guard ~command:"Sim Begin" (fun () -> Proof_solver.init pstate [] (x,a) (y,b)) }
 
 |![ proof ] 
   [ "MeBi" "Sim" "Begin" reference(a) constr(x) "And" reference(b) constr(y)
                  "Using" reference_list(rs) ] -> 
-  { fun ~pstate -> Proof_solver.guard (fun () -> Proof_solver.init pstate rs (x,a) (y,b)) }
+  { fun ~pstate -> Proof_solver.guard ~command:"Sim Begin" (fun () -> Proof_solver.init pstate rs (x,a) (y,b)) }
 END
 
 (* Bisimilarity, opening the proof: [... As <name>] states
@@ -51,13 +51,13 @@ VERNAC COMMAND EXTEND MeBi_Run_Bisim_As
    "Bisim" constr(x) "With" reference(a) "And" constr(y) "With" reference(b)
    "As" identref(n)]
   => { Vernacextend.VtStartProof (Vernacextend.GuaranteesOpacity, [ n.CAst.v ]) }
-  -> { Proof_solver.guard (fun () ->
+  -> { Proof_solver.guard ~command:"Run Bisim" (fun () ->
          Proof_solver.start ~kind:Proof_solver.Bisim ~name:n.CAst.v [] (x, a) (y, b)) }
 | ![ open_proof ] ["MeBi" "Run"
    "Bisim" constr(x) "With" reference(a) "And" constr(y) "With" reference(b)
    "As" identref(n) "Using" reference_list(rs)]
   => { Vernacextend.VtStartProof (Vernacextend.GuaranteesOpacity, [ n.CAst.v ]) }
-  -> { Proof_solver.guard (fun () ->
+  -> { Proof_solver.guard ~command:"Run Bisim" (fun () ->
          Proof_solver.start ~kind:Proof_solver.Bisim ~name:n.CAst.v rs (x, a) (y, b)) }
 END
 
@@ -96,13 +96,13 @@ VERNAC COMMAND EXTEND MeBi_Run_Sim_As
    "Sim" constr(x) "With" reference(a) "And" constr(y) "With" reference(b)
    "As" identref(n)]
   => { Vernacextend.VtStartProof (Vernacextend.GuaranteesOpacity, [ n.CAst.v ]) }
-  -> { Proof_solver.guard (fun () ->
+  -> { Proof_solver.guard ~command:"Run Sim" (fun () ->
          Proof_solver.start ~kind:Proof_solver.Sim ~name:n.CAst.v [] (x, a) (y, b)) }
 | ![ open_proof ] ["MeBi" "Run"
    "Sim" constr(x) "With" reference(a) "And" constr(y) "With" reference(b)
    "As" identref(n) "Using" reference_list(rs)]
   => { Vernacextend.VtStartProof (Vernacextend.GuaranteesOpacity, [ n.CAst.v ]) }
-  -> { Proof_solver.guard (fun () ->
+  -> { Proof_solver.guard ~command:"Run Sim" (fun () ->
          Proof_solver.start ~kind:Proof_solver.Sim ~name:n.CAst.v rs (x, a) (y, b)) }
 END
 
@@ -369,6 +369,7 @@ VERNAC COMMAND EXTEND MeBi_Config_Reset CLASSIFIED AS QUERY
 | ["MeBi" "Config" "Reset" "FailIf"] -> { Api.reset_the_fail_flags () }
 | ["MeBi" "Config" "Reset" "Output"] -> { Api.reset_output_config  () }
 | ["MeBi" "Config" "Reset" "Draw"]   -> { Api.reset_draw_config    () }
+| ["MeBi" "Config" "Reset" "Notify"] -> { Notify.reset () }
 END
 
 (* Config -- how [MeBi Draw] draws: what it makes, where, and the look of each
@@ -385,6 +386,14 @@ VERNAC COMMAND EXTEND MeBi_Config_Draw CLASSIFIED AS QUERY
   { Api.set_draw_dir d }
 | ["MeBi" "Config" "Draw" "Style" string(c) string(o)] ->
   { Api.set_draw_style c o }
+END
+
+(* Config -- a desktop notification when a long command ends. Off by default,
+   and needs nothing of MeBi: see [Notify]. *)
+VERNAC COMMAND EXTEND MeBi_Config_Notify CLASSIFIED AS QUERY
+| ["MeBi" "Config" "Notify" "After" int(x)] -> { Notify.set_after x }
+| ["MeBi" "Config" "Notify" "Off"]           -> { Notify.set_off () }
+| ["MeBi" "Config" "Notify" "Test"]          -> { Notify.test () }
 END
 
 (* Config -- graph bounds *)
@@ -546,6 +555,7 @@ VERNAC COMMAND EXTEND MeBi_Help CLASSIFIED AS QUERY
 | ["MeBi" "Help" "Config" "Solver"] -> { Help.show [ "Config"; "Solver" ] }
 | ["MeBi" "Help" "Config" "Output"] -> { Help.show [ "Config"; "Output" ] }
 | ["MeBi" "Help" "Config" "Draw"] -> { Help.show [ "Config"; "Draw" ] }
+| ["MeBi" "Help" "Config" "Notify"] -> { Help.show [ "Config"; "Notify" ] }
 END
 
 VERNAC COMMAND EXTEND MeBi_Divider CLASSIFIED AS QUERY
