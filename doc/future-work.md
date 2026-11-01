@@ -389,14 +389,43 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
 
 **`MeBi Draw`** (`MeBi Help Draw`; measurements in
 `doc/measurements/draw-layout-time.md`)
-- **Bigger diagrams.** LuaTeX's layered layout is the limit: about 21 s at
-  100 states and 88 s at 150. The way past it is to lay the graph out
-  outside TeX, with Graphviz's `dot`, and draw nodes at fixed coordinates
-  (`dot2tex` does this; it needs Python and Graphviz, and its upstream is
-  unmaintained). Not built: the first version stays within what one
-  `lualatex` run does, which needs nothing else installed. Such a
-  diagram also compiles under plain `latex`, which a Forester `\tex` block
-  probably needs (unverified: `graphdrawing` needs LuaTeX).
+- **Direction agreed with the author, 2026-11-01.** The standalone engine
+  (LuaTeX, nothing else installed) stays the default, and is to be improved
+  until it does not need Graphviz. Graphviz becomes an *optional* engine,
+  used when `dot` is found. It can be offered but not bundled: as an
+  optional opam dependency (`depopts: conf-graphviz`, which asks the system
+  package manager) and in the repository's Nix flake. The drawing side is
+  to become a second plugin in the same package, `rocq-mebi.graph`, loaded
+  on request, with the option of folding it back into the main plugin.
+  **Details deferred to a later session:** the hooks the core would need (a
+  registry for reset callbacks and one for help topics, and what
+  `Decode.Diagram` needs exported), and what `make` does about it.
+- **Standalone parity: what is left.** Styling is done (2026-11-01: bigger
+  text, tighter padding, rounder corners; `Draw_style.default`). What
+  styling cannot do is where a label sits: it stays beside the last stretch
+  of its arrow, so labels pile up where arrows meet. Two ways, both
+  prototyped in the author's scratch (`layout-experiments/`): make each
+  label a node of the layout (a -> m -> b), which removes the overlaps but
+  costs about 1.8 times the layout time at 31 states and twice the height;
+  or lay out and route first and put the label on the middle of the finished
+  curve, which is the author's rule and is simple once something routes the
+  edge (Graphviz does; LuaTeX's layered layout does not expose it). A back
+  edge needs its own care in either: its label sticks to one end of the
+  chain (a first pass that measures the ranks it spans, then a label node
+  pinned half way with `minimum layers`, is the standalone version of the
+  rule that worked in Graphviz, and costs a second LuaTeX run).
+- **A Graphviz engine** (optional, see above). Written for Graphviz, the
+  rule that worked for a back edge (found by a depth-first search from the
+  initial state) is: lay it out reversed, let it leave and enter by the
+  side of the state (`tailport`/`headport=e`), and pin its label half way
+  with `minlen` after a first pass that reads the ranks off the y
+  coordinates. For a TikZ picture drawn from `dot -Tplain`, route first and
+  place the label at half the curve's arc length. Measured: `dot` takes
+  0.17 s at 100 states with every label a node, 5.8 s at 300, and did not
+  finish 1,000 in five minutes (random back edges are hard on its ordering).
+  `dot2tex` is the existing converter: with `--preproc` it needs
+  `preview.sty` (absent from this host's TeX Live), and it cannot put a
+  label on the middle of an edge.
 - **Colour by kind of action** (noted 2026-11-01 at the author's request;
   not built, and a new capability to agree first). A colour is per *part*
   today (`Style`), so colouring the arrows of each action meant

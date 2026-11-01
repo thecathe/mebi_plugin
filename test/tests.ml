@@ -1793,8 +1793,8 @@ let test_draw_style () : unit =
     true
     (contains
        ~sub:
-         "graphs/mebi layout/.style={layered layout, level distance=16mm, \
-          sibling distance=8mm}"
+         "graphs/mebi layout/.style={layered layout, level distance=18mm, \
+          sibling distance=12mm}"
        default);
   check
     "initial and terminal states build on the state style"
@@ -1830,7 +1830,7 @@ let test_draw_style () : unit =
   check
     "the user's options follow the default's, so they win"
     true
-    (contains ~sub:"inner sep=3pt, fill=yellow!20}" (tikzset styled));
+    (contains ~sub:"inner ysep=2pt, fill=yellow!20}" (tikzset styled));
   check_string
     "the user's options are read back"
     "fill=yellow!20"
