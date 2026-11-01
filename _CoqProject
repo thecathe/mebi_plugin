@@ -55,6 +55,14 @@ examples/Evaluation/Depth.v ### Success (K = 1-8; ~16s)
 # examples/Evaluation/DepthLarge.v ### Success (K = 12, 16; ~1 min, ~0.7GB)
 
 ###############################################################################
+### Coffee machine, the running example of the MeBi talk: a classic machine,
+### an upgrade (simulates it) and a replica (bisimilar to it), one module
+### each, with their proofs against the classic one. Least bounds, so any
+### increase fails the build. A few seconds, so built by default and in CI.
+### (CoffeeMachineSimple.v is a scratch experiment and stays out.)
+examples/CoffeeMachine.v ### Success (18, 31 and 23 states; 256 and 685 steps; ~3s)
+
+###############################################################################
 ### Proc
 examples/Proc.v ### REQUIRED FOR BELOW
 examples/ProcCongruence.v ### structural congruence made explicit: a normalised semantics for Proc.Layered, proved weakly bisimilar to it (fast, no plugin calls)

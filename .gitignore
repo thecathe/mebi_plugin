@@ -1,6 +1,7 @@
 .merlin
 *.ml*.d
 *.cm[ixt]*
+*.cmo
 Makefile.rocq
 .Makefile.rocq.d
 Makefile.rocq.conf

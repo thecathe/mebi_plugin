@@ -9813,6 +9813,96 @@ to a fresh session.
 
 ---
 
+## 2026-11-01 (cont.) — `examples/CoffeeMachine.v`: one module per machine
+
+**Refactor**, of Jonah's example, on branch `example/coffeemachine`. Nothing in
+the plugin changed. Jonah asked for each version of the machine (`old` renamed
+`classic`, then `upgrade` and `replica`) to sit in a module of its own, each
+with its own `drinks`, states and proofs, written out in full: the file is the
+talk's example, so a short, self-contained machine matters more than avoiding
+repetition.
+
+- Shared at the top: `coin` (the `fifty` dropped, as Jonah said it is no longer
+  used; `change` loses its branch), `drink`, `value`, `price`, `coins`, `change`
+  and `label`, then both `MeBi Config Weak` lines. Then `Module Classic`,
+  `Module Upgrade` and `Module Replica`, each with its own `drinks`, `mode`,
+  `term`, `cap`, rules (the `o_`/`n_`/`r_` prefixes gone, the module says which)
+  and start term (`classic`, `upgrade`, `replica`). `Classic` also keeps the
+  extraction anchor and the `MeBi Draw`. `ANCHOR` names follow the modules
+  (`extract-old` -> `extract-classic`, `new-rules` -> `upgrade-rules`,
+  `extract-new` -> `extract-upgrade`; `config-weak`, `weak-config/deciding`,
+  `replica-rules`, `extract-replica`, `worn-rules` and `extract-worn` keep their
+  names). Nothing in this repository includes them, but Jonah's notes site does
+  (its snippet files for this example, found by `grep -l`, not read or edited),
+  so **those need the three new names**; the three renamed anchors would
+  otherwise be missing there.
+- Proofs inside the modules, against `Classic.lts`: `Upgrade.wsim_classic_upgrade`
+  (the upgrade simulates the classic machine: 256 steps, `Solve 255`),
+  `Upgrade.wsim_upgrade_classic` (refused by `Fail MeBi Sim Begin`; I took the
+  `Fail` off and read the error, "the left state is not weakly simulated by the
+  right one", so it fails for the reason intended), the same "no" by deciding
+  instead of proving (anchor `upgrade-failif`, added at Jonah's request:
+  `MeBi Run Sim upgrade With lts And Classic.classic With Classic.lts`, an error
+  by default under `FailIf NotBisimilar True`, "upgrade is not weakly simulated
+  by Classic.classic: no weak simulation relates them"). I first wrote it as
+  `FailIf ... False`, then `Run Sim` as a warning, then `True` again; Jonah
+  changed it to `FailIf ... True` and a `Fail` on the `Run Sim`, which an editor
+  shows with its message, and I kept that (with the `Fail` off the error is the
+  one quoted, so it fails for the reason intended). My doc comment above it still
+  described mine, and was rewritten to match. Under `rocq compile` it prints
+  nothing. And `Replica.wbis_classic_replica` (685 steps, `Solve 684`). Both bounds are the
+  least: one lower leaves the proof open. `Print Assumptions` reports both closed
+  under the global context. The file's old "measured steps" comment is gone;
+  its figures (about 400 and 1,050) were for the prices and cap before Jonah's
+  changes.
+- **Not done as asked: the labels are not per module.** Jonah wanted each
+  machine's labels to be its own. `weak_sim` and `weak_bisimilar` take both
+  machines over one label type (`LTS M A`, `LTS N A`): with two `label` types
+  Rocq says `cannot unify "option A.label" and "option B.label"`, so a proof
+  across modules cannot even be stated (tried before writing anything). So
+  `label` is shared, with `Tap` in it, as `drink` already was. The states
+  (`mode`) can differ and are per module. This is a limit of the theory, not
+  of the plugin, and is written into the file next to `label`.
+- **Choices of mine, to confirm.** Every module has `cap := 30`, so the upgrade
+  and replica no longer say 50: Jonah's work in progress had changed only the
+  classic machine's, which would have made the replica not bisimilar to it. The
+  upgrade's cap equals the classic machine's, as the 50s did before. `Tap` still
+  gives 50p, over the cap (the card is not a coin), so the espresso is reachable
+  only by card: checked on the extracted LTS, `Ask espresso` leaves only
+  `(Idle, 50)`. Sizes: classic 18 states, upgrade 31, replica 23.
+- **The worn replica is a sketch only.** Its section is kept as it was, inside a
+  comment, with a note of what it needs in the new layout (a `NoBeans` state in
+  its own `mode`, `drinks`, `cap`, proofs against `Classic.lts`). It does not
+  compile, by design; its old step counts are dropped as stale.
+- **Added to `_CoqProject`** (**Tooling**), at Jonah's request, after I gave my
+  view. `examples/CoffeeMachine.v` is now built by `make` and in CI, with a
+  block of comment saying why (a few seconds, least bounds, so any increase in
+  steps fails the build); `CoffeeMachineSimple.v` stays out. Checked on a scratch
+  export of `HEAD` with the new `_CoqProject` and file overlaid:
+  `make -j examples/CoffeeMachine.vo` exits 0 in 7.8 s including the plugin, and
+  prints 18, 31 and 23 states and 256 and 685 steps, with no warning of its own
+  (the build's only warnings are `rocq makefile`'s about the doc root and
+  `Bisimilarity.v`'s hint database, both there before). With `lualatex` off `PATH`
+  (CI has none) the file still exits 0, measured on the version before Jonah's
+  `FailIf` change, which does not touch drawing; `MeBi Draw` warns that a PDF
+  needs it and keeps the TikZ.
+  Not run: the whole `make -j` (only this target), the proof suites,
+  `dune test`: no plugin file changed.
+- **Dumps off.** `MeBi Config Output "DumpResults" True` is commented out, at
+  Jonah's request: the file wrote 23 timestamped files (96 KB) to `_dumps/` on
+  every build, and under `make` they would pile up. With it off, `make` creates
+  no `_dumps/`. `Output Format Text` is kept.
+- **Docs.** A row for the file in `examples/README.md`; a line in
+  `OUTSTANDING.md` for the worn replica's sketch, waiting on Jonah.
+- Left uncommitted, as Jonah's: the one-line change in
+  `examples/CoffeeMachineSimple.v` (its drawing is written as
+  `coffee-machine-simple`).
+
+**Session tally (2026-11-01, this entry):** Refactor 1 · Tooling 1 · Docs 1 · Bug fix 0
+· Optimization 0 · New feature 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

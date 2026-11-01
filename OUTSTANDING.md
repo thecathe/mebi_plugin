@@ -39,6 +39,9 @@ Decision 2 would change every checked-in proof bound if it went against
 - **Whether `theories/Traces.v` may keep one example user.** The rule of
   2026-10-11 puts machinery in `theories/` once two examples use it, and
   only CADP does yet. Otherwise, it moves to `examples/CADP/`.
+- **The worn replica in `examples/CoffeeMachine.v`** is a commented sketch,
+  to be rethought as a module of its own, with proofs against `Classic.lts`.
+  The note in the file's section 4 says what it needs.
 - **`MeBi Draw`, a session of its own.** The direction is agreed (the
   standalone engine stays the default; Graphviz is an optional engine; the
   drawing side becomes a second plugin in the same package,
