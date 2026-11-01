@@ -1934,6 +1934,160 @@ let test_draw_run () : unit =
   check "and not waited for" true (took < 5.)
 ;;
 
+(* [Notify]: the setting, when a notification is sent, and that a missing or
+   failing [notify-send] never fails a command. A script standing in for
+   [notify-send] is put first on [PATH]; it appends its arguments to a file. *)
+let test_notify () : unit =
+  let dir = Filename.temp_dir "mebi-notify" "" in
+  let script = Filename.concat dir "notify-send" in
+  let log = script ^ ".log" in
+  let write_script (exit_code : int) : unit =
+    Out_channel.with_open_text script (fun oc ->
+      Printf.fprintf
+        oc
+        "#!/bin/sh\necho \"$*\" >> \"$0.log\"\nexit %i\n"
+        exit_code);
+    Unix.chmod script 0o755
+  in
+  let sent () : string list =
+    if Sys.file_exists log
+    then
+      In_channel.with_open_text log In_channel.input_all
+      |> String.split_on_char '\n'
+      |> List.filter (fun l -> not (String.equal l ""))
+    else []
+  in
+  let clear () : unit = if Sys.file_exists log then Sys.remove log in
+  let old_path : string =
+    Stdlib.Option.value (Sys.getenv_opt "PATH") ~default:""
+  in
+  (* Messages the library emits, so a warning can be counted. *)
+  let warnings : string list ref = ref [] in
+  Logger.set_sink (fun (m : Output.message) ->
+    if m.kind = Output.Kind.Warning then warnings := m.body :: !warnings);
+  let finally () : unit =
+    Unix.putenv "PATH" old_path;
+    Logger.reset_sink ();
+    Notify.reset ();
+    clear ();
+    Sys.remove script;
+    Sys.rmdir dir
+  in
+  Fun.protect ~finally (fun () ->
+    Unix.putenv "PATH" (dir ^ ":" ^ old_path);
+    write_script 0;
+    Notify.reset ();
+    check_string "elapsed: seconds" "45s" (Notify.show_elapsed 45.9);
+    check_string "elapsed: under a second" "0s" (Notify.show_elapsed 0.4);
+    check_string "elapsed: minutes" "3m 07s" (Notify.show_elapsed 187.);
+    check_string "elapsed: hours" "1h 02m" (Notify.show_elapsed 3720.);
+    check_string "elapsed: never negative" "0s" (Notify.show_elapsed (-3.));
+    (* off by default *)
+    check "off by default" true (Notify.threshold () = None);
+    check_int
+      "the command's value is returned"
+      42
+      (Notify.timed ~command:"Run Bisim" (fun () -> 42));
+    check_int "and nothing is sent while off" 0 (List.length (sent ()));
+    (* on *)
+    Notify.set_after 0;
+    check "set_after 0 is on, at 0" true (Notify.threshold () = Some 0);
+    check_int
+      "the command's value is still returned"
+      42
+      (Notify.timed ~command:"Run Bisim" (fun () -> 42));
+    check_string
+      "one notification, naming the command and the time"
+      "--app-name=MeBi -- MeBi Run Bisim finished after 0s"
+      (String.concat "|" (sent ()));
+    clear ();
+    Notify.set_after (-5);
+    check "a negative time is read as 0" true (Notify.threshold () = Some 0);
+    (* a command that fails still announces, and still fails *)
+    check
+      "an exception is re-raised unchanged"
+      true
+      (match Notify.timed ~command:"Sim Solve" (fun () -> failwith "boom") with
+       | _ -> false
+       | exception Failure m -> String.equal m "boom");
+    check_string
+      "and the notification says it ended with an error"
+      "--app-name=MeBi -- MeBi Sim Solve ended with an error after 0s"
+      (String.concat "|" (sent ()));
+    clear ();
+    (* a command inside another is part of it *)
+    ignore
+      (Notify.timed ~command:"Sim Begin" (fun () ->
+         Notify.timed ~command:"Run Bisim" (fun () -> ())));
+    check_string
+      "only the outermost command announces"
+      "--app-name=MeBi -- MeBi Sim Begin finished after 0s"
+      (String.concat "|" (sent ()));
+    clear ();
+    check
+      "and the nesting is closed afterwards"
+      true
+      (Notify.timed ~command:"Run FSM" (fun () -> true)
+       && List.length (sent ()) = 1);
+    clear ();
+    (* the threshold *)
+    Notify.set_after 100;
+    ignore (Notify.timed ~command:"Run Bisim" (fun () -> ()));
+    check_int
+      "a command under the threshold is not announced"
+      0
+      (List.length (sent ()));
+    Notify.set_after 1;
+    ignore (Notify.timed ~command:"Run Bisim" (fun () -> Unix.sleepf 1.1));
+    check_string
+      "one over it is"
+      "--app-name=MeBi -- MeBi Run Bisim finished after 1s"
+      (String.concat "|" (sent ()));
+    clear ();
+    Notify.set_off ();
+    check "set_off is off" true (Notify.threshold () = None);
+    ignore (Notify.timed ~command:"Run Bisim" (fun () -> ()));
+    check_int "and sends nothing" 0 (List.length (sent ()));
+    (* the test command ignores the setting *)
+    Notify.test ();
+    check_string
+      "test sends one whatever the setting"
+      "--app-name=MeBi -- MeBi This is a test notification."
+      (String.concat "|" (sent ()));
+    clear ();
+    (* a tool that fails: the command is unaffected, and it is warned of once *)
+    write_script 1;
+    warnings := [];
+    Notify.set_after 0;
+    check_int
+      "a failing notify-send does not change the command's value"
+      7
+      (Notify.timed ~command:"Run Bisim" (fun () -> 7));
+    check_int
+      "nor a second one"
+      8
+      (Notify.timed ~command:"Run Bisim" (fun () -> 8));
+    check_int "and is warned of once" 1 (List.length !warnings);
+    clear ();
+    (* a missing tool: the same, with the warning at the time it is turned on *)
+    let empty = Filename.temp_dir "mebi-notify-empty" "" in
+    Unix.putenv "PATH" empty;
+    warnings := [];
+    Notify.set_after 0;
+    check_int
+      "turning it on without the tool warns at once"
+      1
+      (List.length !warnings);
+    check_int
+      "a missing notify-send does not change the command's value"
+      9
+      (Notify.timed ~command:"Run Bisim" (fun () -> 9));
+    check_int "and does not warn a second time" 1 (List.length !warnings);
+    Notify.reset ();
+    check "reset is off" true (Notify.threshold () = None);
+    Sys.rmdir empty)
+;;
+
 let test_draw_files () : unit =
   let root = Filename.temp_dir "mebi-draw" "" in
   let dir = Filename.concat root "nested/dir" in
@@ -2322,6 +2476,7 @@ let () =
   test_draw_names ();
   test_draw_run ();
   test_draw_files ();
+  test_notify ();
   Printf.printf "\n%i/%i passed\n" (!total - !failures) !total;
   if !failures > 0 then exit 1
 ;;

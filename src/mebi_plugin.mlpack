@@ -4,6 +4,7 @@ Logger
 Rocq_output
 Json
 Memory_guard
+Notify
 Base_
 Tree
 Trees
