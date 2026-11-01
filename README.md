@@ -389,6 +389,8 @@ MeBi Config Solver Answers Default|Greedy|Minimal|Auto.
     2 -2-> 1
   ```
 
+  The first line says where the command is. From a file it is the file and line. From an editor (vsrocq), which gives the plugin no file, it is the document's logical path and its line, such as `origin: MEBI.Examples.CoffeeMachine, line 112: MeBi Run LTS`. vsrocq's own line number is unreliable, so the plugin counts the line from the exact character offset in the document's saved file, found through the load path. If that file is missing, or an unsaved edit means it no longer matches the buffer, it says `(line unknown)` instead of guessing. In `rocq repl` there is no document and it is just `line N`.
+
   `Format JSON` prints the full structure instead, as before 2026-10-19, with the header as an `"origin"` field. `Output "Detail"` adds each move's derivation tree (`0 -0-> 1  via s_l(s_pre)`); in JSON it also keeps the constructors' bindings and the annotations of weak actions. Unless set, `Detail` is off for plain text and on for JSON; once set, it holds for both. Each printed result is tagged with its form (`[plain text]`, `[JSON, without detail]`, ...), and the first one in a session is preceded by a `Notice` saying how to change it. Benchmark samples are always JSON. `Reset Output` restores the defaults.
 
 - `Output Wrap Off|Flow|Wide|Slim` and `Output Wrap Width <n>` fit messages to a width, so that a long line is not left running off the edge of the window. A paragraph of prose is broken between words and its continuation lines indented; rows of aligned columns (the `states:`, `labels:` and moves of a result) and JSON are never cut.
