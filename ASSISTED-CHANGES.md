@@ -9730,6 +9730,56 @@ Everything is merged into `main` and nothing is pushed.
 
 ---
 
+## 2026-11-01 (cont.) — `MeBi Draw`: a look closer to Graphviz's, and a direction
+
+**New feature** (a change to what `MeBi Draw` writes by default; Jonah asked
+for it) and **Docs**. On branch `feat/draw-look`. Jonah compared the drawn
+pictures with Graphviz's own, preferred Graphviz's, and asked three things: can
+the label of a long edge back to the start be put in the middle of it (by a
+rule: leave by the side of the state, place the line first and the label on
+the largest part of it); can the standalone TikZ be made to look more like
+Graphviz's (bigger text, less padding, rounder corners), so that the plugin
+does not have to rely on Graphviz; and, if it is to be involved, can it be
+packaged for other users.
+
+What changed, in `Draw_style.default`: states `\small` (was `\scriptsize`),
+`inner xsep=4pt, inner ysep=2pt` (was `inner sep=3pt`), `rounded corners=7pt`
+(was 2pt); labels and the caption `\footnotesize`; the layout's spacing 18mm
+and 12mm (was 16mm and 8mm), which the bigger text needs. Two tests quote the
+defaults and were updated; the help prints them from the code, and shows the
+new ones. Not run: `make` (strings only), the proof suites (nothing here is
+read by the model or the solver).
+
+**The back-edge label: a rule that works, in Graphviz; not in the plugin.**
+Found by experiment, in the author's scratch: a back edge (to a state still
+on a depth-first search's stack) is laid out reversed, leaves and enters by
+the side of the state, and its label node is pinned half way, with `minlen`
+from a first pass that reads the ranks off the y coordinates. Flipping it
+alone moved the label to the *other* end; side ports alone left it at an end;
+the first pass is what centres it, because the ranking's objective is flat
+along a chain. For a TikZ picture drawn from `dot -Tplain`, "route first,
+label second" (half the curve's arc length) does it with no first pass.
+Neither is in the plugin: the standalone engine (LuaTeX) cannot put a label on
+the middle of its arrow at all, and its version of the rule would cost a
+second LuaTeX run.
+
+**What I got wrong.** I implied earlier that Graphviz handles thousands of
+states in seconds. Measured with every label a node: 0.17 s at 100 states, 5.8
+s at 300, and 1,000 not finished in five minutes.
+
+**Direction, from Jonah:** the standalone engine stays the default and is
+improved until Graphviz is not needed; Graphviz is an *optional* engine, to be
+offered through `conf-graphviz` (a `depopts`) and the Nix flake, not bundled;
+the drawing side becomes a second plugin in the same package,
+`rocq-mebi.graph`, with the option of folding it back into the main plugin.
+The details are deferred to a later session. Recorded in `doc/future-work.md`
+and the devlog.
+
+**Session tally (2026-11-01, this entry):** New feature 1 · Docs 1 · Bug fix 0
+· Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
