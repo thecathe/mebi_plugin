@@ -415,12 +415,15 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   pinned half way with `minimum layers`, is the standalone version of the
   rule that worked in Graphviz, and costs a second LuaTeX run).
 - **A Graphviz engine** (optional, see above). Written for Graphviz, the
-  rule that worked for a back edge (found by a depth-first search from the
-  initial state) is: lay it out reversed, let it leave and enter by the
-  side of the state (`tailport`/`headport=e`), and pin its label half way
-  with `minlen` after a first pass that reads the ranks off the y
-  coordinates. For a TikZ picture drawn from `dot -Tplain`, route first and
-  place the label at half the curve's arc length. Measured: `dot` takes
+  rule for a back edge (found by a depth-first search from the initial
+  state) is: lay it out reversed, and pin its label half way with `minlen`
+  after a first pass that reads the ranks off the y coordinates. The author
+  prefers this shape (the edge down the side, entering the target from
+  below) to the one with side ports (`tailport`/`headport=e`), which was
+  tried and gives a cleaner exit but a harder edge to read; flipping alone
+  leaves the label at the top, the first pass is what centres it. For a
+  TikZ picture drawn from `dot -Tplain`, route first and place the label at
+  half the curve's arc length. Measured: `dot` takes
   0.17 s at 100 states with every label a node, 5.8 s at 300, and did not
   finish 1,000 in five minutes (random back edges are hard on its ordering).
   `dot2tex` is the existing converter: with `--preproc` it needs

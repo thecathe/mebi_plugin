@@ -9780,6 +9780,39 @@ and the devlog.
 
 ---
 
+## 2026-11-01 (cont.) — `MeBi Draw`: a larger, bold τ, and wrapping up the drawing work
+
+**New feature** (a change to the default look, asked for) and **Docs**. On branch
+`feat/draw-tau`. Jonah asked for the silent label's τ to be larger and
+bold, said he prefers the flipped back-edge picture to the side-port one, and
+asked for the session to be wrapped up, with the details of the next steps left
+to a fresh session.
+
+- `Draw_style.default Silent_label` is now `text=gray, font=\large\boldmath`
+  (was `text=gray`). It is a style, so it is still configurable:
+  `MeBi Config Draw Style "SilentLabel" "font=\normalsize\boldmath"` gives the
+  smaller one. I compared `\large` and `\normalsize` on the example and kept
+  `\large`: the τ glyph is small by nature, and `\normalsize` is barely above
+  the labels. `\boldmath` is in the LaTeX kernel, so no package is needed. A
+  test pins the default and the override; tests 223 -> 224 (226 with a
+  rasteriser). Not run: `make` (a string only), the proof suites.
+- **A correction to the previous entry.** It said the rule that worked for a
+  back edge includes leaving and entering by the side of the state. Jonah
+  prefers the shape *without* the side ports ("far easier to read"): the rule
+  is to lay the edge out reversed and pin its label half way with a first pass;
+  flipped alone leaves the label at the top, and I had generated the flipped and
+  pinned picture without looking at it. I have now: the label is in the middle.
+  `doc/future-work.md` says so. The rule is still only in the author's scratch,
+  not in the plugin.
+- **Wrap-up.** `OUTSTANDING.md` has a line for the deferred drawing work and
+  `doc/limitations.md` an entry for the standalone engine's label placement.
+  Nothing else open: the commands, the tidy text and the look are merged.
+
+**Session tally (2026-11-01, this entry):** New feature 1 · Docs 1 · Bug fix 0
+· Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
