@@ -1896,6 +1896,28 @@ let test_draw_files () : unit =
        true
        ((not (Sys.file_exists (Filename.concat dir "d.aux")))
         && not (Sys.file_exists (Filename.concat dir "d.log")));
+     (* A PNG needs a rasteriser as well. *)
+     (match Draw_output.find_exe "pdftocairo", Draw_output.find_exe "gs" with
+      | None, None ->
+        print_endline
+          "  skip  the diagram becomes a PNG (no pdftocairo or gs on PATH)"
+      | _ ->
+        let made, problems =
+          Draw_output.render ~format:Png ~timeout:120. ~dir ~name:"d"
+        in
+        let png = Filename.concat dir "d.png" in
+        check
+          "a PNG is made after the PDF"
+          true
+          (problems = [] && made = [ Filename.concat dir "d.pdf"; png ]);
+        check
+          "and it is a PNG"
+          true
+          (Sys.file_exists png
+           && String.equal
+                "\137PNG"
+                (In_channel.with_open_bin png (fun ic ->
+                   really_input_string ic 4))));
      let broken = Draw_style.set State "no such key=1" Draw_style.empty in
      ignore (Draw_output.write ~dir ~name:"b" ~style:broken a_diagram);
      let made, problems =
