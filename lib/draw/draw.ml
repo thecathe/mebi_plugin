@@ -25,6 +25,81 @@ type t =
   ; incomplete : bool
   }
 
+(** [wraps s] is whether the ['('] that [s] starts with is closed by the [')']
+    it ends with, and not before: the parentheses enclose all of [s]. *)
+let wraps (s : string) : bool =
+  let n : int = String.length s in
+  if n < 2 || not (Char.equal s.[0] '(' && Char.equal s.[n - 1] ')')
+  then false
+  else (
+    let depth : int ref = ref 0 in
+    let closed_early : bool ref = ref false in
+    String.iteri
+      (fun i c ->
+        (match c with '(' -> incr depth | ')' -> decr depth | _ -> ());
+        if Int.equal !depth 0 && i < n - 1 then closed_early := true)
+      s;
+    (not !closed_early) && Int.equal !depth 0)
+;;
+
+(* See the [.mli]. *)
+let unparen (s : string) : string =
+  let rec go (s : string) : string =
+    let s : string = String.trim s in
+    if wraps s
+    then (
+      let inner : string = String.trim (String.sub s 1 (String.length s - 2)) in
+      if String.equal inner "" then s else go inner)
+    else s
+  in
+  go s
+;;
+
+(** [without_some s] is [x] if [s] is [Some x] (with or without parentheses
+    round it or round [x]), and [None] if it is not. *)
+let without_some (s : string) : string option =
+  let u : string = unparen s in
+  let prefix : string = "Some " in
+  if String.starts_with ~prefix u
+  then (
+    let x : string =
+      unparen
+        (String.sub
+           u
+           (String.length prefix)
+           (String.length u - String.length prefix))
+    in
+    if String.equal x "" then None else Some x)
+  else None
+;;
+
+(* See the [.mli]. *)
+let tidy (d : t) : t =
+  let texts : string list =
+    List.filter_map
+      (fun (e : edge) ->
+        match e.label with Label s -> Some s | Silent -> None)
+      d.edges
+  in
+  let all_some : bool =
+    (not (List.is_empty texts))
+    && List.for_all (fun s -> Stdlib.Option.is_some (without_some s)) texts
+  in
+  let label : label -> label = function
+    | Silent -> Silent
+    | Label s ->
+      (match all_some, without_some s with
+       | true, Some x -> Label x
+       | _ -> Label (unparen s))
+  in
+  { d with
+    nodes =
+      List.map (fun (n : node) -> { n with text = unparen n.text }) d.nodes
+  ; edges =
+      List.map (fun (e : edge) -> { e with label = label e.label }) d.edges
+  }
+;;
+
 (* See the [.mli]. Two hyphens in a row would print as a dash, so the second
    follows an empty group. *)
 let escape (s : string) : string =

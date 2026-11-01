@@ -75,8 +75,10 @@ module type S = sig
   end
 
   (** Diagrams of an LTS or FSM ([MeBi Draw]), with each state and label as
-      its Rocq term printed. A state has the number it has in the
-      {!Plain} text of the same system, and a silent label is {!Draw.Silent}. *)
+      its Rocq term printed, made fit for a picture by {!Draw.tidy} (no outer
+      parentheses, no [Some] if every label has one). A state has the number
+      it has in the {!Plain} text of the same system, and a silent label is
+      {!Draw.Silent}. *)
   module Diagram : sig
     (** [lts x] is the LTS [x] as a diagram. Each arrow is a transition.
         Raises {!Bi_encoding.S.CannotDecode} if an encoding stands for no term
@@ -768,7 +770,9 @@ module Make
     (** [build ~init ~terminals ~info states moves] is the diagram of a system
         with [states], and [moves] as [(from, label, to)]. A state's number is
         {!Plain.number_states}'s. A label is silent if the model says so,
-        and otherwise is its term, printed. *)
+        and otherwise is its term, printed. The text is then made fit for a
+        picture ({!Draw.tidy}): no outer parentheses, and no [Some] if every
+        label has one. *)
     let build
           ~(init : Model.State.t option)
           ~(terminals : Model.State.Set.t)
@@ -784,31 +788,34 @@ module Make
         | Some i -> Int.equal (Model.State.compare i s) 0
         | None -> false
       in
-      { nodes =
-          Plain.SMap.bindings sidx
-          |> List.map (fun ((s : Model.State.t), i) : Draw.node ->
-            { id = i
-            ; text = Plain.term s.base
-            ; initial = is_init s
-            ; terminal = Model.State.Set.mem s terminals
-            })
-      ; edges =
-          List.map
-            (fun ((f : Model.State.t), (l : Model.Label.t), (d : Model.State.t))
-              : Draw.edge ->
-              { src = id f
-              ; label =
-                  (if l.is_silent = Some true
-                   then Draw.Silent
-                   else Draw.Label (Plain.term l.base))
-              ; dst = id d
+      Draw.tidy
+        { nodes =
+            Plain.SMap.bindings sidx
+            |> List.map (fun ((s : Model.State.t), i) : Draw.node ->
+              { id = i
+              ; text = Plain.term s.base
+              ; initial = is_init s
+              ; terminal = Model.State.Set.mem s terminals
               })
-            moves
-      ; incomplete =
-          (match info.meta with
-           | Some { is_complete = false; _ } -> true
-           | _ -> false)
-      }
+        ; edges =
+            List.map
+              (fun ( (f : Model.State.t)
+                   , (l : Model.Label.t)
+                   , (d : Model.State.t) )
+                : Draw.edge ->
+                { src = id f
+                ; label =
+                    (if l.is_silent = Some true
+                     then Draw.Silent
+                     else Draw.Label (Plain.term l.base))
+                ; dst = id d
+                })
+              moves
+        ; incomplete =
+            (match info.meta with
+             | Some { is_complete = false; _ } -> true
+             | _ -> false)
+        }
     ;;
 
     (* See the [.mli]. *)

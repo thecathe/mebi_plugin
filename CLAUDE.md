@@ -184,8 +184,8 @@ per-Solve tables that `bench/compare.sh` diffs between two builds; see
    next `dune build`.
 
 For pure-OCaml model changes with no Rocq/proof-solver involvement,
-`dune exec test/tests.exe` (expect 169/169 with `lualatex` on `PATH` but no
-`pdftocairo` or `gs`, 171/171 with one; a host without `lualatex` prints more
+`dune exec test/tests.exe` (expect 213/213 with `lualatex` on `PATH` but no
+`pdftocairo` or `gs`, 215/215 with one; a host without `lualatex` prints more
 `skip` lines and a lower total) is a much faster first signal, but
 does not substitute for the proof-suite run above when the change touches
 anything the proof solver reads.
