@@ -329,7 +329,8 @@ let text : string list -> string option = function
        Results (the FSMs, LTSs and verdicts shown with Output \"Result\" True, \
        and dumps) are plain text by default: the states and labels numbered \
        with their terms, then the moves as from -label-> to, under a header \
-       saying where they came from: file and line, command, terms, and the \
+       saying where they came from: file and line (in an editor, the \
+       document's logical path and its line), command, terms, and the \
        relations with their constructors. Format JSON prints them as JSON \
        instead, with the header as \"origin\". Output \"Detail\" adds each \
        move's derivation tree (in JSON, the constructors' bindings and the \

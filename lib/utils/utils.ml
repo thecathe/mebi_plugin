@@ -95,6 +95,26 @@ let clean_string (s : string) : string =
   Buffer.contents b
 ;;
 
+(* See the [.mli]. *)
+let contains ~(sub : string) (s : string) : bool =
+  let n : int = String.length s in
+  let m : int = String.length sub in
+  let rec go (i : int) : bool =
+    i + m <= n && (String.equal (String.sub s i m) sub || go (i + 1))
+  in
+  go 0
+;;
+
+(* See the [.mli]. *)
+let line_of_offset (text : string) (n : int) : int option =
+  if n < 0 || n > String.length text
+  then None
+  else (
+    let lines : int ref = ref 1 in
+    String.iteri (fun i c -> if i < n && c = '\n' then incr lines) text;
+    Some !lines)
+;;
+
 module FileWriter = struct
   let perm : int = 0o777
   let default_dir : string = "./_dumps/"
