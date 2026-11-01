@@ -137,16 +137,25 @@ turns the pin into a positive test.
   the header says `Logical.path (line unknown)` rather than a wrong line. In
   `rocq compile` the line is the file's; in `rocq repl` (path `Top`) it is
   `Loc.line_nb`, which is right there. Dump names use the logical path alone.
-- **`Output Wrap Flow` follows the window only where the client lays out
-  the boxes, and whether vsrocq's proof panel does is unchecked** (*limit*;
-  found 2026-11-01). Checked: `Flow` wraps at Rocq's printing width in
-  `rocq compile` and `rocq repl` (78, or `Set Printing Width`), and through
-  `vsrocqtop` over LSP a `Notice` or `Warning` arrives as text wrapped at
-  78 (vsrocq renders those with `Pp.string_of_ppcmds`, and has no width
-  setting of its own). An `Info`, which includes `Result`, goes to the proof
-  panel as boxes (`pp_of_rocqpp`); the panel is VS Code's, and what it does
-  with them was not seen. `Wide`, `Slim` and `Width <n>` fill to a fixed
-  width here and hold in any client, but do not follow the window.
+- **`Output Wrap Flow` follows the window in vsrocq's proof panel, but can
+  overflow it by about a character** (*limit*, in vsrocq's display, not the
+  plugin; found 2026-11-01). `Flow` wraps at Rocq's printing width in `rocq
+  compile` and `rocq repl` (78, or `Set Printing Width`). Through `vsrocqtop`
+  over LSP a `Notice` or `Warning` arrives as text wrapped at 78 (vsrocq renders
+  those with `Pp.string_of_ppcmds` and has no width setting of its own). An
+  `Info`, which includes `Result`, goes to the proof panel as boxes, and there
+  the author sees it laid out correctly. The panel's `pp-display` (vsrocq 2.5.0,
+  `pp-display/dist/pp-display.js`) re-flows to the pane's width in pixels, with
+  a `ResizeObserver` and a canvas `measureText`, breaking when the line so far
+  plus the next word is wider than the pane. **The author sees it overflow by a
+  character or so.** A likely cause, from reading that code and *not seen*: it
+  ignores a resize of 10 pixels or less (`Math.abs(width change) <= 10`), which
+  is about a vertical scrollbar, so a message long enough to make one appear
+  after the layout is left that much too wide. Nothing in the plugin can move
+  that margin, and padding the words would show as extra spaces. `Wide`, `Slim`
+  and `Width <n>` fill to a fixed width here and hold in any client, but do not
+  follow the window; set one a column or two under the visible width if the
+  overflow matters.
 - **Wrapping reads the text, not the display** (*limit*, by design). A line
   with a run of two spaces or a tab is taken for aligned columns and kept, so
   a prose line that has a double space in it is not wrapped. A line starting

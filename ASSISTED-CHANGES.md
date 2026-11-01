@@ -9687,6 +9687,41 @@ Tooling 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-11-01 (cont.) — `Flow` in vsrocq's panel: it follows the window, and overflows by a character
+
+**Docs.** On branch `docs/flow-panel-finding`. **No code change**, though Jonah
+asked for one: "vsrocq always seems to overflow by a character or so ... would
+it be possible to compensate for this in the plugin?", e.g. by offsetting the
+bound by one or two characters.
+
+I did not add one, because the cause is in the client and the plugin has no
+handle on it. The panel's `pp-display` (vsrocq 2.5.0, read from the installed
+extension, `pp-display/dist/pp-display.js`) lays boxes out itself, in pixels:
+it takes the pane's width from a `ResizeObserver`, measures each string with a
+canvas `measureText`, and breaks when the line so far plus the next chunk is
+wider than the pane. So `Flow` *does* follow the window, which closes the item
+that was open in `OUTSTANDING.md` (Jonah also reports the results display
+correctly). The width it breaks at is the client's, not a number we pass. A
+fixed offset would have to be added to every word's measured length, and the
+only way to do that from here is trailing spaces, which `white-space: pre` shows
+as extra spacing between words. For `Wide`, `Slim` and `Width n` an offset is
+just a smaller `n`, which the user can already set.
+
+The most likely cause, from the same code and **not seen on screen**: the
+`ResizeObserver` callback returns early when the width changed by 10 pixels or
+less (`Math.abs(e.contentRect.width - u.contentRect.width) <= 10`). A vertical
+scrollbar is about that wide, so a message long enough to make one appear after
+the layout is left that much too wide, and a pane with no scrollbar would not
+show it. If that is right it is a defect in vsrocq's display and could be
+reported upstream; I have not.
+
+`README.md` and `doc/limitations.md` now say this, in place of "not checked".
+
+**Session tally (2026-11-01), cont.:** Bug fix 3 · New feature 1 · Docs 2 ·
+Tooling 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
