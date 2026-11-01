@@ -137,3 +137,19 @@ turns the pin into a positive test.
   file, or print the document's logical path with no line (as the dump
   names do since 2026-11-01, `Rocq_output.loc_provider`). Dump names are
   not affected.
+- **`Output Wrap Flow` follows the window only where the client lays out
+  the boxes, and whether vsrocq's proof panel does is unchecked** (*limit*;
+  found 2026-11-01). Checked: `Flow` wraps at Rocq's printing width in
+  `rocq compile` and `rocq repl` (78, or `Set Printing Width`), and through
+  `vsrocqtop` over LSP a `Notice` or `Warning` arrives as text wrapped at
+  78 (vsrocq renders those with `Pp.string_of_ppcmds`, and has no width
+  setting of its own). An `Info`, which includes `Result`, goes to the proof
+  panel as boxes (`pp_of_rocqpp`); the panel is VS Code's, and what it does
+  with them was not seen. `Wide`, `Slim` and `Width <n>` fill to a fixed
+  width here and hold in any client, but do not follow the window.
+- **Wrapping reads the text, not the display** (*limit*, by design). A line
+  with a run of two spaces or a tab is taken for aligned columns and kept, so
+  a prose line that has a double space in it is not wrapped. A line starting
+  with a brace, a square bracket or a double quote is taken for JSON and
+  kept. Width counts characters, so a wide glyph counts as one. Every message
+  kind is wrapped alike, `Debug` and `Trace` included.
