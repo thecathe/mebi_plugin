@@ -47,8 +47,8 @@ Section classic.
 
   Definition price (x : drink) : nat :=
     match x with
-    | tea => 20
-    | coffee => 30
+    | tea => 10
+    | coffee => 20
     end.
 
   Inductive label : Set :=
@@ -67,7 +67,7 @@ Section classic.
 
   Definition term : Set := mode * nat.
 
-  Definition cap : nat := 50.
+  Definition cap : nat := 30.
 
   Definition within_price_cap (n : nat) (c : coin) : Prop :=
     Nat.leb (n + value c) cap = true.
@@ -86,7 +86,7 @@ Section classic.
   | serve d n : lts (Ready d, n) (Some (Serve d)) (Serving, n)
   | refunding n : lts (Serving, n) None (Refunding None, n)
   | calculate n c : In c coins -> biggest_coin n = Some c ->
-    lts (Refunding None, n) None (Refunding (Some c), n)
+    lts (Refunding None, n) None (Refunding (Some c), n - (value c))
   | do_refund c n : lts (Refunding (Some c), n) (Some (Return c)) (Refunding None, n)
   | done : lts (Refunding None, 0) None (Idle, 0)
   (* | refund_50 cs n r : (refund_coin fifty n) = Some r ->
@@ -104,8 +104,36 @@ MeBi Config Weak As Option label.
 MeBi Config Output "DumpResults" True.
 MeBi Config Output Format Text.
 
+MeBi Config Output "Result" True.
+MeBi Config Output Wrap Flow.
+
 MeBi Help Premises.
 
 MeBi Run LTS old Using lts.
+
+(* Draw the LTS above ([MeBi Help Draw], [MeBi Help Config Draw]). It writes
+   TikZ, and a PDF if lualatex is installed, into ./_diagrams/ of the
+   directory Rocq runs in: coffee-machine.tikz (the picture),
+   coffee-machine.style.tikz (its styles) and coffee-machine.tex (draws the
+   two), then coffee-machine.pdf.
+
+   The picture sets no colour or shape itself: it names a style for each part
+   and the style file defines them, from a default for each part followed by
+   the options below, which win. The parts are Layout, State, Initial,
+   Terminal, Edge, Label, SilentEdge, SilentLabel, TwoWay, Loop and Caption.
+   Options are TikZ options; "" puts a part back to its default. *)
+MeBi Config Draw Format PDF.                    (* TeX | PDF | PNG *)
+(* MeBi Config Draw Dir "./_diagrams/". *)
+(* MeBi Config Bounds Draw States 50.           (* or Transitions <n>; Time <s> *) *)
+
+(* Examples to try, one at a time: *)
+(* MeBi Config Draw Style "Layout" "level distance=24mm, sibling distance=16mm". *)
+(* MeBi Config Draw Style "State" "fill=yellow!20". *)
+(* MeBi Config Draw Style "Edge" "thick, draw=blue!60!black". *)
+(* MeBi Config Draw Style "Label" "font=\tiny". *)
+(* MeBi Config Draw Style "Label" "draw=gray!50, rounded corners=1pt". *)
+(* MeBi Config Draw Style "Terminal" "fill=red!10". *)
+
+MeBi Draw LTS old Using lts As "coffee-machine".
 
 End classic.
