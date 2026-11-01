@@ -142,6 +142,9 @@ Inductive lts_old : term -> option label -> term -> Prop :=
 (* ANCHOR: extract-old *)
 Definition old : term := (Idle, 0).
 
+MeBi Config Output "DumpResults" True.
+MeBi Config Output Format Text.
+
 MeBi Run LTS old Using lts_old.
 (* ANCHOR_END: extract-old *)
 
