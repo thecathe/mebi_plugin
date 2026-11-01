@@ -112,11 +112,17 @@ let picture (d : t) : string =
   let arrows, loops =
     List.partition (fun (s, t, _) -> not (Int.equal s t)) (merge d.edges)
   in
+  (* An arrow with one back between the same states would be drawn on top of
+     it, so each of the two is bent. *)
+  let has_opposite (s : int) (t : int) : bool =
+    List.exists (fun (s', t', _) -> Int.equal s' t && Int.equal t' s) arrows
+  in
   let arrow_line ((s, t, ls) : int * int * label list) : string =
     Printf.sprintf
-      "    s%i ->[%s, %s] s%i;"
+      "    s%i ->[%s%s, %s] s%i;"
       s
       (edge_options ls)
+      (if has_opposite s t then ", " ^ Draw_style.(use Two_way) else "")
       (label_node ls)
       t
   in

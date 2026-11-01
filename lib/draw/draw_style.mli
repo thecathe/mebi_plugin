@@ -24,6 +24,9 @@ type component =
   | Label (** an arrow's label; {!Silent_label} builds on it *)
   | Silent_edge (** an arrow whose labels are all silent *)
   | Silent_label (** the label of a {!Silent_edge} *)
+  | Two_way
+  (** each of two arrows between the same two states, in opposite
+      directions, which would otherwise be drawn on top of each other *)
   | Loop (** where a state's arrow to itself leaves and returns *)
   | Caption (** the note under an incomplete diagram *)
 
@@ -32,7 +35,7 @@ val components : component list
 
 (** [name c] is [c]'s name in [MeBi Config Draw Style]: [Layout], [State],
     [Initial], [Terminal], [Edge], [Label], [SilentEdge], [SilentLabel],
-    [Loop] or [Caption]. Raises nothing. *)
+    [TwoWay], [Loop] or [Caption]. Raises nothing. *)
 val name : component -> string
 
 (** [of_string s] is the {!component} {!name} gives [s], ignoring case, if

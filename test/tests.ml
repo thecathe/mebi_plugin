@@ -1662,7 +1662,40 @@ let test_draw_picture () : unit =
     "an empty diagram says so, and draws no graph"
     true
     (let p = Draw.picture { nodes = []; edges = []; incomplete = false } in
-     contains ~sub:"Empty: no states." p && not (contains ~sub:"\\graph" p))
+     contains ~sub:"Empty: no states." p && not (contains ~sub:"\\graph" p));
+  (* 0 and 1 have an arrow each way, and 1 has one on to 2. *)
+  let pair : Draw.t =
+    { nodes =
+        List.map
+          (fun id : Draw.node ->
+            { id; text = string_of_int id; initial = false; terminal = false })
+          [ 0; 1; 2 ]
+    ; edges =
+        [ { src = 0; label = Label "a"; dst = 1 }
+        ; { src = 1; label = Label "b"; dst = 0 }
+        ; { src = 1; label = Label "c"; dst = 2 }
+        ; { src = 2; label = Label "d"; dst = 2 }
+        ]
+    ; incomplete = false
+    }
+  in
+  let lines = String.split_on_char '\n' (Draw.picture pair) in
+  let line prefix = List.find (contains ~sub:prefix) lines in
+  check
+    "arrows with one back between the same states are both bent"
+    true
+    (contains ~sub:"mebi two-way" (line "s0 ->")
+     && contains
+          ~sub:"mebi two-way"
+          (line "s1 ->[mebi edge, mebi two-way, \"{b}\"]"));
+  check
+    "an arrow on its own is not"
+    false
+    (contains ~sub:"mebi two-way" (line "\"{c}\""));
+  check
+    "nor is a state's arrow to itself"
+    false
+    (contains ~sub:"mebi two-way" (line "\"{d}\""))
 ;;
 
 let test_draw_style () : unit =
@@ -1685,6 +1718,27 @@ let test_draw_style () : unit =
     "a silent edge draws its label in the silent label style"
     true
     (contains ~sub:"every edge quotes/.style={mebi silent label}" default);
+  check
+    "every component is defined, once"
+    true
+    (List.for_all
+       (fun c ->
+         let def = Printf.sprintf "%s/.style={" (use c) in
+         let rec count from acc =
+           match String.index_from_opt default from def.[0] with
+           | None -> acc
+           | Some i ->
+             let acc =
+               if
+                 i + String.length def <= String.length default
+                 && String.equal (String.sub default i (String.length def)) def
+               then acc + 1
+               else acc
+             in
+             count (i + 1) acc
+         in
+         count 0 0 = 1)
+       components);
   let styled = set State "fill=yellow!20" empty in
   check
     "the user's options follow the default's, so they win"

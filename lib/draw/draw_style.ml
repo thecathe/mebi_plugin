@@ -8,6 +8,7 @@ type component =
   | Label
   | Silent_edge
   | Silent_label
+  | Two_way
   | Loop
   | Caption
 
@@ -21,6 +22,7 @@ let components : component list =
   ; Label
   ; Silent_edge
   ; Silent_label
+  ; Two_way
   ; Loop
   ; Caption
   ]
@@ -36,6 +38,7 @@ let name : component -> string = function
   | Label -> "Label"
   | Silent_edge -> "SilentEdge"
   | Silent_label -> "SilentLabel"
+  | Two_way -> "TwoWay"
   | Loop -> "Loop"
   | Caption -> "Caption"
 ;;
@@ -59,6 +62,7 @@ let use : component -> string = function
   | Label -> "mebi label"
   | Silent_edge -> "mebi silent edge"
   | Silent_label -> "mebi silent label"
+  | Two_way -> "mebi two-way"
   | Loop -> "mebi loop"
   | Caption -> "mebi caption"
 ;;
@@ -78,6 +82,7 @@ let default : component -> string = function
      text=black"
   | Silent_edge -> "dashed, draw=gray"
   | Silent_label -> "text=gray"
+  | Two_way -> "bend left=18"
   | Loop -> "loop above"
   | Caption -> "font=\\scriptsize\\itshape, text=gray"
 ;;
@@ -149,7 +154,7 @@ let body (c : component) (s : t) : string =
       ; Printf.sprintf "every edge quotes/.style={%s}" (use Silent_label)
       ]
   | Silent_label -> join [ use Label; options c s ]
-  | Layout | State | Edge | Label | Loop | Caption -> options c s
+  | Layout | State | Edge | Label | Two_way | Loop | Caption -> options c s
 ;;
 
 (** [key c] is the key [c]'s style is defined under. [\graph]'s own options
