@@ -1937,6 +1937,168 @@ let test_draw_files () : unit =
   Sys.rmdir root
 ;;
 
+(** [Output.Wrap]: what may be re-flowed, how it is filled, and the modes. *)
+let test_wrap () : unit =
+  print_endline "output: wrap";
+  let open Output.Wrap in
+  (* what is prose and what is kept *)
+  check
+    "prose is a paragraph, with its indent"
+    true
+    (layout ~header:"" "  a b c"
+     = [ Para { indent = 2; words = [ "a"; "b"; "c" ] } ]);
+  check
+    "a run of two spaces marks aligned columns, kept"
+    true
+    (layout ~header:"" "  1  0  (terminal)" = [ Verbatim "  1  0  (terminal)" ]);
+  check
+    "a tab marks columns too"
+    true
+    (layout ~header:"" "a\tb" = [ Verbatim "a\tb" ]);
+  check
+    "JSON is kept"
+    true
+    (List.for_all
+       (fun s -> layout ~header:"" s = [ Verbatim s ])
+       [ "{ \"a\": 1 }"; "  [ 1, 2 ]"; "  \"k\": \"v w\""; "}"; "]" ]);
+  check
+    "trailing blanks go, interior ones stay"
+    true
+    (layout ~header:"" "a\n\nb\n\n  \n"
+     = [ Para { indent = 0; words = [ "a" ] }
+       ; Verbatim ""
+       ; Para { indent = 0; words = [ "b" ] }
+       ]);
+  (* the header *)
+  check
+    "a one-paragraph body is joined to the header"
+    true
+    (layout ~header:"f: p: " "x y"
+     = [ Para { indent = 0; words = [ "f:"; "p:"; "x"; "y" ] } ]);
+  check
+    "a longer body leaves the header a line of its own"
+    true
+    (layout ~header:"title: " "x\ny"
+     = [ Para { indent = 0; words = [ "title:" ] }
+       ; Para { indent = 0; words = [ "x" ] }
+       ; Para { indent = 0; words = [ "y" ] }
+       ]);
+  check
+    "an empty header adds nothing"
+    true
+    (layout ~header:"" "x\ny"
+     = [ Para { indent = 0; words = [ "x" ] }
+       ; Para { indent = 0; words = [ "y" ] }
+       ]);
+  check
+    "a header that looks like JSON is not lost"
+    true
+    (match layout ~header:"[x]: " "y\nz" with
+     | Verbatim "[x]:" :: _ -> true
+     | _ -> false);
+  (* filling *)
+  check_int "UTF-8 counts characters" 2 (text_width "\xe2\x87\x92\xe2\x87\x92");
+  check
+    "fill breaks between words, hanging 2 more"
+    true
+    (fill
+       ~width:20
+       [ Para
+           { indent = 2
+           ; words = [ "aaaa"; "bbbb"; "cccc"; "dddd"; "eeee"; "ffff" ]
+           }
+       ]
+     = [ "  aaaa bbbb cccc"; "    dddd eeee ffff" ]);
+  check
+    "a verbatim line is never cut"
+    true
+    (fill ~width:20 [ Verbatim (String.make 50 'x') ] = [ String.make 50 'x' ]);
+  check
+    "a word longer than the width has a line to itself"
+    true
+    (fill
+       ~width:20
+       [ Para { indent = 0; words = [ "a"; String.make 30 'w'; "b" ] } ]
+     = [ "a"; "  " ^ String.make 30 'w'; "  b" ]);
+  (* every paragraph fits and keeps its words, at any width *)
+  Random.init 31;
+  let ok = ref true in
+  for _ = 1 to 300 do
+    let n = 1 + Random.int 40 in
+    let ws = List.init n (fun _ -> String.make (1 + Random.int 12) 'a') in
+    let width = min_width + Random.int 100 in
+    let indent = Random.int 8 in
+    let out = fill ~width [ Para { indent; words = ws } ] in
+    let one_word l =
+      List.length (List.filter (( <> ) "") (String.split_on_char ' ' l)) = 1
+    in
+    (* a line fits, unless it is one word wider than the room *)
+    let fits =
+      List.for_all (fun l -> text_width l <= width || one_word l) out
+    in
+    let same =
+      List.concat_map
+        (fun l -> String.split_on_char ' ' l |> List.filter (( <> ) ""))
+        out
+      = ws
+    in
+    if not (fits && same) then ok := false
+  done;
+  check
+    "random paragraphs fit (bar one oversize word) and keep their words"
+    true
+    !ok;
+  check
+    "layout then fill keeps every word of a message, in order"
+    true
+    (let body =
+       "one two three\n  1  0  (terminal)\nfour five six seven eight"
+     in
+     let words (s : string) : string list =
+       String.split_on_char ' ' s |> List.filter (( <> ) "")
+     in
+     List.concat_map words (fill ~width:20 (layout ~header:"h: " body))
+     = words (String.concat " " ("h:" :: String.split_on_char '\n' body)));
+  (* the modes *)
+  reset ();
+  check "off by default" true (resolved () = No_wrap);
+  check_int "Wide is 120 and Slim 60" 180 (preset_width Wide + preset_width Slim);
+  set_mode Flow;
+  check "flow" true (resolved () = Flowing);
+  set_mode (Width 77);
+  check "width" true (resolved () = Hard 77);
+  set_mode (Preset Wide);
+  check "a preset is its width" true (resolved () = Hard 120);
+  set_preset_width Wide 140;
+  check
+    "setting a preset takes effect while it is chosen"
+    true
+    (resolved () = Hard 140);
+  set_preset_width Slim 33;
+  check "setting the other leaves the mode alone" true (resolved () = Hard 140);
+  set_mode (Preset Slim);
+  check "and it is there to choose" true (resolved () = Hard 33);
+  check
+    "too narrow is refused"
+    true
+    ((try
+        set_mode (Width (min_width - 1));
+        false
+      with
+      | Invalid_argument _ -> true)
+     && (try
+           set_preset_width Wide 3;
+           false
+         with
+         | Invalid_argument _ -> true)
+     && resolved () = Hard 33);
+  reset ();
+  check
+    "reset restores the mode and both presets"
+    true
+    (resolved () = No_wrap && preset_width Wide = 120 && preset_width Slim = 60)
+;;
+
 let () =
   print_endline "\n=== mebi model tests (pure OCaml, no Rocq) ===\n";
   test_of_lts_preserves_states ();
@@ -1971,6 +2133,7 @@ let () =
   test_label_order ();
   test_clean_string ();
   test_dump_names ();
+  test_wrap ();
   test_json ();
   test_draw_escape ();
   test_draw_merge ();
