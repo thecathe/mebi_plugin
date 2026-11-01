@@ -134,6 +134,6 @@ MeBi Config Draw Format PDF.                    (* TeX | PDF | PNG *)
 (* MeBi Config Draw Style "Label" "draw=gray!50, rounded corners=1pt". *)
 (* MeBi Config Draw Style "Terminal" "fill=red!10". *)
 
-MeBi Draw LTS old Using lts As "coffee-machine".
+MeBi Draw LTS old Using lts As "coffee-machine-simple".
 
 End classic.
