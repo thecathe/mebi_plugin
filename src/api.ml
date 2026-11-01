@@ -651,5 +651,6 @@ let reset_all () : unit =
   reset_the_fail_flags ();
   reset_output_config ();
   reset_draw_config ();
+  Notify.reset ();
   Logger.show "(MeBi: Reset Config.)"
 ;;

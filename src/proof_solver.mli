@@ -173,12 +173,14 @@ val step : Declare.Proof.t -> Declare.Proof.t
       (propagated). *)
 val solve : ?bound:int -> Declare.Proof.t -> Declare.Proof.t
 
-(** [guard f] is [f ()], run as a [MeBi Sim] command: a plugin exception nothing
-    handled, which Rocq would report as an Anomaly in Rocq itself, becomes a
-    user error that names it.
+(** [guard ~command f] is [f ()], run as the MeBi command named [command]
+    ([Sim Solve]): a plugin exception nothing handled, which Rocq would report
+    as an Anomaly in Rocq itself, becomes a user error that names it. If
+    [MeBi Config Notify] is on, it also announces the command when it ends
+    (see {!Notify.timed}).
 
     @raise CErrors.UserError
       in place of a non-critical exception Rocq has no
       printer for, looked for through a tactic's wrapper (raised here). Other
       exceptions pass through unchanged (propagated). *)
-val guard : (unit -> 'a) -> 'a
+val guard : command:string -> (unit -> 'a) -> 'a
