@@ -15,9 +15,10 @@ val option
 val without : string list -> Yojson.t -> Yojson.t
 
 (** [write_file ?dir name ext f] calls [f] on a new file in [dir] (default
-    {!Utils.FileWriter.default_dir}) named after the session's timestamp,
-    the source location and [name], with extension [ext], creating [dir] if
-    needed, and closes it.
+    {!Utils.FileWriter.default_dir}) named after the time now, the source
+    location and [name], with extension [ext], creating [dir] if needed, and
+    closes it. A file already of that name is not overwritten: the new one
+    gets a suffix ({!Utils.FileWriter.fresh_path}).
 
     @raise Sys_error
       if the directory or file cannot be created or written (propagated;

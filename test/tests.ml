@@ -1515,6 +1515,50 @@ let test_json () : unit =
          ])
 ;;
 
+(** Dump names: each carries the time of its own write, a toplevel location
+    is no obstacle, and no dump overwrites another. *)
+let test_dump_names () : unit =
+  print_endline "utils: dump names";
+  let tm : Unix.tm =
+    { tm_sec = 7
+    ; tm_min = 6
+    ; tm_hour = 5
+    ; tm_mday = 4
+    ; tm_mon = 2
+    ; tm_year = 126
+    ; tm_wday = 0
+    ; tm_yday = 0
+    ; tm_isdst = false
+    }
+  in
+  (* built with [mktime], so that it holds in any time zone *)
+  let t, _ = Unix.mktime tm in
+  check
+    "format_timestamp is local, zero-padded and 1-based in the month"
+    true
+    (String.equal (Utils.FileWriter.format_timestamp t) "2026 03 04 - 05:06:07");
+  let dir : string = Filename.temp_dir "mebi-dumps" "" in
+  Utils.FileWriter.set_loc_provider (fun () -> "here");
+  let write () : unit =
+    Logger.quiet (fun () ->
+      Json.write_file ~dir "title" ".txt" (fun oc -> output_string oc "x"))
+  in
+  write ();
+  write ();
+  write ();
+  let files : string list = Array.to_list (Sys.readdir dir) in
+  check_int "three writes make three files" 3 (List.length files);
+  let suffix (f : string) : bool =
+    String.ends_with ~suffix:" | here | title.txt" f
+    || String.ends_with ~suffix:" | here | title (2).txt" f
+    || String.ends_with ~suffix:" | here | title (3).txt" f
+  in
+  check "named by the location and the title" true (List.for_all suffix files);
+  List.iter (fun f -> Sys.remove (Filename.concat dir f)) files;
+  Sys.rmdir dir;
+  Utils.FileWriter.set_loc_provider (fun () -> "Unknown Location")
+;;
+
 let () =
   print_endline "\n=== mebi model tests (pure OCaml, no Rocq) ===\n";
   test_of_lts_preserves_states ();
@@ -1548,6 +1592,7 @@ let () =
   test_encoding_counter ();
   test_label_order ();
   test_clean_string ();
+  test_dump_names ();
   test_json ();
   Printf.printf "\n%i/%i passed\n" (!total - !failures) !total;
   if !failures > 0 then exit 1

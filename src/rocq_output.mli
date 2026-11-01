@@ -13,8 +13,12 @@
     [Error] as debug: it does not raise). Raises nothing. *)
 val sink : Logger.sink
 
-(** [loc_provider ()] is the [.v] file and line of the command now running,
-    to name dump files by. Raises nothing. *)
+(** [loc_provider ()] names where the command now running is, to name dump
+    files by: ["line N | file"] for a command read from a file, else (a
+    command typed or sent from an editor, which has no file or reliable line)
+    the logical path of the document, such as [MEBI.Examples.CoffeeMachine]
+    (just the file's base name if no loadpath entry maps it; [Top] in
+    [rocq repl]). Raises nothing. *)
 val loc_provider : unit -> string
 
 (** [install ()] makes {!Logger} print through {!sink} and name dumps with

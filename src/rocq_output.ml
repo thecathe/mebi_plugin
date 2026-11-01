@@ -39,13 +39,21 @@ let sink : Logger.sink =
   | Error -> Feedback.msg_debug doc
 ;;
 
-(* See the [.mli]. *)
+(* See the [.mli]. A command read from a file is named by its line and file.
+   One read from the toplevel input has no file: that is every command under
+   vsrocq, which parses with no location, and under [rocq repl]. Its [line_nb]
+   cannot be trusted either (under vsrocq it was 2 to 3 lines short in a
+   probe), so it is named by the logical path of the document being checked:
+   under vsrocq that is the file's, as the loadpath maps it (its base
+   name if nothing does), and [Top] under [rocq repl]. *)
 let loc_provider () : string =
   match Loc.get_current_command_loc () with
   | Some { line_nb; fname = InFile { file; _ } } ->
     String.map (fun x -> if Char.equal '/' x then ' ' else x) file
     |> Printf.sprintf "line %i | %s" line_nb
-  | _ -> "Unknown Location"
+  | Some { fname = ToplevelInput; _ } ->
+    Names.DirPath.to_string (Lib.library_dp ())
+  | None -> "Unknown Location"
 ;;
 
 (* See the [.mli]. *)
