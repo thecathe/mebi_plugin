@@ -162,8 +162,8 @@ let text : string list -> string option = function
       \  MeBi Help Config Weak.       which label is silent (weak bisimilarity)\n\
       \  MeBi Help Config FailIf.     which outcomes are errors, not warnings\n\
       \  MeBi Help Config Solver.     the proof search's cofix strategy\n\
-      \  MeBi Help Config Output.     which messages are shown, and the \
-       results' format (plain text by default)\n\
+      \  MeBi Help Config Output.     which messages are shown, how they wrap, \
+       and the results' format (plain text by default)\n\
       \  MeBi Help Config Draw.       what MeBi Draw makes, how big, and how \
        it looks"
   | [ "Config"; "Bounds" ] ->
@@ -341,8 +341,8 @@ let text : string list -> string option = function
        (the default) leaves a message as one block. Flow breaks it where \
        whatever shows it says: Rocq prints text at its printing width (78, or \
        Set Printing Width), and a client that lays out the boxes itself can \
-       follow its own window. vsrocq shows a Notice or Warning as text at \
-       78, and sends an Info to its proof panel as boxes. Width <n> breaks at <n> \
+       follow its own window. vsrocq shows a Notice or Warning as text at 78, \
+       and sends an Info to its proof panel as boxes. Width <n> breaks at <n> \
        columns here, so it holds in every client but does not follow the \
        window. Wide and Slim are two named widths, 120 and 60 until set with \
        Output Width Wide <n> or Output Width Slim <n> (at least 20); setting \

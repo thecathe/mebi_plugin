@@ -9418,6 +9418,16 @@ wider than the room after the hanging indent (the code was right, the
 property too strong); it now says "fits, bar one oversize word". (3) The first
 help text said vsrocq's panel "can follow its own window", which I had not
 seen, only that vsrocq sends boxes to it; reworded to what was checked.
+(4) The `MeBi Help Config` overview still said only "which messages are shown, and
+the results' format" until the wrap-up check, after the topic itself was done;
+fixed in `docs/help-config-wrap`.
+
+**Landing it.** `main` moved while this was in review (`feat/draw-lts`, `MeBi
+Draw`, from another session), so the branch was rebased onto it. Two textual
+conflicts, both additive (`test/tests.ml`, and this log), resolved by keeping both
+sides. The combined tree was rebuilt: `tests.exe` 194/194, `Test.v` rebuilt, the
+packed `make` build of the plugin warning-free. Merged to `main` with `--no-ff`
+as `9fc34e9`.
 
 Revert: `git revert -m 1 <merge commit>`.
 
