@@ -110,7 +110,7 @@ let empty : t = []
 
 (* See the [.mli]. *)
 let get (c : component) (s : t) : string =
-  Option.value (List.assoc_opt c s) ~default:""
+  Stdlib.Option.value (List.assoc_opt c s) ~default:""
 ;;
 
 (* See the [.mli]. *)

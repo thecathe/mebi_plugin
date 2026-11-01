@@ -192,7 +192,7 @@ let first_error (log : string) : string option =
   | text ->
     String.split_on_char '\n' text
     |> List.find_opt (fun l -> String.length l > 0 && Char.equal l.[0] '!')
-    |> Option.map String.trim
+    |> Stdlib.Option.map String.trim
 ;;
 
 (** [remove path] removes [path] if it is there. *)
@@ -211,7 +211,7 @@ let exit_problem
   | Exited 0 -> None
   | Exited n ->
     let detail : string =
-      match Option.bind log first_error with
+      match Stdlib.Option.bind log first_error with
       | Some e -> e
       | None -> Printf.sprintf "exit code %i" n
     in
