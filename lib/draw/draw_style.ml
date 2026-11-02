@@ -81,15 +81,15 @@ let direction_name : direction -> string = function
 (* See the [.mli]. [initial] draws the arrow into the initial state (TikZ's
    [automata] library); [initial text=] leaves it unlabelled. *)
 let default : component -> string = function
-  | Layout -> "layered layout, level distance=18mm, sibling distance=12mm"
+  | Layout -> "layered layout, level distance=10mm, sibling distance=12mm"
   | State ->
     "draw=black, fill=white, rounded corners=7pt, font=\\small, inner \
      xsep=4pt, inner ysep=2pt"
   | Initial -> "very thick, initial, initial text="
   | Terminal -> "double"
-  | Edge -> "draw=black, ->, thin"
+  | Edge -> "draw=black, ->, thick, rounded corners=10pt"
   | Label ->
-    "font=\\footnotesize, auto, fill=white, inner sep=1pt, align=center, \
+    "font=\\footnotesize, auto, fill=white, inner sep=2.5pt, align=center, \
      text=black"
   | Silent_edge -> "dashed, draw=gray"
   | Silent_label -> "text=gray, font=\\large\\boldmath"
@@ -225,12 +225,14 @@ let back_tip_definition : string =
 ;;
 
 (** [default_in direction c] is [default c], but for {!Layout} the one that
-    grows in [direction]: the same distances, as the layers' own widths are
-    already allowed for. *)
+    grows in [direction]. Growing right takes a larger level distance: at the
+    one that suits growing down, the labels between the states are squeezed
+    (found by looking at the pictures, on the five-state cycle and the
+    18-state coffee machine). *)
 let default_in (direction : direction) (c : component) : string =
   match direction, c with
   | Right, Layout ->
-    "layered layout, grow=right, level distance=18mm, sibling distance=12mm"
+    "layered layout, grow=right, level distance=30mm, sibling distance=12mm"
   | _ -> default c
 ;;
 

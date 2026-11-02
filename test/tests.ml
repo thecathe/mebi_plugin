@@ -2139,9 +2139,16 @@ let test_draw_style () : unit =
     true
     (contains
        ~sub:
-         "graphs/mebi layout/.style={layered layout, level distance=18mm, \
+         "graphs/mebi layout/.style={layered layout, level distance=10mm, \
           sibling distance=12mm}"
        default);
+  check
+    "an arrow is thick, with its corners rounded, and a label has room round it"
+    true
+    (contains
+       ~sub:"mebi edge/.style={draw=black, ->, thick, rounded corners=10pt}"
+       default
+     && contains ~sub:"inner sep=2.5pt" default);
   check
     "initial and terminal states build on the state style"
     true
@@ -2169,15 +2176,15 @@ let test_draw_style () : unit =
      && contains
           ~sub:
             "graphs/mebi layout/.style={layered layout, grow=right, level \
-             distance=18mm, sibling distance=12mm}"
+             distance=30mm, sibling distance=12mm}"
           (tikzset ~direction:Right empty)
      && String.equal default (tikzset ~direction:Down empty));
   check
     "the user's layout options still follow the direction's"
     true
     (contains
-       ~sub:"sibling distance=12mm, level distance=30mm}"
-       (tikzset ~direction:Right (set Layout "level distance=30mm" empty)));
+       ~sub:"sibling distance=12mm, level distance=40mm}"
+       (tikzset ~direction:Right (set Layout "level distance=40mm" empty)));
   check
     "only the layout depends on the direction"
     true

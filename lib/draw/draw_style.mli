@@ -134,8 +134,8 @@ val describe : t -> string
 (** [tikzset ?direction s] is the contents of the diagram's style file: a
     [\tikzset] defining {!use}'s name for every {!component} from its
     {!default} and [s]'s options. [direction] ({!Down} by default) is the
-    way the layout grows: it changes {!Layout}'s default (to add
-    [grow=right] for {!Right}), and so can be overridden by the user's own
-    options for it. The same arguments always give the same text. Raises
+    way the layout grows: it changes {!Layout}'s default (for {!Right}, to add
+    [grow=right] and a larger level distance), and so can be overridden by
+    the user's own options for it. The same arguments always give the same text. Raises
     nothing. *)
 val tikzset : ?direction:direction -> t -> string
