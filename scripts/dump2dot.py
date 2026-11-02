@@ -243,6 +243,21 @@ def q(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n") + '"'
 
 
+def html(s):
+    """[s] as HTML-like label text."""
+    return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            .replace('"', "&quot;").replace("\n", " "))
+
+
+def label_value(ls):
+    """The value of a DOT label for the labels [ls] (text, silent), a line each. A silent step is a
+    bold italic tau, as TeX's math italic is, which a plain string cannot be: when one is among them
+    the value is an HTML-like label, <...>; otherwise a quoted string."""
+    if any(silent for _, silent in ls):
+        return "<" + "<BR/>".join("<B><I>%s</I></B>" % TAU if silent else html(t) for t, silent in ls) + ">"
+    return q("\n".join(t for t, _ in ls))
+
+
 def to_dot(d, opts):
     states, labels = tidy(d)
     arrows = merge(d, labels)
@@ -259,7 +274,7 @@ def to_dot(d, opts):
     out = ["digraph G {"]
     out.append("  graph [rankdir=%s, nodesep=%s, ranksep=%s, splines=true%s];"
                % (opts.rankdir, opts.nodesep, opts.ranksep, ", " + ", ".join(font) if font else ""))
-    out.append("  node [shape=box, style=\"rounded,filled\", fillcolor=white, fontsize=%s, margin=\"0.12,0.06\", height=0%s];"
+    out.append("  node [shape=box, style=\"rounded,filled\", fillcolor=white, fontsize=%s, margin=\"0.12,0.06\", height=0, width=0%s];"
                % (opts.fontsize, ", " + ", ".join(font) if font else ""))
     out.append("  edge [fontsize=%s, penwidth=1.4, arrowsize=0.8%s];"
                % (opts.fontsize - 1, ", " + ", ".join(font) if font else ""))
@@ -278,15 +293,15 @@ def to_dot(d, opts):
     for s, t, ls in arrows:
         colour = arrow_colour(ls)
         silent = all(sil for _, sil in ls)
-        text = "\n".join(t_ for t_, _ in ls)
+        text = label_value(ls)
         cattr = ["color=%s" % q(colour), "fontcolor=%s" % q(colour)] if colour else []
         sattr = ["style=dashed"] if silent else []
         if s == t or opts.labels == "edge":
-            out.append("  s%d -> s%d [label=%s%s];" % (s, t, q(text), "".join(", " + a for a in cattr + sattr)))
+            out.append("  s%d -> s%d [label=%s%s];" % (s, t, text, "".join(", " + a for a in cattr + sattr)))
             continue
         k += 1
         lbl_attrs = ["shape=box", "style=filled", "fillcolor=white", "penwidth=0",
-                     "margin=\"0.05,0.03\"", "label=%s" % q(text)]
+                     "margin=\"0.05,0.03\"", "label=%s" % text]
         if colour:
             lbl_attrs.append("fontcolor=%s" % q(colour))
         if silent:

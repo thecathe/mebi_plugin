@@ -6,7 +6,7 @@
     follows {!Draw.picture}: the same arrows (parallel ones merged), the
     same kinds and their colours ({!Draw_style.kind_colour}), the initial
     state bold and with an arrow in, a state with no way out with a double
-    border, a silent step dashed and grey and labelled [τ], and an incomplete
+    border, a silent step dashed and grey and labelled with a bold italic [τ], and an incomplete
     diagram saying so. The look is Graphviz's own; the TikZ styles
     ({!Draw_style.component}) do not apply.
 
@@ -25,6 +25,10 @@ val colour : string -> string
 (** [q s] is [s] as a DOT string literal, quoted, with its quotes and
     backslashes escaped and its line breaks written as [\n]. Raises nothing. *)
 val q : string -> string
+
+(** [html s] is [s] as HTML-like label text: [&], [<], [>] and quotes
+    escaped, line breaks spaces. Raises nothing. *)
+val html : string -> string
 
 (** [dot ?labels ?direction ?style d] is the DOT text of [d]. [direction]
     ({!Draw_style.Down} by default) is the graph's [rankdir]: top to bottom or
