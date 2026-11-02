@@ -352,6 +352,14 @@ let picture
      half as a decoration. Both halves span as many layers as the longest
      path the arrow closes has arrows, which is half of what that path
      spans, so the label sits half way along it, when it can. *)
+  (* What keeps the label of an arrow back half way along it ([half] layers
+     each side), and keeps the arrow from pulling the rest straight: the layout
+     straightens an arrow in proportion to its weight, and a long arrow back
+     would otherwise pull its two states into one line, and bend the path it
+     closes (the arrows into the first state and out of the last). *)
+  let pin (half : int) : string list =
+    [ Printf.sprintf "minimum layers=%i" half; "weight=0.2" ]
+  in
   let on_edge_lines (k : int) ((s, t, ls) : int * int * label list)
     : string list
     =
@@ -375,12 +383,9 @@ let picture
           t
           (join
              ((edge_options ls :: "-" :: kind_arrow ls)
-              @ [ Draw_style.back_tip; Printf.sprintf "minimum layers=%i" half ]
-             ))
+              @ (Draw_style.back_tip :: pin half)))
           k
-          (join
-             ((edge_options ls :: "-" :: kind_arrow ls)
-              @ [ Printf.sprintf "minimum layers=%i" half ]))
+          (join ((edge_options ls :: "-" :: kind_arrow ls) @ pin half))
           s
       ])
     else
