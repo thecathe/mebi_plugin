@@ -163,11 +163,34 @@ class Dot(unittest.TestCase):
 
     def test_a_label_is_a_node_on_its_arrow_by_default(self):
         out = self.dot(SIMPLE)
-        self.assertIn('label="Select coffee"', out)
+        self.assertIn(">Select coffee</TD>", out)
         self.assertIn("s0 -> l1", out)
         self.assertIn("l1 -> s1", out)
-        self.assertIn("headport=n", out)
-        self.assertIn("tailport=s", out)
+        self.assertIn('headport="t:n"', out)
+        self.assertIn('tailport="t:s"', out)
+
+    def test_the_extra_line_for_the_arrowhead_is_on_the_side_of_the_head(self):
+        cell = '<TD PORT="t" BGCOLOR="white" CELLPADDING="1">'
+        pad = '<TR><TD HEIGHT="%d"></TD></TR>' % d2d.HEAD_ALLOWANCE
+        down = self.dot(SIMPLE)
+        # forward: after the label; the arrow back (l5): before it
+        self.assertIn("<TR>" + cell + "Select coffee</TD></TR>" + pad, down)
+        self.assertIn(pad + "<TR>" + cell + "Output coffee</TD></TR>", down)
+        # growing right, the extra is a cell beside, not a row below
+        right = self.dot(SIMPLE, "--rankdir", "LR")
+        gap = '<TD WIDTH="%d"></TD>' % d2d.HEAD_ALLOWANCE
+        self.assertIn(cell + "Select coffee</TD>" + gap + "</TR>", right)
+        self.assertIn("<TR>" + gap + cell + "Output coffee</TD></TR>", right)
+        # growing up or left, the head is at the other side
+        up = self.dot(SIMPLE, "--rankdir", "BT")
+        self.assertIn(pad + "<TR>" + cell + "Select coffee</TD></TR>", up)
+        self.assertIn("<TR>" + cell + "Output coffee</TD></TR>" + pad, up)
+        self.assertNotIn("margin=\"0.05", down)
+
+    def test_an_outline_frames_the_text_alone(self):
+        framed = self.dot(SIMPLE, "--kind", "Select=green4", "--outline")
+        self.assertIn('BORDER="1" STYLE="ROUNDED" COLOR="green4">Select coffee</TD>', framed)
+        self.assertNotIn("STYLE=\"ROUNDED\"", self.dot(SIMPLE, "--kind", "Select=green4"))
 
     def test_the_arrow_back_is_laid_out_the_other_way_with_its_head_at_the_target(self):
         out = self.dot(SIMPLE)
@@ -177,8 +200,8 @@ class Dot(unittest.TestCase):
     def test_landscape_changes_the_ports(self):
         out = self.dot(SIMPLE, "--rankdir", "LR")
         self.assertIn("rankdir=LR", out)
-        self.assertIn("headport=w", out)
-        self.assertIn("tailport=e", out)
+        self.assertIn('headport="t:w"', out)
+        self.assertIn('tailport="t:e"', out)
 
     def test_edge_labels_are_graphvizs_own(self):
         out = self.dot(SIMPLE, "--labels", "edge")
@@ -198,7 +221,9 @@ class Dot(unittest.TestCase):
     def test_the_silent_step_is_dashed_and_tau(self):
         out = self.dot(SIMPLE)
         self.assertIn("style=dashed", out)
-        self.assertIn("label=<<B><I>%s</I></B>>" % d2d.TAU, out)  # bold italic, as math italic is
+        # TeX's bold math italic tau, in the fonts of TeX's math italic
+        self.assertIn(d2d.TAU_MARKUP, out)
+        self.assertIn("Latin Modern Math", d2d.TAU_MARKUP)
 
     def test_initial_terminal_and_incomplete(self):
         out = self.dot(INCOMPLETE)
@@ -212,10 +237,17 @@ class Dot(unittest.TestCase):
         out = self.dot(FSM)
         self.assertIn('s1 -> s1 [label="go"', out)
 
+    def test_growing_down_a_loop_is_round_and_growing_right_it_is_left_to_graphviz(self):
+        # Graphviz draws a loop only as high as the gap to the next layer allows, a flat sliver
+        self.assertIn('s1 -> s1 [label="go", tailport=ne, headport=se', self.dot(FSM))
+        self.assertIn('s1 -> s1 [label="go", tailport=ne, headport=se', self.dot(FSM, "--rankdir", "BT"))
+        self.assertNotIn("tailport=ne", self.dot(FSM, "--rankdir", "LR"))
+        self.assertNotIn("tailport=ne", self.dot(SIMPLE, "--labels", "edge"))   # no loops in it
+
     def test_markup_is_escaped_and_a_silent_step_among_labels_is_a_line(self):
         self.assertEqual(d2d.html('a<b&"c">'), "a&lt;b&amp;&quot;c&quot;&gt;")
         v = d2d.label_value([("x<y", False), (d2d.TAU, True)])
-        self.assertEqual(v, "<x&lt;y<BR/><B><I>%s</I></B>>" % d2d.TAU)
+        self.assertEqual(v, "<x&lt;y<BR/>%s>" % d2d.TAU_MARKUP)
         self.assertEqual(d2d.label_value([("a", False), ("b", False)]), '"a\\nb"')
 
     def test_numbers(self):

@@ -450,6 +450,26 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   TikZ styles do not apply to it; and it was checked with Graphviz 15.1.1 only.
   If the LuaTeX engine is later dropped for this one, `Style`, `Layout` and
   `TwoWay` go with it.
+- **One LTS drawn over another** (*new capability*, so to be agreed first;
+  asked for as a picture, 2026-11-02, not as a feature). For the talk the author
+  wanted `Simple.v`'s upgraded machine (coffee and tea) drawn so that the
+  coffee-only machine is a visual subset of it, the tea branch above, as an
+  overlay. Done by hand, once, on the `.dot` (ordering groups, a heavier coffee
+  chain, a label's margin and layer); the coffee part then equals the initial
+  layout to 0.000 points, and a companion picture with the tea invisible, on the
+  same canvas, gives the "before" to flip from (devlog, `draw.md` 6.16). A
+  plugin facility would take a base LTS and an extended one and pin the shared
+  part's layout; the hand-made version shows what it needs (a vertical order per
+  layer, Idle level with the base's row, no layer widened by the extra labels)
+  and that it is fiddly in `dot`.
+- **The Graphviz look's two measured constants** (small). The room that makes the
+  line to an arrowhead as long as the other (`Draw_dot.head_allowance`, 11
+  units) was measured for `arrowsize` 0.8, `penwidth` 1.4 and Graphviz 15.1.0,
+  and the label cell's padding (1) trades roundness of the lines against how
+  close the text is to them. If the engine's spacing or pen becomes
+  configurable, derive the first from them (the head is `10 * arrowsize`, and the
+  tip stops about `1.5 * penwidth + 0.3` short of its node) instead of keeping a
+  number.
 - **A Graphviz engine that re-draws in TikZ** (dropped; see above). **Prototyped 2026-11-02** (a
   throwaway script, not in the plugin; the devlog has it): from the picture the
   plugin writes it takes the states, arrows, kinds and labels; measures each

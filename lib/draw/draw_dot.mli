@@ -6,8 +6,9 @@
     follows {!Draw.picture}: the same arrows (parallel ones merged), the
     same kinds and their colours ({!Draw_style.kind_colour}), the initial
     state bold and with an arrow in, a state with no way out with a double
-    border, a silent step dashed and grey and labelled with a bold italic [τ], and an incomplete
-    diagram saying so. The look is Graphviz's own; the TikZ styles
+    border, a silent step dashed and grey and labelled with a bold italic [τ]
+    (in Latin Modern Math, the font of TeX's [$\tau$], or the nearest to it
+    that is installed), and an incomplete diagram saying so. The look is Graphviz's own; the TikZ styles
     ({!Draw_style.component}) do not apply.
 
     Contains no reference to the Rocq API. *)
@@ -38,8 +39,13 @@ val html : string -> string
     line passes straight through it, and the layout keeps room for it (an
     arrow back to an earlier state is laid out the other way round, its head
     at its target and each half as long as {!Draw.back_spans} says, so that
-    its label is half way along it); or [Beside], as Graphviz's own edge
-    label. A state's arrow to itself keeps an edge label either way. [style]
+    its label is half way along it); both halves are as long to look at,
+    though Graphviz counts an arrow from border to border with its head in
+    it: the label has a little empty room on the side of the head, which the
+    line crosses; or [Beside], as Graphviz's own edge
+    label. A state's arrow to itself keeps an edge label either way, and
+    growing down leaves the state's top right corner and returns to its bottom
+    right one (Graphviz would draw it as a flat sliver there), so it is round. [style]
     ({!Draw_style.empty} by default) gives the colour of each kind and
     whether a coloured label has an outline ({!Draw_style.outline}); nothing is
     coloured that has no colour in it. Raises nothing. *)

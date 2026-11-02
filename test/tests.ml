@@ -2224,8 +2224,10 @@ let test_draw_dot () : unit =
     true
     (contains ~sub:"digraph G {" out
      && contains ~sub:"rankdir=TB" out
-     && contains ~sub:"s0 -> l1 [arrowhead=none, weight=8, headport=n];" out
-     && contains ~sub:"l1 -> s1 [weight=8, tailport=s];" out);
+     && contains
+          ~sub:"s0 -> l1 [arrowhead=none, weight=8, headport=\"t:n\"];"
+          out
+     && contains ~sub:"l1 -> s1 [weight=8, tailport=\"t:s\"];" out);
   check
     "an arrow back is laid out target to source, its head at the target, its \
      label half way"
@@ -2233,9 +2235,11 @@ let test_draw_dot () : unit =
     (contains
        ~sub:
          "s0 -> l5 [dir=back, arrowtail=normal, arrowhead=none, minlen=4, \
-          headport=n];"
+          headport=\"t:n\"];"
        out
-     && contains ~sub:"l5 -> s4 [arrowhead=none, minlen=4, tailport=s];" out);
+     && contains
+          ~sub:"l5 -> s4 [arrowhead=none, minlen=4, tailport=\"t:s\"];"
+          out);
   check
     "growing right changes the ports, and beside the arrow makes Graphviz's \
      own labels"
@@ -2243,10 +2247,28 @@ let test_draw_dot () : unit =
     (let right = Draw_dot.dot ~direction:Right cycle in
      let beside = Draw_dot.dot ~labels:Beside cycle in
      contains ~sub:"rankdir=LR" right
-     && contains ~sub:"headport=w" right
-     && contains ~sub:"tailport=e" right
+     && contains ~sub:"headport=\"t:w\"" right
+     && contains ~sub:"tailport=\"t:e\"" right
      && contains ~sub:"s0 -> s1 [label=\"a\"];" beside
      && not (contains ~sub:"l1" beside));
+  check
+    "a label's table has its text in the port cell, and the extra line for the \
+     arrowhead on the side of the head: after the label for an arrow that goes \
+     the way the layout grows, before it for an arrow back, and to the right, \
+     not below, when growing right"
+    true
+    (let right = Draw_dot.dot ~direction:Right cycle in
+     let cell = "<TD PORT=\"t\" BGCOLOR=\"white\" CELLPADDING=\"1\">" in
+     let pad = "<TR><TD HEIGHT=\"11\"></TD></TR>" in
+     (* l1 is the arrow s0 to s1, forward; l5 is the arrow back *)
+     contains ~sub:("<TR>" ^ cell ^ "a</TD></TR>" ^ pad) out
+     && contains ~sub:(pad ^ "<TR>" ^ cell ^ "a</TD></TR>") out
+     && contains ~sub:(cell ^ "a</TD><TD WIDTH=\"11\"></TD></TR>") right
+     && contains
+          ~sub:("<TR><TD WIDTH=\"11\"></TD>" ^ cell ^ "a</TD></TR>")
+          right
+     && contains ~sub:"shape=plain" out
+     && not (contains ~sub:"margin=\"0.05" out));
   check
     "nothing is coloured unless asked, and the file is deterministic"
     true
@@ -2291,10 +2313,16 @@ let test_draw_dot () : unit =
           ~sub:"fontcolor=\"#808080\""
           (Draw_dot.dot ~style:(set_kind Default "gray" coloured) d));
   check
-    "a silent step is dashed, grey and a bold italic tau, whatever the colours"
+    "a silent step is dashed, grey and a bold italic tau in TeX's math font, \
+     whatever the colours"
     true
     (contains ~sub:"style=dashed" c
-     && contains ~sub:"label=<<B><I>\xcf\x84</I></B>>" c
+     && contains
+          ~sub:
+            "<TD PORT=\"t\" BGCOLOR=\"white\" CELLPADDING=\"1\"><FONT \
+             FACE=\"Latin Modern Math, STIX Two Math, Asana \
+             Math\">\u{1d749}</FONT></TD>"
+          c
      && contains ~sub:"color=\"gray50\"" c);
   check
     "markup in a label is escaped, and a silent step among other labels is one \
@@ -2317,8 +2345,16 @@ let test_draw_dot () : unit =
        ; incomplete = false
        }
      in
-     contains ~sub:"label=<<B><I>\xcf\x84</I></B><BR/>x&lt;y>" (Draw_dot.dot m)
-    );
+     contains
+       ~sub:
+         "<FONT FACE=\"Latin Modern Math, STIX Two Math, Asana \
+          Math\">\u{1d749}</FONT><BR/>x&lt;y</TD>"
+       (Draw_dot.dot m)
+     && contains
+          ~sub:
+            "label=<<FONT FACE=\"Latin Modern Math, STIX Two Math, Asana \
+             Math\">\u{1d749}</FONT><BR/>x&lt;y>"
+          (Draw_dot.dot ~labels:Beside m));
   check
     "the initial state is bold and has an arrow in, a state with no way out \
      has two borders"
@@ -2334,13 +2370,30 @@ let test_draw_dot () : unit =
      && contains ~sub:"Incomplete" c
      && contains ~sub:"He said \\\"hi\\\"" c);
   check
-    "an outline is for a label with a colour, when asked"
+    "growing down, a state's arrow to itself leaves its top right corner and \
+     returns to its bottom right one, so it is round; growing right it is left \
+     to Graphviz, and an arrow between two states has no such ports"
     true
-    ((not (contains ~sub:"rounded,filled\", fillcolor=white, penwidth=0.6" c))
+    (contains
+       ~sub:
+         "s1 -> s1 [label=\"Insert y\", tailport=ne, headport=se, \
+          color=\"#0000bf\""
+       c
+     && (not
+           (contains
+              ~sub:"tailport=ne"
+              (Draw_dot.dot ~direction:Right ~style:coloured d)))
      && contains
-          ~sub:
-            "style=\"rounded,filled\", fillcolor=white, penwidth=0.6, \
-             color=\"green4\""
+          ~sub:"s1 -> s1 [label=\"Insert y\", tailport=ne, headport=se"
+          (Draw_dot.dot ~labels:Beside ~style:coloured d)
+     && not (contains ~sub:"s0 -> s1 [label=\"Select a\", tailport=ne" c));
+  check
+    "an outline is for a label with a colour, when asked, and frames the text \
+     alone"
+    true
+    ((not (contains ~sub:"STYLE=\"ROUNDED\"" c))
+     && contains
+          ~sub:"BORDER=\"1\" STYLE=\"ROUNDED\" COLOR=\"green4\">Select a</TD>"
           (Draw_dot.dot ~style:(set_outline true coloured) d));
   check
     "an empty diagram says so, and has no arrow in"
