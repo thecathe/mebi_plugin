@@ -349,6 +349,58 @@ let set_draw_style (component : string) (opts : string) : unit =
 ;;
 
 (* See the [.mli]. *)
+let set_draw_kind (kind : string) (colour : string) : unit =
+  if not (Draw_style.valid_kind kind)
+  then
+    Printf.sprintf
+      "\"%s\" cannot be a kind of label: it must be letters, digits, - and . \
+       only (the first word of a label, as in Insert for Insert ten). The \
+       colours are unchanged."
+      kind
+    |> Logger.warning
+  else if not (Draw_style.balanced colour)
+  then
+    Printf.sprintf
+      "The colour for %s has unbalanced braces, which would break the style \
+       file. The colours are unchanged."
+      kind
+    |> Logger.warning
+  else (
+    !the_draw_config.draw_style
+    <- Draw_style.set_kind
+         (Draw_style.Named kind)
+         colour
+         !the_draw_config.draw_style;
+    (if String.equal (String.trim colour) ""
+     then Printf.sprintf "(MeBi Config: Draw Kind %s has no colour.)" kind
+     else
+       Printf.sprintf
+         "(MeBi Config: Set Draw Kind %s to the colour: %s.)"
+         kind
+         colour)
+    |> Logger.show)
+;;
+
+(* See the [.mli]. *)
+let set_draw_kind_default (colour : string) : unit =
+  if not (Draw_style.balanced colour)
+  then
+    "The default colour has unbalanced braces, which would break the style \
+     file. The colours are unchanged."
+    |> Logger.warning
+  else (
+    !the_draw_config.draw_style
+    <- Draw_style.set_kind Draw_style.Default colour !the_draw_config.draw_style;
+    (if String.equal (String.trim colour) ""
+     then "(MeBi Config: Draw Kind Default has no colour.)"
+     else
+       Printf.sprintf
+         "(MeBi Config: Set Draw Kind Default to the colour: %s.)"
+         colour)
+    |> Logger.show)
+;;
+
+(* See the [.mli]. *)
 let set_draw_labels (l : Draw.labels) : unit =
   !the_draw_config.draw_labels <- l;
   Printf.sprintf

@@ -395,6 +395,8 @@ let text : string list -> string option = function
          "MeBi Config Draw Format TeX | PDF | PNG.\n\
           MeBi Config Draw Labels OnEdge | Beside.\n\
           MeBi Config Draw Direction Down | Right.\n\
+          MeBi Config Draw Kind \"<Kind>\" \"<colour>\".\n\
+          MeBi Config Draw Kind Default \"<colour>\".\n\
           MeBi Config Draw Dir \"<dir>\".\n\
           MeBi Config Draw Style \"<Component>\" \"<TikZ options>\".\n\
           MeBi Config Bounds Draw States <n>.\n\
@@ -441,6 +443,18 @@ let text : string list -> string option = function
           adds grow=right to Layout's default, which your own Layout options \
           still follow. With Beside, the labels of a Right layout are squeezed \
           between the layers.\n\n\
+          Kind: nothing is coloured unless you say so. A kind is the first \
+          word of a label (the kind of Insert ten is Insert); Kind \"Insert\" \
+          \"blue!75!black\" colours the arrows of that kind, their labels' \
+          text and a light frame round their labels, in that colour (a colour \
+          name or an xcolor expression, such as red or green!50!black). Kind \
+          Default colours the same way the labels whose kind has no colour of \
+          its own. An arrow whose labels are of several kinds is of none, and \
+          a silent step is not coloured by kind (see SilentEdge and \
+          SilentLabel). An empty colour clears it. For example:\n\
+         \  MeBi Config Draw Kind \"Select\" \"green!50!black\".\n\
+         \  MeBi Config Draw Kind \"Insert\" \"blue!75!black\".\n\
+         \  MeBi Config Draw Kind Default \"black\".\n\n\
           The defaults:\n\
           %s\n\n\
           To style a picture by hand, leave <name>.style.tikz out and define \

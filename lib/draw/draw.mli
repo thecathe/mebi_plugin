@@ -68,6 +68,13 @@ val tidy : t -> t
     spaces. Raises nothing. *)
 val escape : string -> string
 
+(** [kind_of labels] is the kind of an arrow with [labels]: the first word of
+    its labels, if they all have the same one, and none of them is silent
+    (a silent step has no kind). [Insert ten] and [Insert twenty] are both
+    of kind [Insert]; [Insert ten] and [Select tea] have none in common.
+    Raises nothing. *)
+val kind_of : label list -> string option
+
 (** [merge edges] is [edges] with those between the same two states made one,
     as [(src, dst, labels)], the labels in the order they were given and
     without repeats, sorted by [(src, dst)]. Raises nothing. *)
@@ -95,8 +102,13 @@ val back_arrows : t -> (int * int) list
     source, each half spanning as many layers as the longest path it closes
     has arrows, so that its label sits half way along it; its arrowhead is a
     decoration of the first half ({!Draw_style.back_tip}), which the layout
-    does not read as the arrow's direction. Raises nothing. *)
-val picture : ?labels:labels -> t -> string
+    does not read as the arrow's direction. An arrow whose {!kind_of} has a
+    colour in [style] ({!Draw_style.kind_colour}), or, if not, one that is
+    not silent and there is a colour for {!Draw_style.Default}, is given the
+    style for that kind ({!Draw_style.use_kind}) and its label the other
+    ({!Draw_style.use_kind_label}); no kind is named that has no colour, as
+    TikZ would refuse a style it does not know. Raises nothing. *)
+val picture : ?labels:labels -> ?style:Draw_style.t -> t -> string
 
 (** [wrapper ~name] is a LuaLaTeX document that draws [name].tikz with
     [name].style.tikz, on a page exactly as large as the picture, to be

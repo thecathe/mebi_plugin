@@ -1958,6 +1958,179 @@ let test_draw_back_arrows () : unit =
      && contains ~sub:"\\arrowreversed" (Draw_style.tikzset Draw_style.empty))
 ;;
 
+let test_draw_kinds () : unit =
+  let open Draw_style in
+  check
+    "the kind of a label is its first word, whatever follows"
+    true
+    (Draw.kind_of [ Label "Insert ten" ] = Some "Insert"
+     && Draw.kind_of [ Label "Insert ten"; Label "Insert twenty" ]
+        = Some "Insert"
+     && Draw.kind_of [ Label "tick" ] = Some "tick");
+  check
+    "an arrow of several kinds has none, nor has a silent step"
+    true
+    (Draw.kind_of [ Label "Insert ten"; Label "Select tea" ] = None
+     && Draw.kind_of [ Silent ] = None
+     && Draw.kind_of [ Label "" ] = None);
+  check
+    "a silent label among others does not hide their kind"
+    true
+    (Draw.kind_of [ Silent; Label "Insert ten" ] = Some "Insert");
+  check
+    "a kind is a word of letters, digits, - and . only"
+    true
+    (valid_kind "Insert"
+     && valid_kind "a-b.c2"
+     && (not (valid_kind ""))
+     && (not (valid_kind "a b"))
+     && (not (valid_kind "a,b"))
+     && (not (valid_kind "a}"))
+     && not (valid_kind "(a)"));
+  let s =
+    empty
+    |> set_kind (Named "Select") "green!50!black"
+    |> set_kind (Named "Insert") "blue"
+    |> set_kind Default "gray"
+  in
+  check
+    "a kind's colour is read back, and nothing is set that was not"
+    true
+    (kind_colour (Named "Select") s = Some "green!50!black"
+     && kind_colour (Named "Serve") s = None
+     && kind_colour Default s = Some "gray"
+     && kind_colour (Named "Select") empty = None);
+  check
+    "the kinds are by name, then the default"
+    true
+    (List.map fst (kinds s) = [ Named "Insert"; Named "Select"; Default ]);
+  check
+    "a colour set again replaces the first, and a blank one clears it"
+    true
+    (kind_colour (Named "Insert") (set_kind (Named "Insert") "red" s)
+     = Some "red"
+     && List.length (kinds (set_kind (Named "Insert") "red" s)) = 3
+     && kind_colour (Named "Insert") (set_kind (Named "Insert") "  " s) = None);
+  check
+    "a style with only kinds set is not the default, and says so"
+    true
+    ((not (is_default s))
+     && is_default (set_kind Default "" (set_kind Default "red" empty))
+     && contains ~sub:"Kind Select: green!50!black" (describe s));
+  let def = tikzset s in
+  check
+    "each coloured kind has the two styles, with its colour"
+    true
+    (contains
+       ~sub:
+         "mebi kind Select/.style={draw=green!50!black, every edge \
+          quotes/.style={mebi label, mebi kind Select label}}"
+       def
+     && contains
+          ~sub:
+            "mebi kind Select label/.style={text=green!50!black, \
+             draw=green!50!black!40, rounded corners=5pt}"
+          def
+     && contains ~sub:"mebi default kind/.style={draw=gray" def
+     && contains ~sub:"mebi default kind label/.style={text=gray" def);
+  check
+    "and a style with no kind set defines none"
+    false
+    (contains ~sub:"kind" (tikzset empty)
+     && not (contains ~sub:"back tip" (tikzset empty)));
+  (* A diagram of every case: two kinds, a kind with no colour, a silent
+     step, an arrow of two kinds, and a loop. *)
+  let d : Draw.t =
+    { nodes =
+        List.init 6 (fun id : Draw.node ->
+          { id
+          ; text = string_of_int id
+          ; initial = Int.equal id 0
+          ; terminal = false
+          })
+    ; edges =
+        [ { src = 0; label = Label "Select a"; dst = 1 }
+        ; { src = 1; label = Label "Insert x"; dst = 2 }
+        ; { src = 2; label = Label "Insert y"; dst = 3 }
+        ; { src = 3; label = Silent; dst = 4 }
+        ; { src = 4; label = Label "Other z"; dst = 5 }
+        ; { src = 4; label = Label "Insert q"; dst = 5 }
+        ; { src = 5; label = Label "Other w"; dst = 0 }
+        ; { src = 1; label = Label "Insert x"; dst = 1 }
+        ]
+    ; incomplete = false
+    }
+  in
+  let coloured =
+    empty
+    |> set_kind (Named "Select") "green"
+    |> set_kind (Named "Insert") "blue"
+  in
+  let p = Draw.picture ~style:coloured d in
+  check
+    "an arrow of a coloured kind has its arrow and its label's node styled"
+    true
+    (contains ~sub:"e0[as={Select a}, mebi label, mebi kind Select label];" p
+     && contains
+          ~sub:
+            "s0 ->[mebi edge, -, mebi kind Select] e0 ->[mebi edge, mebi kind \
+             Select] s1;"
+          p
+     && contains ~sub:"e1[as={Insert x}, mebi label, mebi kind Insert label];" p
+     && count_sub ~sub:"mebi kind Insert]" p = 4);
+  check
+    "a kind with no colour is not named (TikZ would refuse it), nor is a \
+     silent step"
+    true
+    ((not (contains ~sub:"mebi kind Other" p))
+     && (not (contains ~sub:"default kind" p))
+     && contains ~sub:"e3[as={$\\tau$}, mebi silent label];" p
+     && contains ~sub:"s3 ->[mebi silent edge, -] e3 ->[mebi silent edge] s4;" p
+    );
+  check
+    "an arrow of two kinds has none"
+    true
+    (contains ~sub:"e4[as={Other z\\\\ Insert q}, mebi label];" p);
+  check
+    "a state's arrow to itself has its kind too"
+    true
+    (contains
+       ~sub:
+         "\\path (s1) edge[mebi edge, mebi kind Insert, mebi loop, \"{Insert \
+          x}\"] (s1);"
+       p);
+  let with_default = set_kind Default "gray" coloured in
+  let q = Draw.picture ~style:with_default d in
+  check
+    "the default colour is for the kinds with none, and not for a silent step"
+    true
+    (contains ~sub:"mebi default kind label];" q
+     && contains ~sub:"e5[as={Other w}, mebi label, mebi default kind label];" q
+     && contains ~sub:"s3 ->[mebi silent edge, -] e3 ->[mebi silent edge] s4;" q
+     && contains
+          ~sub:
+            "e4[as={Other z\\\\ Insert q}, mebi label, mebi default kind \
+             label];"
+          q);
+  check
+    "the arrow back to an earlier state keeps its kind, before the tip"
+    true
+    (contains
+       ~sub:
+         "s0 --[mebi edge, -, mebi default kind, mebi back tip, minimum layers="
+       q);
+  check
+    "beside the arrows, the style is on the arrow, which draws its label in it"
+    true
+    (contains
+       ~sub:"s0 ->[mebi edge, mebi kind Select, \"{Select a}\"] s1;"
+       (Draw.picture ~labels:Beside ~style:coloured d));
+  check
+    "and a diagram with no kind set names none"
+    false
+    (contains ~sub:"kind" (Draw.picture d))
+;;
+
 let test_draw_style () : unit =
   let open Draw_style in
   let default = tikzset empty in
@@ -2554,6 +2727,25 @@ let test_draw_files () : unit =
        "a frame round each label compiles"
        true
        (problems = [] && made = [ Filename.concat dir "f.pdf" ]);
+     (* Colour by kind, on the edge and beside it. *)
+     let coloured =
+       Draw_style.(
+         empty
+         |> set_kind (Named "insert") "blue!75!black"
+         |> set_kind (Named "select") "green!50!black"
+         |> set_kind Default "gray")
+     in
+     List.iter
+       (fun (name, labels) ->
+         ignore (Draw_output.write ~labels ~dir ~name ~style:coloured a_diagram);
+         let made, problems =
+           Draw_output.render ~format:Pdf ~timeout:120. ~dir ~name
+         in
+         check
+           (Printf.sprintf "a diagram coloured by kind compiles (%s)" name)
+           true
+           (problems = [] && made = [ Filename.concat dir (name ^ ".pdf") ]))
+       [ "kinds-edge", Draw.On_edge; "kinds-beside", Draw.Beside ];
      let broken = Draw_style.set State "no such key=1" Draw_style.empty in
      ignore (Draw_output.write ~dir ~name:"b" ~style:broken a_diagram);
      let made, problems =
@@ -2845,6 +3037,7 @@ let () =
   test_draw_merge ();
   test_draw_picture ();
   test_draw_back_arrows ();
+  test_draw_kinds ();
   test_draw_style ();
   test_draw_names ();
   test_draw_run ();

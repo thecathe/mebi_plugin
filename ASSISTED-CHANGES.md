@@ -10203,6 +10203,44 @@ New feature 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `MeBi Draw`: colour by kind of label
+
+**New feature**, raised, agreed and designed with Jonah before it was written
+(the plugin's rule for anything new), and **Docs**. On `feat/draw-kind-colour`.
+Jonah, asked whether to cycle a default palette over the kinds, said no: the
+colours should have to be explicit, but there should be an option to configure
+the otherwise "default" colour for kinds. Colour is "important for readability"
+for the talk. This replaces `colour-by-kind.pl`, the throwaway script that kept
+its colours in two tables.
+
+- `MeBi Config Draw Kind "<Kind>" "<colour>"` and `Kind Default "<colour>"`.
+  A kind is the first word of the printed label (`Insert ten` is `Insert`). The
+  colour (a name or an xcolor expression) colours the arrows of that kind, their
+  labels' text, and a light frame (40% of the colour) round their labels.
+  `Default` is for the labels whose kind has none of its own. **Nothing is
+  coloured unless set**; no palette. An arrow of several kinds has none; a silent
+  step is never coloured by kind (it has `SilentEdge` and `SilentLabel`); a blank
+  colour clears; `Reset Draw` clears all. A name that cannot be a TikZ style name
+  and a colour with unbalanced braces are warned about and ignored.
+- The style file defines two styles per coloured kind and the picture names only
+  kinds that have a colour (TikZ refuses a style it does not know). Covered: both
+  label placements, a loop's arrow, and an arrow back (the tip follows the kind).
+- 20 tests (the kinds; the style file; the picture in every case; a real
+  LuaLaTeX compile of a coloured diagram on the edge and beside; 317/317), and a
+  Rocq-level test with the warnings. **Checked with a full `make -j$(nproc)`**
+  (exit 0, 61 s, no warnings from `lib/` or `src/`) as well as `dune build`: the
+  gate I skipped the last time. `Simple.v` through the plugin, down and right,
+  with `Select`, `Insert` and `Output` coloured: the right colours on the right
+  arrows, the τ step and the states untouched.
+- Not done: a kind taken from the term's constructor instead of the printed text
+  (a label that is not `Word args` has no kind a name can be given for); the
+  frame's strength and rounding are fixed, not configurable.
+
+**Session tally (2026-11-02, this entry):** New feature 1 · Docs 1 · Bug fix 0 ·
+Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
