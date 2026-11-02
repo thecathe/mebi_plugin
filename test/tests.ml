@@ -1735,7 +1735,7 @@ let test_draw_picture () : unit =
     e1[as={$\tau$}, mebi silent label];
     s1 ->[mebi silent edge, -] e1 ->[mebi silent edge] s2;
     e2[as={serve}, mebi label];
-    s2 ->[mebi edge, -] e2 ->[mebi edge] s0;
+    s0 --[mebi edge, -, mebi back tip, minimum layers=2] e2 --[mebi edge, -, minimum layers=2] s2;
   };
   \path (s1) edge[mebi edge, mebi loop, "{tick, tock}"] (s1);
   \node[mebi caption, anchor=north] at (current bounding box.south) {Incomplete: some states or transitions may be missing.};
@@ -1815,13 +1815,147 @@ let test_draw_picture () : unit =
     true
     ((not (contains ~sub:"mebi two-way" on_edge))
      && contains ~sub:"s0 ->[mebi edge, -] e0 ->[mebi edge] s1;" on_edge
-     && contains ~sub:"s1 ->[mebi edge, -] e1 ->[mebi edge] s0;" on_edge);
+     && contains
+          ~sub:
+            "s0 --[mebi edge, -, mebi back tip, minimum layers=1] e1 --[mebi \
+             edge, -, minimum layers=1] s1;"
+          on_edge);
   check
     "a state's arrow to itself keeps its quoted label, drawn after the layout"
     true
     (contains
        ~sub:"\\path (s2) edge[mebi edge, mebi loop, \"{d}\"] (s2);"
        on_edge)
+;;
+
+(** Whether [edges], over the states [0 .. n - 1], have no cycle. *)
+let acyclic (n : int) (edges : (int * int) list) : bool =
+  let indeg = Array.make n 0 in
+  List.iter (fun (_, t) -> indeg.(t) <- indeg.(t) + 1) edges;
+  let queue = Queue.create () in
+  Array.iteri (fun i d -> if d = 0 then Queue.add i queue) indeg;
+  let seen = ref 0 in
+  while not (Queue.is_empty queue) do
+    let u = Queue.pop queue in
+    incr seen;
+    List.iter
+      (fun (s, t) ->
+        if s = u
+        then (
+          indeg.(t) <- indeg.(t) - 1;
+          if indeg.(t) = 0 then Queue.add t queue))
+      edges
+  done;
+  !seen = n
+;;
+
+(** A diagram of [n] states, the first initial, with these arrows, each
+    labelled [a]. *)
+let a_graph (n : int) (arrows : (int * int) list) : Draw.t =
+  { nodes =
+      List.init n (fun id : Draw.node ->
+        { id; text = string_of_int id; initial = id = 0; terminal = false })
+  ; edges =
+      List.map
+        (fun (src, dst) : Draw.edge -> { src; label = Label "a"; dst })
+        arrows
+  ; incomplete = false
+  }
+;;
+
+let count_sub ~(sub : string) (s : string) : int =
+  let n = String.length sub in
+  let rec go i acc =
+    if i + n > String.length s
+    then acc
+    else
+      go (i + 1) (if String.equal (String.sub s i n) sub then acc + 1 else acc)
+  in
+  go 0 0
+;;
+
+let test_draw_back_arrows () : unit =
+  check
+    "the arrow that closes a cycle is the one back, and a loop is not"
+    true
+    (Draw.back_arrows a_diagram = [ 2, 0 ]);
+  check
+    "a graph with no cycle has none"
+    true
+    (Draw.back_arrows (a_graph 4 [ 0, 1; 0, 2; 1, 3; 2, 3; 0, 3 ]) = []);
+  check
+    "a cross arrow is not one"
+    true
+    (Draw.back_arrows (a_graph 3 [ 0, 1; 0, 2; 2, 1 ]) = []);
+  check
+    "the search starts at the initial state"
+    true
+    (let d = a_graph 3 [ 0, 1; 1, 2; 2, 0 ] in
+     Draw.back_arrows d = [ 2, 0 ]
+     && Draw.back_arrows
+          { d with
+            nodes =
+              List.map
+                (fun (n : Draw.node) -> { n with initial = n.id = 2 })
+                d.nodes
+          }
+        = [ 1, 2 ]);
+  check
+    "a cycle apart from the initial state's is found too"
+    true
+    (Draw.back_arrows (a_graph 4 [ 0, 1; 1, 0; 2, 3; 3, 2 ]) = [ 1, 0; 3, 2 ]);
+  check
+    "without them what is left has no cycle (a fixed set of graphs)"
+    true
+    (let rand = Random.State.make [| 3 |] in
+     List.for_all
+       (fun _ ->
+         let n = 2 + Random.State.int rand 14 in
+         let arrows =
+           List.init (n * 2) (fun _ ->
+             Random.State.int rand n, Random.State.int rand n)
+           |> List.filter (fun (s, t) -> s <> t)
+         in
+         let back = Draw.back_arrows (a_graph n arrows) in
+         let kept = List.filter (fun a -> not (List.mem a back)) arrows in
+         acyclic n kept)
+       (List.init 200 Fun.id));
+  (* the five-state cycle of examples/Simple.v *)
+  let cycle = a_graph 5 [ 0, 1; 1, 2; 2, 3; 3, 4; 4, 0 ] in
+  let p = Draw.picture cycle in
+  check
+    "an arrow back is laid out from its target, half the longest path it \
+     closes on each side, with its arrowhead drawn as a decoration"
+    true
+    (contains
+       ~sub:
+         "s0 --[mebi edge, -, mebi back tip, minimum layers=4] e4 --[mebi \
+          edge, -, minimum layers=4] s4;"
+       p
+     && count_sub ~sub:"mebi back tip" p = 1);
+  check
+    "the longest path counts, not the shortest"
+    true
+    (contains
+       ~sub:"minimum layers=3"
+       (Draw.picture (a_graph 4 [ 0, 1; 1, 2; 2, 3; 0, 3; 3, 0 ])));
+  check
+    "the labels beside their arrows do not use it"
+    false
+    (contains ~sub:"mebi back tip" (Draw.picture ~labels:Beside cycle));
+  check
+    "a graph with no cycle has no use for it either"
+    false
+    (contains ~sub:"mebi back tip" (Draw.picture (a_graph 3 [ 0, 1; 1, 2 ])));
+  check
+    "its style is defined once, and the document loads the library it needs"
+    true
+    (count_sub
+       ~sub:"mebi back tip/.style={"
+       (Draw_style.tikzset Draw_style.empty)
+     = 1
+     && contains ~sub:"decorations.markings" (Draw.wrapper ~name:"d")
+     && contains ~sub:"\\arrowreversed" (Draw_style.tikzset Draw_style.empty))
 ;;
 
 let test_draw_style () : unit =
@@ -2710,6 +2844,7 @@ let () =
   test_draw_tidy ();
   test_draw_merge ();
   test_draw_picture ();
+  test_draw_back_arrows ();
   test_draw_style ();
   test_draw_names ();
   test_draw_run ();

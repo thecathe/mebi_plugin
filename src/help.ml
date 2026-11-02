@@ -426,12 +426,13 @@ let text : string list -> string option = function
           (the last frames each label).\n\n\
           Labels: by default (OnEdge) each label is a node of the layout, on \
           its arrow, so the layout keeps room for it and the arrow runs \
-          through it. That costs layout time: 2.2 times as much at 31 states, \
-          2.6 at 50, 3.5 at 75 and 4.1 at 100 \
-          (doc/measurements/draw-layout-time.md). Beside puts a label beside \
-          the last stretch of its arrow instead, as TikZ places a quoted \
-          label: cheaper, but labels can cover each other or be taken for \
-          another arrow's, and the two arrows between a pair of states in \
+          through it; the label of an arrow back to a state it follows (one \
+          that closes a cycle) is laid half way along it. That costs layout \
+          time: 2.2 times as much at 31 states, 2.6 at 50, 3.5 at 75 and 4.1 \
+          at 100 (doc/measurements/draw-layout-time.md). Beside puts a label \
+          beside the last stretch of its arrow instead, as TikZ places a \
+          quoted label: cheaper, but labels can cover each other or be taken \
+          for another arrow's, and the two arrows between a pair of states in \
           opposite directions are then bent apart (the TwoWay style, which \
           OnEdge has no use for).\n\n\
           Direction: Down (the default) grows the layout downwards, a layer \

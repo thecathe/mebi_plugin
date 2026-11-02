@@ -60,6 +60,12 @@ type direction =
 (** [direction_name d] is [Down] or [Right]. Raises nothing. *)
 val direction_name : direction -> string
 
+(** The name of the style a back arrow's first half adds ({!Draw.back_arrows}):
+    a decoration that draws its arrowhead, pointing back along the path. It
+    is not a {!component}, since it has no look to configure; it is defined,
+    once, in {!tikzset}. *)
+val back_tip : string
+
 (** [balanced opts] is whether the braces in [opts] close in order. Options
     with unbalanced braces would swallow the rest of the style file, so
     callers refuse them. Raises nothing. *)

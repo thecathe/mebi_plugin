@@ -73,6 +73,13 @@ val escape : string -> string
     without repeats, sorted by [(src, dst)]. Raises nothing. *)
 val merge : edge list -> (int * int * label list) list
 
+(** [back_arrows d] are the arrows of [d], as [(src, dst)], that close a
+    cycle: found by a depth-first search from the initial state, then from
+    each state it did not reach, in the order of their numbers, they are the
+    arrows to a state the search is still inside. Without them the rest are
+    acyclic. A state's arrow to itself is not one. Raises nothing. *)
+val back_arrows : t -> (int * int) list
+
 (** [picture d] is [d]'s TikZ [tikzpicture], to [\input] into a document
     that has loaded the libraries {!Draw_style.tikzset} lists, and either its
     style file or styles of its own. Every state is a node named [s<id>],
@@ -84,7 +91,11 @@ val merge : edge list -> (int * int * label list) list
     labels go ({!labels}, [On_edge] by default). On the edge, a label is a
     node [e<k>], and the arrow is two, [s -> e<k> -> t]: the two arrows of a
     pair of states are then not bent apart, as each has a label node to
-    itself. Raises nothing. *)
+    itself. An arrow in {!back_arrows} is laid out from its target to its
+    source, each half spanning as many layers as the longest path it closes
+    has arrows, so that its label sits half way along it; its arrowhead is a
+    decoration of the first half ({!Draw_style.back_tip}), which the layout
+    does not read as the arrow's direction. Raises nothing. *)
 val picture : ?labels:labels -> t -> string
 
 (** [wrapper ~name] is a LuaLaTeX document that draws [name].tikz with
