@@ -1945,7 +1945,10 @@ let test_notify () : unit =
     Out_channel.with_open_text script (fun oc ->
       Printf.fprintf
         oc
-        "#!/bin/sh\necho \"$*\" >> \"$0.log\"\nexit %i\n"
+        "#!/bin/sh\n\
+         body=$(printf '%%s' \"$*\" | tr '\\n' '~')\n\
+         echo \"$body\" >> \"$0.log\"\n\
+         exit %i\n"
         exit_code);
     Unix.chmod script 0o755
   in
@@ -1957,14 +1960,28 @@ let test_notify () : unit =
       |> List.filter (fun l -> not (String.equal l ""))
     else []
   in
+  (* The first line of each notification, which does not vary; the rest is
+     [sent_rest]. *)
+  let split (e : string) : string * string =
+    match String.index_opt e '~' with
+    | Some i -> String.sub e 0 i, String.sub e (i + 1) (String.length e - i - 1)
+    | None -> e, ""
+  in
+  let first () : string =
+    String.concat "|" (List.map (fun e -> fst (split e)) (sent ()))
+  in
+  let rest () : string list = List.map (fun e -> snd (split e)) (sent ()) in
   let clear () : unit = if Sys.file_exists log then Sys.remove log in
   let old_path : string =
     Stdlib.Option.value (Sys.getenv_opt "PATH") ~default:""
   in
   (* Messages the library emits, so a warning can be counted. *)
   let warnings : string list ref = ref [] in
+  let shown : string list ref = ref [] in
   Logger.set_sink (fun (m : Output.message) ->
-    if m.kind = Output.Kind.Warning then warnings := m.body :: !warnings);
+    if m.kind = Output.Kind.Warning
+    then warnings := m.body :: !warnings
+    else shown := m.body :: !shown);
   let finally () : unit =
     Unix.putenv "PATH" old_path;
     Logger.reset_sink ();
@@ -1999,7 +2016,22 @@ let test_notify () : unit =
     check_string
       "one notification, naming the command and the time"
       "--app-name=MeBi -- MeBi Run Bisim finished after 0s"
-      (String.concat "|" (sent ()));
+      (first ());
+    check
+      "and the memory the process reached"
+      true
+      (match rest () with
+       | [ m ] -> String.starts_with ~prefix:"Peak memory " m
+       | _ -> false);
+    check
+      "and a line in the feedback saying the same"
+      true
+      (List.exists
+         (fun (m : string) ->
+           String.starts_with
+             ~prefix:"(Run Bisim finished after 0s. Peak memory "
+             m)
+         !shown);
     clear ();
     Notify.set_after (-5);
     check "a negative time is read as 0" true (Notify.threshold () = Some 0);
@@ -2013,7 +2045,7 @@ let test_notify () : unit =
     check_string
       "and the notification says it ended with an error"
       "--app-name=MeBi -- MeBi Sim Solve ended with an error after 0s"
-      (String.concat "|" (sent ()));
+      (first ());
     clear ();
     (* a command inside another is part of it *)
     ignore
@@ -2022,7 +2054,7 @@ let test_notify () : unit =
     check_string
       "only the outermost command announces"
       "--app-name=MeBi -- MeBi Sim Begin finished after 0s"
-      (String.concat "|" (sent ()));
+      (first ());
     clear ();
     check
       "and the nesting is closed afterwards"
@@ -2032,28 +2064,70 @@ let test_notify () : unit =
     clear ();
     (* the threshold *)
     Notify.set_after 100;
+    shown := [];
     ignore (Notify.timed ~command:"Run Bisim" (fun () -> ()));
     check_int
       "a command under the threshold is not announced"
       0
       (List.length (sent ()));
+    check_int "nor printed" 0 (List.length !shown);
     Notify.set_after 1;
     ignore (Notify.timed ~command:"Run Bisim" (fun () -> Unix.sleepf 1.1));
     check_string
       "one over it is"
       "--app-name=MeBi -- MeBi Run Bisim finished after 1s"
-      (String.concat "|" (sent ()));
+      (first ());
     clear ();
     Notify.set_off ();
     check "set_off is off" true (Notify.threshold () = None);
     ignore (Notify.timed ~command:"Run Bisim" (fun () -> ()));
     check_int "and sends nothing" 0 (List.length (sent ()));
+    (* a command stopped by the memory bound says so, and is not an error *)
+    Notify.set_after 0;
+    shown := [];
+    check
+      "the exception is re-raised unchanged"
+      true
+      (match
+         Notify.timed ~command:"Run LTS" (fun () ->
+           Memory_guard.set_limit (Some 1);
+           Memory_guard.check "extraction")
+       with
+       | () -> false
+       | exception Memory_guard.Exceeded { phase; _ } ->
+         Memory_guard.reset ();
+         String.equal phase "extraction");
+    check_string
+      "and the notification says the bound stopped it"
+      "--app-name=MeBi -- MeBi Run LTS was stopped by the memory bound after 0s"
+      (first ());
+    check
+      "and what the process reached, and where"
+      true
+      (match rest () with
+       | [ m ] ->
+         String.starts_with ~prefix:"Memory reached " m
+         && contains ~sub:" during extraction, over the " m
+       | _ -> false);
+    check
+      "and so does the feedback"
+      true
+      (List.exists
+         (fun (m : string) ->
+           String.starts_with
+             ~prefix:
+               "(Run LTS was stopped by the memory bound after 0s. Memory \
+                reached "
+             m)
+         !shown);
+    clear ();
+    Notify.set_off ();
     (* the test command ignores the setting *)
     Notify.test ();
     check_string
       "test sends one whatever the setting"
       "--app-name=MeBi -- MeBi This is a test notification."
-      (String.concat "|" (sent ()));
+      (first ());
     clear ();
     (* a tool that fails: the command is unaffected, and it is warned of once *)
     write_script 1;
@@ -2086,6 +2160,107 @@ let test_notify () : unit =
     Notify.reset ();
     check "reset is off" true (Notify.threshold () = None);
     Sys.rmdir empty)
+;;
+
+(* [Notify.show_bytes] and [Notify.summary]: the wording, from literal
+   reports so that it does not depend on the machine's memory. *)
+let test_notify_summary () : unit =
+  let r : Memory_guard.report =
+    { start = 2_400_000_000
+    ; peak = 3_100_000_000
+    ; limit = Some 11_700_000_000
+    ; stopped_in = None
+    }
+  in
+  let summary ok ?(elapsed = 187.) (mem : Memory_guard.report option) =
+    String.concat " / " (Notify.summary ~command:"Run Bisim" ~elapsed ~ok mem)
+  in
+  check_string
+    "bytes: a gigabyte or more"
+    "3.1 GB"
+    (Notify.show_bytes 3_100_000_000);
+  check_string "bytes: under it" "845 MB" (Notify.show_bytes 845_000_000);
+  check_string "bytes: none" "0 MB" (Notify.show_bytes 0);
+  check_string
+    "finished, with its memory against the bound"
+    "Run Bisim finished after 3m 07s / Peak memory 3.1 GB of the 11.7 GB bound \
+     (26%), up from 2.4 GB at its start"
+    (summary true (Some r));
+  check_string
+    "an error is not said to be the bound"
+    "Run Bisim ended with an error after 3m 07s / Peak memory 3.1 GB of the \
+     11.7 GB bound (26%), up from 2.4 GB at its start"
+    (summary false (Some r));
+  check_string
+    "stopped by the bound"
+    "Run Bisim was stopped by the memory bound after 3m 07s / Memory reached \
+     11.8 GB during extraction, over the 11.7 GB bound, up from 2.4 GB at its \
+     start"
+    (summary
+       false
+       (Some { r with peak = 11_800_000_000; stopped_in = Some "extraction" }));
+  check_string
+    "a command that returned was not stopped, whatever was raised in it"
+    "Run Bisim finished after 3m 07s / Peak memory 3.1 GB of the 11.7 GB bound \
+     (26%), up from 2.4 GB at its start"
+    (summary true (Some { r with stopped_in = Some "extraction" }));
+  check_string
+    "no bound set"
+    "Run Bisim finished after 3m 07s / Peak memory 3.1 GB, up from 2.4 GB at \
+     its start"
+    (summary true (Some { r with limit = None }));
+  check_string
+    "no growth"
+    "Run Bisim finished after 3m 07s / Peak memory 2.4 GB of the 11.7 GB bound \
+     (21%), the same as at its start"
+    (summary true (Some { r with peak = r.start }));
+  check_string
+    "memory that cannot be read is left out"
+    "Run Bisim finished after 45s"
+    (summary true ~elapsed:45. None)
+;;
+
+(* [Memory_guard.start_tracking] and [stop_tracking]: the highest reading
+   [check] sees, the bound it was set against, and where the bound stopped it. *)
+let test_memory_tracking () : unit =
+  Fun.protect ~finally:Memory_guard.reset (fun () ->
+    Memory_guard.set_limit None;
+    Memory_guard.start_tracking ();
+    let big : Bytes.t = Bytes.make 200_000_000 'x' in
+    Memory_guard.check "test";
+    ignore (Sys.opaque_identity big);
+    (match Memory_guard.stop_tracking () with
+     | None -> check "memory can be read" true false
+     | Some r ->
+       check "no bound is reported as none" true (r.limit = None);
+       check "and nothing stopped it" true (r.stopped_in = None);
+       check
+         "the peak sees what was allocated"
+         true
+         (r.peak - r.start >= 150_000_000));
+    Memory_guard.set_limit (Some 1);
+    Memory_guard.start_tracking ();
+    check
+      "over the bound it raises"
+      true
+      (match Memory_guard.check "extraction" with
+       | () -> false
+       | exception Memory_guard.Exceeded _ -> true);
+    (match Memory_guard.stop_tracking () with
+     | None -> check "memory can be read" true false
+     | Some r ->
+       check "the report names the phase" true (r.stopped_in = Some "extraction");
+       check "and the bound" true (r.limit = Some 1);
+       check "and the peak is at least the start" true (r.peak >= r.start));
+    Memory_guard.reset ();
+    Memory_guard.set_limit None;
+    (* nothing is read while neither a bound nor tracking is on *)
+    check
+      "an unbounded, untracked check does nothing"
+      true
+      (match Memory_guard.check "extraction" with
+       | () -> true
+       | exception _ -> false))
 ;;
 
 let test_draw_files () : unit =
@@ -2477,6 +2652,8 @@ let () =
   test_draw_run ();
   test_draw_files ();
   test_notify ();
+  test_notify_summary ();
+  test_memory_tracking ();
   Printf.printf "\n%i/%i passed\n" (!total - !failures) !total;
   if !failures > 0 then exit 1
 ;;

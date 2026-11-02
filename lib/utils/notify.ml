@@ -52,6 +52,71 @@ let show_elapsed (secs : float) : string =
   else Printf.sprintf "%ih %02im" (s / 3600) (s mod 3600 / 60)
 ;;
 
+(* See the [.mli]. *)
+let show_bytes (b : int) : string =
+  if b >= 1_000_000_000
+  then Printf.sprintf "%.1f GB" (float_of_int b /. 1e9)
+  else Printf.sprintf "%i MB" ((b + 500_000) / 1_000_000)
+;;
+
+(* [show_memory r] is the sentence for what the command reached. The start is
+   given so that growth can be read off it; it is not the command's own use
+   (see [Memory_guard.report]). *)
+let show_memory (r : Memory_guard.report) : string =
+  let from_start : string =
+    if String.equal (show_bytes r.peak) (show_bytes r.start)
+    then "the same as at its start"
+    else Printf.sprintf "up from %s at its start" (show_bytes r.start)
+  in
+  match r.stopped_in, r.limit with
+  | Some phase, Some limit ->
+    Printf.sprintf
+      "Memory reached %s during %s, over the %s bound, %s"
+      (show_bytes r.peak)
+      phase
+      (show_bytes limit)
+      from_start
+  | _, Some limit ->
+    Printf.sprintf
+      "Peak memory %s of the %s bound (%i%%), %s"
+      (show_bytes r.peak)
+      (show_bytes limit)
+      (int_of_float
+         (Stdlib.Float.round
+            (100. *. float_of_int r.peak /. float_of_int limit)))
+      from_start
+  | _, None ->
+    Printf.sprintf "Peak memory %s, %s" (show_bytes r.peak) from_start
+;;
+
+(* See the [.mli]. *)
+let summary
+      ~(command : string)
+      ~(elapsed : float)
+      ~(ok : bool)
+      (mem : Memory_guard.report option)
+  : string list
+  =
+  (* A bound that stopped something the command then recovered from did not
+     end it. *)
+  let mem : Memory_guard.report option =
+    if ok
+    then
+      Stdlib.Option.map (fun r -> { r with Memory_guard.stopped_in = None }) mem
+    else mem
+  in
+  let what : string =
+    if ok
+    then "finished"
+    else (
+      match mem with
+      | Some { stopped_in = Some _; _ } -> "was stopped by the memory bound"
+      | _ -> "ended with an error")
+  in
+  Printf.sprintf "%s %s after %s" command what (show_elapsed elapsed)
+  :: (match mem with Some r -> [ show_memory r ] | None -> [])
+;;
+
 (* [send ~title ~body] is [Ok ()] once [program] has been run and exited 0, or
    [Error why]. No shell is involved, so the text cannot be read as anything but
    text. Its output goes nowhere; the reason a send failed is its exit status,
@@ -104,17 +169,19 @@ let advice : string =
    running, or turn this off with [MeBi Config Notify Off]"
 ;;
 
-(* [announce ~command ~elapsed ~ok] sends the notification for a command that
-   has ended, and warns, once, if it cannot. Raises nothing. *)
-let announce ~(command : string) ~(elapsed : float) ~(ok : bool) : unit =
-  let body : string =
-    Printf.sprintf
-      "%s %s after %s"
-      command
-      (if ok then "finished" else "ended with an error")
-      (show_elapsed elapsed)
-  in
-  match send ~title:"MeBi" ~body with
+(* [announce ~command ~elapsed ~ok mem] says that a command has ended: a line
+   in the feedback, which needs nothing, and the notification, which warns,
+   once, if it cannot be sent. Raises nothing. *)
+let announce
+      ~(command : string)
+      ~(elapsed : float)
+      ~(ok : bool)
+      (mem : Memory_guard.report option)
+  : unit
+  =
+  let lines : string list = summary ~command ~elapsed ~ok mem in
+  Logger.show (Printf.sprintf "(%s.)" (String.concat ". " lines));
+  match send ~title:"MeBi" ~body:(String.concat "\n" lines) with
   | Ok () -> ()
   | Error why ->
     if Bool.not !warned
@@ -135,11 +202,13 @@ let timed ~(command : string) (f : unit -> 'a) : 'a =
   | Some secs ->
     let started : float = Unix.gettimeofday () in
     incr depth;
+    Memory_guard.start_tracking ();
     let finish (ok : bool) : unit =
       decr depth;
+      let mem : Memory_guard.report option = Memory_guard.stop_tracking () in
       let elapsed : float = Unix.gettimeofday () -. started in
       if elapsed >= float_of_int secs
-      then (try announce ~command ~elapsed ~ok with _ -> ())
+      then (try announce ~command ~elapsed ~ok mem with _ -> ())
     in
     (match f () with
      | v ->
@@ -159,7 +228,8 @@ let set_after (secs : int) : unit =
   Logger.show
     (Printf.sprintf
        "(MeBi Config: Set Notify After to: %i seconds. A command that takes \
-        that long ends with a desktop notification.)"
+        that long ends with a desktop notification and a line saying how long \
+        it took and how much memory it reached.)"
        secs);
   match find_exe program with
   | Some _ -> ()
