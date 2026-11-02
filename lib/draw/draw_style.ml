@@ -143,6 +143,18 @@ let describe (s : t) : string =
       (List.map (fun c -> Printf.sprintf "%s: %s" (name c) (get c s)) set_)
 ;;
 
+(* See the [.mli]. *)
+let back_tip : string = "mebi back tip"
+
+(** [back_tip_definition] is what {!back_tip} is defined as: a decoration that
+    draws an arrowhead at the start of the path, pointing back along it (not
+    an arrow tip of the path's own, which the layered layout would read as the
+    path's direction). *)
+let back_tip_definition : string =
+  "postaction={decorate, decoration={markings, mark=at position 0 with \
+   {\\arrowreversed{>}}}}"
+;;
+
 (** [default_in direction c] is [default c], but for {!Layout} the one that
     grows in [direction]: the same distances, as the layers' own widths are
     already allowed for. *)
@@ -196,7 +208,8 @@ let tikzset ?(direction : direction = Down) (s : t) : string =
      ; "% nothing else, so a document can define its own instead of loading"
      ; "% this file."
      ; "% Needs LuaLaTeX, with:"
-     ; "%   \\usetikzlibrary{graphs,graphdrawing,arrows.meta,quotes,automata}"
+     ; "%   \\usetikzlibrary{graphs,graphdrawing,arrows.meta,quotes,automata,"
+     ; "%     decorations.markings}"
      ; "%   \\usegdlibrary{layered}"
      ; "\\tikzset{"
      ]
@@ -205,7 +218,9 @@ let tikzset ?(direction : direction = Down) (s : t) : string =
            (List.map
               (fun c ->
                 Printf.sprintf "  %s/.style={%s}" (key c) (body direction c s))
-              components)
+              components
+            @ [ Printf.sprintf "  %s/.style={%s}" back_tip back_tip_definition ]
+           )
        ; "}"
        ])
   ^ "\n"
