@@ -146,6 +146,14 @@ turns the pin into a positive test.
   that path, when the label sits nearer one end. Ways out, and the Graphviz
   engine that would route first and label second, are in
   `doc/future-work.md`, "`MeBi Draw`".
+- **`MeBi Config Draw Engine Graphviz` is opt-in and needs `dot` on the `PATH`
+  for a PDF or a PNG** (*limit*, by design; found 2026-11-02; the file-writing
+  and the missing, failing and slow `dot` are pinned by `test/tests.ml`, the
+  drawing by it only where `dot` is installed). Without `dot` it warns and keeps
+  the `.dot`. Its text is in Graphviz's font and not the document's, a label
+  cannot hold LaTeX, the picture cannot be restyled from a document, `Style`,
+  `Layout` and `TwoWay` do not apply to it, and its spacing and font are fixed.
+  Only Graphviz 15.1.1 was tried; layouts differ between versions.
 - **Under vsrocq, the `origin:` line comes from the saved file, so an unsaved
   edit makes it `(line unknown)`** (*limit*, by design; not pinned: it needs
   vsrocq, which `test/rocq/Test.v` does not run). vsrocq parses with no source

@@ -436,18 +436,20 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
 - **Graphviz, the actual Graphviz** (clarified by the author, 2026-11-02: they
   actively want Graphviz's own behaviour, its splines and its layout; what they
   dropped was my *re-drawing* of `dot`'s output in TikZ, whose kinks and
-  detached arrowheads were that conversion's). `scripts/dump2dot.py` is that
-  now: DOT in, `dot` draws, from the plain-text dumps. **Into the plugin, the
-  cheap way is the script's, not the prototype's below:** write DOT from the
-  `Draw.t` the plugin already builds (the tidying, the merged arrows, the arrows
-  back and their longest paths and the kinds are all there), run `dot -T pdf|png|svg`
-  with the existing `Draw_output.run` and its time limit, and leave the `.dot`
-  if `dot` is absent. No TeX measurement, no `-Tplain` parser and no TikZ
-  emitter. My estimate, not measured: about 150 lines of OCaml and 100 of tests,
-  a few hours, plus the settings (an `Engine`, and Graphviz's `rankdir`,
-  `ranksep`, `nodesep` and font). The price, as in the 2026-11-01 entry: the
-  text is in Graphviz's font and not the document's, and the picture cannot be
-  restyled from LaTeX. The estimate and the notes below are for the other route.
+  detached arrowheads were that conversion's). **Done the same day, opt-in:**
+  `MeBi Config Draw Engine Graphviz` (`Draw_dot` writes the DOT from the
+  `Draw.t` the plugin already builds, `Draw_output.render_dot` runs `dot`), and
+  `scripts/dump2dot.py` does the same from a plain-text dump, outside the
+  plugin. Built so that nobody who does not ask for it meets it: LuaTeX stays the
+  default; nothing is installed or needed; `dot` runs only for a PDF or a PNG, as
+  a child process with the time limit; a missing, failing or slow `dot` is a
+  warning and the `.dot` is kept. Left: Graphviz's own settings (`ranksep`,
+  `nodesep`, the font) are fixed, not configurable (the `.dot` can be edited and
+  drawn by hand, and the script has them as options); the text is in Graphviz's
+  font, not the document's, and the picture cannot be restyled from LaTeX; the
+  TikZ styles do not apply to it; and it was checked with Graphviz 15.1.1 only.
+  If the LuaTeX engine is later dropped for this one, `Style`, `Layout` and
+  `TwoWay` go with it.
 - **A Graphviz engine that re-draws in TikZ** (dropped; see above). **Prototyped 2026-11-02** (a
   throwaway script, not in the plugin; the devlog has it): from the picture the
   plugin writes it takes the states, arrows, kinds and labels; measures each
