@@ -209,6 +209,9 @@ type draw_config =
     (** seconds each program may take before it is killed *)
   ; mutable draw_dir : string (** where the files go *)
   ; mutable draw_style : Draw_style.t (** the user's styles ({!Draw_style}) *)
+  ; mutable draw_labels : Draw.labels
+    (** where an arrow's label goes: [On_edge] (a node of the layout) by
+        default ({!Draw.labels}) *)
   }
 
 (** [draw_config_default ()]: a fresh default {!draw_config}, as its fields
@@ -248,6 +251,10 @@ val set_draw_dir : string -> unit
     unbalanced braces, is warned about and ignored. Shows the change. Raises
     nothing. *)
 val set_draw_style : string -> string -> unit
+
+(** [set_draw_labels l] chooses where [MeBi Draw] puts an arrow's label
+    ({!Draw.labels}), and shows the change. Raises nothing. *)
+val set_draw_labels : Draw.labels -> unit
 
 (** [describe_draw ()] is a sentence saying how [MeBi Draw] draws now, for
     messages. Raises nothing. *)

@@ -382,6 +382,10 @@ VERNAC COMMAND EXTEND MeBi_Config_Draw CLASSIFIED AS QUERY
   { Api.set_draw_format Draw_output.Pdf }
 | ["MeBi" "Config" "Draw" "Format" "PNG"] ->
   { Api.set_draw_format Draw_output.Png }
+| ["MeBi" "Config" "Draw" "Labels" "OnEdge"] ->
+  { Api.set_draw_labels Draw.On_edge }
+| ["MeBi" "Config" "Draw" "Labels" "Beside"] ->
+  { Api.set_draw_labels Draw.Beside }
 | ["MeBi" "Config" "Draw" "Dir" string(d)] ->
   { Api.set_draw_dir d }
 | ["MeBi" "Config" "Draw" "Style" string(c) string(o)] ->

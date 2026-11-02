@@ -1699,6 +1699,12 @@ Module Draw.
   MeBi Draw LTS 0 Using lts As "lts-silent".
   MeBi Config Reset Weak.
 
+  (* the labels beside their arrows, then on them again (the default, which
+     [Reset Draw] restores) *)
+  MeBi Config Draw Labels Beside.
+  MeBi Draw LTS 0 Using lts As "lts-beside".
+  MeBi Config Draw Labels OnEdge.
+
   (* a style is set, and an empty one restores the default; an unknown
      component, and braces that do not close, are warned about *)
   MeBi Config Draw Style "State" "fill=yellow!20".

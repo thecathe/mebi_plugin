@@ -381,9 +381,10 @@ let text : string list -> string option = function
        system. A state and a label are drawn without the parentheses round all \
        of them, and the labels without Some if every label that is not silent \
        has it (so a bare None, with no silent label configured, keeps them \
-       all). A silent label is drawn as tau (see MeBi Help Config Weak), the \
-       two arrows between a pair of states in opposite directions are bent \
-       apart, and an LTS that is incomplete says so under the picture.\n\n\
+       all). A silent label is drawn as tau (see MeBi Help Config Weak), each \
+       label is a node of the layout on its arrow, so that the layout keeps \
+       room for it (MeBi Help Config Draw says what that costs), and an LTS \
+       that is incomplete says so under the picture.\n\n\
        A system over the draw bound is refused: the layout's time grows \
        quickly with its size. For the bound, the formats and the look of each \
        part of the picture, see MeBi Help Config Draw."
@@ -392,6 +393,7 @@ let text : string list -> string option = function
     Some
       (Printf.sprintf
          "MeBi Config Draw Format TeX | PDF | PNG.\n\
+          MeBi Config Draw Labels OnEdge | Beside.\n\
           MeBi Config Draw Dir \"<dir>\".\n\
           MeBi Config Draw Style \"<Component>\" \"<TikZ options>\".\n\
           MeBi Config Bounds Draw States <n>.\n\
@@ -401,13 +403,15 @@ let text : string list -> string option = function
           How MeBi Draw draws (MeBi Help Draw). Defaults: %s.\n\n\
           Bounds: a system with more states (or, if set, transitions) than the \
           bound is refused, and, as with Bounds As Num, the last of States and \
-          Transitions set is the one in force. LuaTeX's layout took about 3 \
-          seconds at 50 states, 21 at 100 and 88 at 150 (one synthetic graph \
-          of each size, about 1.4 transitions a state; it is time that limits \
-          it, not memory: doc/measurements/draw-layout-time.md). Time is how \
-          long each program (lualatex, then pdftocairo or gs) may run before \
-          it is killed, %i seconds by default. Reset Bounds restores the \
-          bounds and the time limit; Reset Draw restores everything here.\n\n\
+          Transitions set is the one in force. With Labels Beside, LuaTeX's \
+          layout took about 3 seconds at 50 states, 21 at 100 and 88 at 150; \
+          with OnEdge, 7 at 50, 40 at 75 and 85 at 100, so a bound of 100 \
+          needs Time raised (one synthetic graph of each size, about 1.4 \
+          transitions a state; it is time that limits it, not memory: \
+          doc/measurements/draw-layout-time.md). Time is how long each program \
+          (lualatex, then pdftocairo or gs) may run before it is killed, %i \
+          seconds by default. Reset Bounds restores the bounds and the time \
+          limit; Reset Draw restores everything here.\n\n\
           Style: the picture names a TikZ style for each part and defines \
           none; <name>.style.tikz defines them, from a default for each \
           component and then your options, which come after and so win. An \
@@ -418,9 +422,17 @@ let text : string list -> string option = function
          \  MeBi Config Draw Style \"Edge\" \"draw=blue\".\n\
          \  MeBi Config Draw Style \"Label\" \"draw=gray!50, rounded \
           corners=1pt\".\n\
-          (the last frames each label). A label sits beside the last stretch \
-          of its arrow, not on its middle: TikZ places it along that stretch \
-          only, and the layered layout makes an arrow of several.\n\
+          (the last frames each label).\n\n\
+          Labels: by default (OnEdge) each label is a node of the layout, on \
+          its arrow, so the layout keeps room for it and the arrow runs \
+          through it. That costs layout time: 2.2 times as much at 31 states, \
+          2.6 at 50, 3.5 at 75 and 4.1 at 100 \
+          (doc/measurements/draw-layout-time.md). Beside puts a label beside \
+          the last stretch of its arrow instead, as TikZ places a quoted \
+          label: cheaper, but labels can cover each other or be taken for \
+          another arrow's, and the two arrows between a pair of states in \
+          opposite directions are then bent apart (the TwoWay style, which \
+          OnEdge has no use for).\n\n\
           The defaults:\n\
           %s\n\n\
           To style a picture by hand, leave <name>.style.tikz out and define \
