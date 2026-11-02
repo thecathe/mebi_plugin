@@ -43,7 +43,9 @@ val html : string -> string
     though Graphviz counts an arrow from border to border with its head in
     it: the label has a little empty room on the side of the head, which the
     line crosses; or [Beside], as Graphviz's own edge
-    label. A state's arrow to itself keeps an edge label either way. [style]
+    label. A state's arrow to itself keeps an edge label either way, and
+    growing down leaves the state's top right corner and returns to its bottom
+    right one (Graphviz would draw it as a flat sliver there), so it is round. [style]
     ({!Draw_style.empty} by default) gives the colour of each kind and
     whether a coloured label has an outline ({!Draw_style.outline}); nothing is
     coloured that has no colour in it. Raises nothing. *)
