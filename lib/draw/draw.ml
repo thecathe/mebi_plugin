@@ -209,7 +209,7 @@ let longest_path (next : int -> int list) ~(target : int) ~(from : int)
               match go w, best with
               | None, b -> b
               | Some n, None -> Some (n + 1)
-              | Some n, Some b -> Some (Int.max b (n + 1)))
+              | Some n, Some b -> Some (Stdlib.Int.max b (n + 1)))
             None
             (next v)
         in
@@ -321,7 +321,7 @@ let picture ?(labels : labels = On_edge) (d : t) : string =
     if List.mem (s, t) back
     then (
       let half : int =
-        Int.max
+        Stdlib.Int.max
           1
           (Stdlib.Option.value ~default:1 (longest_path next ~target:s ~from:t))
       in
