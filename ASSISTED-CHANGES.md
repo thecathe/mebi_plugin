@@ -10049,6 +10049,73 @@ Refactor 0 · Bug fix 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `MeBi Draw`: each label a node of the layout, on its arrow
+
+**Bug fix** (label placement), **New feature** (one config command, `Draw Labels`,
+counted as new because it adds a command, though it only chooses between two
+placements) and **Docs**. On branch `fix/draw-label-nodes`, from `main`. Jonah is
+preparing a talk with `examples/Simple.v` (a five-state coffee machine: `Idle`,
+three `Paid` states, `Ready`, one silent step) and its picture was wrong, not
+only plain: the label of the arrow from `Ready` back to `Idle` sat beside `Idle`
+and read as the label of the arrow out of `Idle`, and the label of that arrow
+was hidden behind the back edge. This is the limit `doc/limitations.md` had
+recorded on 2026-11-01 ("a label sits beside the last stretch of its arrow"),
+which a five-state example showed is not cosmetic. Jonah recalled that
+label-as-node was a bug fix; I agree, and tagged it so. He also said colour by
+kind is important for readability; that is **not** in this entry (see below).
+
+- **The fix.** Each arrow's label is a node of the layered layout, `e<k>`, and
+  the arrow is two, `s -> e<k> -> t`, so the layout keeps room for it and the
+  line runs through it. It uses the plugin's own `Label` style (`SilentLabel` for
+  a silent step), so the user's options still apply. A state's style is now
+  named on each state instead of given to `\graph` for all its nodes; otherwise a
+  label's node would have inherited the look of a state (a `State` style with a
+  `minimum width` would have widened every label). That is a small refactor
+  inside the fix. A state's arrow to itself keeps its quoted label, drawn after
+  the layout. Not bent: the two arrows of a pair of states, since each now has a
+  label node of its own.
+- **The switch.** `MeBi Config Draw Labels OnEdge | Beside`, `OnEdge` by
+  default; `Reset Draw` restores it. `Beside` is the old placement, kept because
+  the cost of the new one is real (below), and it keeps `TwoWay` meaningful. A
+  separate commit, so that it can be dropped; if it is, `TwoWay` would have no
+  effect and should be removed with it. Flagged to Jonah when I reported, as
+  `CLAUDE.md` asks for anything new.
+- **What it costs, measured** (`doc/measurements/draw-layout-time.md`; the
+  `Beside` figures reproduce the 2026-11-01 ones on a different host, an Intel
+  Core Ultra 5 125U, 14 GB, TeX Live 2025): 31 states 1.7 s -> 3.8 s, 50 states
+  2.7 s -> 7.0 s, 60 states 3.3 s -> 8.5 s, 75 states 11.5 s -> 40.2 s,
+  100 states 20.5 s -> 84.7 s. The default bound (50 states) is well inside
+  the 60 s limit; `Bounds Draw States 100` is not, for `OnEdge`.
+- **Corrections to what I said earlier.** The devlog's estimate for label nodes
+  at 50 states was "about 20 s"; measured, 7.0 s. Its "about 1.8 times" at 31
+  states was measured as 2.2 times, and the factor grows with size (3.5 at 75).
+  In the first report this session I said `grow=right` was untested; it works in
+  a scratch run (a landscape strip), but I edited the generated style file, not
+  `MeBi Config Draw Style "Layout"`, so through the plugin it is still unchecked.
+  The saved scripts had two separate colour tables (`colour-by-kind.pl` and
+  `labels-as-nodes.pl`), and adding `Output` to one left that label black in the
+  other: the reason colour should have one source in the plugin.
+- **Verified.** `dune build` (57 s from a fresh worktree, which includes
+  `test/rocq/Test.v` with a new `Labels Beside` / `OnEdge` pair), the test
+  binary 283/283 (five more checks than before; `lualatex`, `pdftocairo` and `gs`
+  were present, so its compile checks ran), and the module-list check.
+  `Simple.v` end to end, compiled with `rocq compile` against this build in a
+  scratch directory: under `OnEdge` every label sits on its own arrow, and the
+  five-state picture reads correctly; under `Labels Beside` the PNG is
+  byte-identical to the one the previous build drew for Jonah, so naming the
+  state style on each state changed nothing visible.
+  Not run: `make` (warning 50 and the packed build), the proof suites (nothing
+  here is read by the model or the solver), anything under vsrocq.
+- **Not done, and why.** A back edge's label is still at one end of its chain,
+  not half way, and the picture is still a column: those are the next two steps
+  of the plan Jonah agreed. Colour by kind is the next feature, to be done in its
+  own branch.
+
+**Session tally (2026-11-02, this entry):** Bug fix 1 · New feature 1 · Docs 1 ·
+Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

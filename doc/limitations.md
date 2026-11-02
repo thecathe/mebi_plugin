@@ -124,15 +124,22 @@ turns the pin into a positive test.
   layers.
 
 **Output**
-- **`MeBi Draw`'s standalone engine puts a label beside the last stretch of
-  its arrow, not on its middle, so labels collide where arrows meet**
-  (*limit*; found 2026-11-01; not pinned: the compile tests do not look at
-  the picture). TikZ's `pos` is measured along an arrow's last stretch only,
-  and the layered layout routes an arrow as several, so no style moves a
-  label to the middle (`auto` dropped, `midway` added: no change). The label
-  of a long arrow back to the initial state sits near the target. Ways out,
-  and the rule that works for a back edge, are in `doc/future-work.md`,
-  "`MeBi Draw`".
+- **`MeBi Draw` draws a label as a node of the layout, which costs layout
+  time, and the label of an arrow back to a state above it sits at one end of
+  it** (*limit*; found 2026-11-01, label nodes added 2026-11-02; not pinned:
+  the compile tests do not look at the picture). A label drawn as TikZ places
+  a quoted label sits beside the last stretch of its arrow (its `pos` is
+  measured along that stretch only, and the layered layout routes an arrow
+  as several; no style moves it), so labels cover each other where arrows
+  meet or are taken for another arrow's. Each label is therefore a node of
+  the layout, which keeps room for it, at 2.2 times the layout time at 31
+  states and 4.1 times at 100, where it takes 85 s against the 60 s limit
+  (`doc/measurements/draw-layout-time.md`);
+  `MeBi Config Draw Labels Beside` gives the cheaper, older placement back.
+  A node on a chain settles at an end of it, so the label of a long arrow back
+  to the initial state sits near one end, not the middle, and the picture is
+  a column as tall as its longest path. Ways out, and the rule that works for a back
+  edge, are in `doc/future-work.md`, "`MeBi Draw`".
 - **Under vsrocq, the `origin:` line comes from the saved file, so an unsaved
   edit makes it `(line unknown)`** (*limit*, by design; not pinned: it needs
   vsrocq, which `test/rocq/Test.v` does not run). vsrocq parses with no source

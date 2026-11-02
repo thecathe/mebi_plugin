@@ -257,6 +257,7 @@ type draw_config =
   ; mutable draw_time : int
   ; mutable draw_dir : string
   ; mutable draw_style : Draw_style.t
+  ; mutable draw_labels : Draw.labels
   }
 
 (* See the [.mli]. *)
@@ -266,6 +267,7 @@ let draw_config_default () : draw_config =
   ; draw_time = default_draw_time
   ; draw_dir = default_draw_dir
   ; draw_style = Draw_style.empty
+  ; draw_labels = Draw.On_edge
   }
 ;;
 
@@ -345,11 +347,20 @@ let set_draw_style (component : string) (opts : string) : unit =
 ;;
 
 (* See the [.mli]. *)
+let set_draw_labels (l : Draw.labels) : unit =
+  !the_draw_config.draw_labels <- l;
+  Printf.sprintf
+    "(MeBi Config: Set Draw Labels to: %s.)"
+    (match l with Draw.On_edge -> "OnEdge" | Beside -> "Beside")
+  |> Logger.show
+;;
+
+(* See the [.mli]. *)
 let describe_draw () : string =
   let c : draw_config = !the_draw_config in
   Printf.sprintf
     "MeBi Draw makes %s into %s, for at most %s, with %i seconds for each \
-     program it runs. Style: %s."
+     program it runs. Labels: %s. Style: %s."
     (match c.draw_format with
      | Draw_output.Tex -> "the TeX files"
      | Pdf -> "a PDF as well as the TeX files"
@@ -359,6 +370,9 @@ let describe_draw () : string =
      | States i -> Printf.sprintf "%i states" i
      | Transitions i -> Printf.sprintf "%i transitions" i)
     c.draw_time
+    (match c.draw_labels with
+     | Draw.On_edge -> "on the arrows (OnEdge)"
+     | Beside -> "beside the arrows (Beside)")
     (Draw_style.describe c.draw_style)
 ;;
 

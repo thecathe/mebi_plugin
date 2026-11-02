@@ -846,7 +846,14 @@ module Make (Enc : Encoding.S) :
           Draw_output.name_of_term ~kind:(String.lowercase_ascii kind) term
       in
       let written : string list =
-        try Draw_output.write ~dir:c.draw_dir ~name ~style:c.draw_style d with
+        try
+          Draw_output.write
+            ~labels:c.draw_labels
+            ~dir:c.draw_dir
+            ~name
+            ~style:c.draw_style
+            d
+        with
         | Sys_error e ->
           CErrors.user_err
             (Rocq_output.render_text

@@ -401,19 +401,23 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   registry for reset callbacks and one for help topics, and what
   `Decode.Diagram` needs exported), and what `make` does about it.
 - **Standalone parity: what is left.** Styling is done (2026-11-01: bigger
-  text, tighter padding, rounder corners; `Draw_style.default`). What
-  styling cannot do is where a label sits: it stays beside the last stretch
-  of its arrow, so labels pile up where arrows meet. Two ways, both
-  prototyped in the author's scratch (`layout-experiments/`): make each
-  label a node of the layout (a -> m -> b), which removes the overlaps but
-  costs about 1.8 times the layout time at 31 states and twice the height;
-  or lay out and route first and put the label on the middle of the finished
-  curve, which is the author's rule and is simple once something routes the
-  edge (Graphviz does; LuaTeX's layered layout does not expose it). A back
-  edge needs its own care in either: its label sticks to one end of the
-  chain (a first pass that measures the ranks it spans, then a label node
-  pinned half way with `minimum layers`, is the standalone version of the
-  rule that worked in Graphviz, and costs a second LuaTeX run).
+  text, tighter padding, rounder corners; `Draw_style.default`). So is
+  where a label sits, as far as the layered layout allows (2026-11-02): each
+  label is a node of the layout (`a -> e -> b`; `MeBi Config Draw Labels
+  OnEdge`, the default), which keeps room for it and removes the overlaps,
+  at 2.2 times the layout time at 31 states, 2.6 at 50, 3.5 at 75 and 4.1
+  at 100 (`Labels Beside` is the old placement). The other way, laying out and
+  routing first and putting the label on the middle of the finished curve,
+  is the author's rule and is simple once something routes the edge
+  (Graphviz does; LuaTeX's layered layout does not expose it). Left: (1) a
+  back edge's label sticks to one end of its chain; a first pass that
+  measures the ranks it spans, then the label node pinned half way with
+  `minimum layers`, is the standalone version of the rule that worked in
+  Graphviz, and costs a second LuaTeX run. (2) The picture is a column, as
+  tall as the longest path, and twice that with label nodes: `grow=right`
+  in `Layout` gives a landscape strip (tried in a scratch run, by editing
+  the style file; the level distance needs raising for the labels). (3) The
+  label's look in a colour per kind (below).
 - **A Graphviz engine** (optional, see above). Written for Graphviz, the
   rule for a back edge (found by a depth-first search from the initial
   state) is: lay it out reversed, and pin its label half way with `minlen`
@@ -453,19 +457,16 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
 - **A state's number in its box,** to cross-reference the plain-text dump
   (they share a numbering, `Decode.Diagram`), if wanted: a `State` style
   cannot add it, as that is content, not look.
-- **Labels on the arrow, not beside it.** The author asked for each label
-  centred on its arrow, white behind it, with an optional light frame. The
-  white fill is the default, and the frame is a `Label` option
-  (`draw=gray!50`), but the centring is not available by style: TikZ's `pos`
-  runs along an arrow's *last stretch* only, and the layered layout routes an
-  arrow as several, so a label sits near the target whatever the style says
-  (tried 2026-11-01: `auto` dropped, `midway` added, no change). It needs the
-  label to be a node of the layout (prototyped: no overlaps, but about 1.8
-  times the layout time at 31 states and twice the height) or a layout that
-  places labels itself (Graphviz, above).
-- **Overlapping labels** where many arrows cross (the top of the coffee
-  machine). `Layout`'s spacing and `Label`'s style are configurable but do
-  not cure it: it is the layered layout, and a bigger bound makes it worse.
+- **Labels on the arrow, not beside it** (done 2026-11-02 as label nodes,
+  see "Standalone parity"). The author asked for each label centred on its
+  arrow, white behind it, with an optional light frame. TikZ's `pos` runs
+  along an arrow's *last stretch* only, and the layered layout routes an
+  arrow as several, so no style could do it (tried 2026-11-01: `auto`
+  dropped, `midway` added, no change); a label node can, and the `Label`
+  style (white fill, `draw=gray!50`) applies to it.
+- **Layout time with label nodes** grows faster than the size (see the
+  measurements): the draw bound and its time limit may want a second look
+  for `OnEdge`. A bigger bound with `Labels Beside` stays cheaper.
 
 **Reusable theory** (agreed 2026-10-11: machinery a user could reuse
 goes into `theories/` once two examples use it, which keeps `examples/`

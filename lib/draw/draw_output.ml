@@ -157,12 +157,17 @@ let run ~(timeout : float) ~(dir : string) (argv : string list) : status =
 
 (* See the [.mli]. [Utils.FileWriter.create_parent_dir] makes the directory
    that will hold a file, so it is given one in [dir]. *)
-let write ~(dir : string) ~(name : string) ~(style : Draw_style.t) (d : Draw.t)
+let write
+      ?(labels : Draw.labels option)
+      ~(dir : string)
+      ~(name : string)
+      ~(style : Draw_style.t)
+      (d : Draw.t)
   : string list
   =
   Utils.FileWriter.create_parent_dir (Filename.concat dir name);
   let files : (string * string) list =
-    [ name ^ ".tikz", Draw.picture d
+    [ name ^ ".tikz", Draw.picture ?labels d
     ; name ^ ".style.tikz", Draw_style.tikzset style
     ; name ^ ".tex", Draw.wrapper ~name
     ]
