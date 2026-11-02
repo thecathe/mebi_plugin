@@ -38,6 +38,11 @@
             # `notify-send` to say a long command has ended; without it the
             # plugin works as usual and warns once.
             libnotify
+            # Not needed to build or run MeBi either. `MeBi Config Draw Engine
+            # Graphviz` has Graphviz's `dot` draw a diagram; without it the
+            # plugin warns, keeps the .dot file and works as usual, and the few
+            # tests that run `dot` are skipped.
+            graphviz
           ];
 
           # If an opam package fails to build citing a missing system library,
