@@ -45,6 +45,40 @@ The default time limit (60 s) therefore lets the default bound and
 `MeBi Config Bounds Draw Time` raised with it. A program stopped at the
 limit is killed and reported as a warning; the TeX files stay.
 
+(That is for `Labels Beside`, the placement these figures were measured
+with. The default has since become `Labels OnEdge`; see the next section,
+which moves the limit.)
+
+## Labels as nodes of the layout (2026-11-02)
+
+`Labels OnEdge`, the default since `fix/draw-label-nodes`, makes each
+arrow's label a node of the layout and the arrow two, so the layout has
+about 2.4 times the nodes. Measured with the same generator, seed, and
+command as above, against `Labels Beside` (one run each, one synthetic
+graph per size):
+
+| states | arrows | `Beside` | `OnEdge` | factor |
+|---:|---:|---:|---:|---:|
+| 31 | 44 | 1.7 s | 3.8 s | 2.2 |
+| 50 | 68 | 2.7 s | 7.0 s | 2.6 |
+| 60 | 81 | 3.3 s | 8.5 s | 2.6 |
+| 75 | 108 | 11.5 s | 40.2 s | 3.5 |
+| 100 | 145 | 20.5 s | 84.7 s | 4.1 |
+
+A different host from the one above: an Intel Core Ultra 5 125U (14
+threads), 14GB RAM, Linux 7.0.0-42-generic, TeX Live 2025 from Nix
+(LuaHBTeX 1.22.0, pgf 3.1.11a). The `Beside` column reproduces the first
+table's figures (1.7, 2.7, 11.5 against 11.7, 20.5 against 20.8), so the two
+hosts are comparable for this purpose. Same cap (`MemoryMax=3G`).
+
+The factor grows with size, as the layout's time does. So the default bound
+(50 states) stays far inside the 60 s limit, **but `Bounds Draw States 100`
+no longer finishes under `OnEdge` without `Bounds Draw Time` raised** (84.7 s
+against 60 s); `Labels Beside` still does. Memory was not measured for these
+runs. Two figures the devlog had for label nodes were estimates and were
+wrong: "about 20 s at 50 states" (7.0 s) and "about 1.8 times at 31 states"
+(2.2 times).
+
 ## An earlier series, and what it says about the figures
 
 The same afternoon, a first prototype (a throwaway `awk` turning the
