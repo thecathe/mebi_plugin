@@ -10241,6 +10241,57 @@ Refactor 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `MeBi Draw`: a tighter, bolder, rounder look, and the forward path kept straight
+
+**New feature** (a change to the default look, asked for), **Bug fix** (the harsh
+angles) and **Docs**. On `feat/draw-look`. Jonah, having looked at the pictures,
+said: keep the `Labels` switch; he did not remember the earlier pictures looking
+like these and wanted to know whether label-as-node was what he had asked for
+(the edge through the label's centre); why the arrows are no longer curved; the
+vertical spacing in `Down` should shrink, the edges be thicker and the label
+padding slightly larger; in `Right` the labels between the states are cramped,
+and the far labels (`Select coffee`, τ) give their edges harsh angles. The
+default direction stays `Down`; he will set `Right` himself for the talk.
+
+- **Label-as-node, and the curves, honestly.** The edge through the label's
+  centre is what label-as-node does, and it is the same idea as the Graphviz
+  pictures of the devlog (`a -> l -> b`). What differed is the router: those were
+  Graphviz's splines, and the layered layout in LuaTeX has one router, polylines
+  (a corner at every bend, and one where the two halves meet at a label). The
+  stock standalone picture was never curved either. I used what the layout's own
+  documentation recommends, `rounded corners` on the edges, which turns the
+  bends into curves; the junction at a label is hidden by the label's white box.
+  True splines would need Graphviz (the deferred optional engine), or drawing
+  Béziers ourselves after the layout, which would drop the layout's routing
+  around nodes for long arrows. Not done.
+- **The harsh angles had a cause.** A long arrow back is a chain of dummy nodes,
+  and the layout straightens an arrow in proportion to its weight (more, for the
+  segments between dummy nodes), so it pulled `Idle` and `Ready` into the row of
+  its label, and the forward path bent to meet them. Both halves of an arrow back
+  now have `weight=0.2`. Tried 0 and 0.2 on the five-state cycle (the same
+  picture) and the classic machine (both fine); 0.2 so that the label node is
+  never entirely free. The forward path is now one straight row (or column).
+- **The defaults, chosen by rendering variants and looking** (the five-state cycle
+  and the 18-state classic machine): `Layout` grows down with `level distance` 10 mm
+  (was 18) and right with 30 mm (was 18, where the labels were squeezed against
+  the states); `Edge` is `thick` (was `thin`) with `rounded corners=10pt`; `Label`
+  has `inner sep=2.5pt` (was 1pt). All are styles, so each can be changed back
+  with `MeBi Config Draw Style`. The values are mine, picked by eye on two
+  examples: expect to tune them. `Beside` uses the same distances, which suit it
+  less (a label beside its arrow wants more room); the help says so.
+- **Checked.** Library tests 318/318 (the pinned values updated; one more pins the
+  new look); a full `dune build`; `Simple.v` (coloured) and the classic machine
+  through the plugin, `Down` and `Right`: the chains straight, the corners
+  rounded, the labels spaced and framed. Layout time of the synthetic graphs
+  with the weight and the new look (label nodes, as before): 31 states 3.7 s,
+  50 states 6.7 s, 75 states 41.5 s (3.6, 6.4, 41.0 before): unchanged. **The `make`
+  gate, before the merge:** a full `make -j$(nproc)`, exit 0, 62 s, no warnings from `lib/` or `src/`.
+
+**Session tally (2026-11-02, this entry):** New feature 1 · Bug fix 1 · Docs 1 ·
+Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

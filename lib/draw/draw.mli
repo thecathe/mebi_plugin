@@ -100,7 +100,8 @@ val back_arrows : t -> (int * int) list
     pair of states are then not bent apart, as each has a label node to
     itself. An arrow in {!back_arrows} is laid out from its target to its
     source, each half spanning as many layers as the longest path it closes
-    has arrows, so that its label sits half way along it; its arrowhead is a
+    has arrows, so that its label sits half way along it, and a low [weight], so
+    that it does not pull the path it closes out of line; its arrowhead is a
     decoration of the first half ({!Draw_style.back_tip}), which the layout
     does not read as the arrow's direction. An arrow whose {!kind_of} has a
     colour in [style] ({!Draw_style.kind_colour}), or, if not, one that is

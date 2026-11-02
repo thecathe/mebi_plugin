@@ -440,9 +440,11 @@ let text : string list -> string option = function
           Direction: Down (the default) grows the layout downwards, a layer \
           below the one before; Right grows it to the right, which makes a \
           picture wider than it is tall (landscape), as a talk slide is. It \
-          adds grow=right to Layout's default, which your own Layout options \
-          still follow. With Beside, the labels of a Right layout are squeezed \
-          between the layers.\n\n\
+          adds grow=right and a larger level distance to Layout's default, \
+          which your own Layout options still follow. The distances are \
+          chosen for OnEdge: with Beside a label sits beside its arrow and \
+          may want more room (MeBi Config Draw Style \"Layout\" \
+          \"level distance=18mm\").\n\n\
           Kind: nothing is coloured unless you say so. A kind is the first \
           word of a label (the kind of Insert ten is Insert); Kind \"Insert\" \
           \"blue!75!black\" colours the arrows of that kind, their labels' \

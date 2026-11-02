@@ -424,8 +424,15 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   `\arrowreversed`) of the first half, which the layout does not see.
   `minimum layers` alone, on the arrow as it was, made it worse: only the
   half that closes the cycle is reversed, so the label stays one layer from
-  the source. Colour per kind of label is done too (below). Left: the
-  Graphviz engine.
+  the source. Colour per kind of label is done too (below). The look was
+  made tighter, bolder and rounder the same day (`Layout` 10 mm down and 30 mm
+  right, `Edge` `thick` with `rounded corners=10pt`, `Label` `inner sep=2.5pt`),
+  and both halves of an arrow back got `weight=0.2`, which keeps the path it
+  closes straight. The layered layout has one router, polylines, so the arrows
+  are polylines with rounded corners and not the splines the Graphviz pictures
+  had; splines need Graphviz (the optional engine), or Béziers drawn after the
+  layout, which would lose the layout's routing around nodes for long arrows.
+  Left: the Graphviz engine.
 - **A Graphviz engine** (optional, see above). Written for Graphviz, the
   rule for a back edge (found by a depth-first search from the initial
   state) is: lay it out reversed, and pin its label half way with `minlen`
