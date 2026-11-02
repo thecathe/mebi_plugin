@@ -219,6 +219,18 @@ let last_used : int ref = ref 0
     that the next command over the limit gets one compaction. *)
 let may_compact : bool ref = ref true
 
+(** Whether a command is tracked ({!start_tracking}). *)
+let tracking : bool ref = ref false
+
+(** The bytes in use when tracking began, [None] if they could not be read. *)
+let started_at : int option ref = ref None
+
+(** The most {!check} has read since tracking began. *)
+let peak_seen : int ref = ref 0
+
+(** The phase and the limit of the {!Exceeded} raised since tracking began. *)
+let stopped_at : (string * int) option ref = ref None
+
 (* See the [.mli]. A check skips the read only while the last one was
    under the limit: otherwise a command that starts within {!interval} of
    one stopped by the limit would skip its read and run on.
@@ -230,20 +242,26 @@ let may_compact : bool ref = ref true
    once per raise, as a compaction of a large heap takes seconds: a
    command that is genuinely over the limit compacts once and stops. *)
 let check (phase : string) : unit =
-  match !limit with
-  | None -> ()
-  | Some limit ->
+  if Stdlib.Option.is_some !limit || !tracking
+  then (
     let now : float = Unix.gettimeofday () in
-    if now -. !last_read >= interval || !last_used > limit
+    let over_last : bool =
+      match !limit with Some l -> !last_used > l | None -> false
+    in
+    if now -. !last_read >= interval || over_last
     then (
       last_read := now;
       let read () : int option =
         let x = used () in
-        Stdlib.Option.iter (fun u -> last_used := u) x;
+        Stdlib.Option.iter
+          (fun u ->
+            last_used := u;
+            if u > !peak_seen then peak_seen := u)
+          x;
         x
       in
-      match read () with
-      | Some u when u > limit ->
+      match read (), !limit with
+      | Some u, Some limit when u > limit ->
         let u : int =
           if !may_compact
           then (
@@ -255,6 +273,40 @@ let check (phase : string) : unit =
         if u > limit
         then (
           may_compact := true;
+          stopped_at := Some (phase, limit);
           raise (Exceeded { phase; used = u; limit }))
-      | _ -> ())
+      | _ -> ()))
+;;
+
+(* See the [.mli]. *)
+type report =
+  { start : int
+  ; peak : int
+  ; limit : int option
+  ; stopped_in : string option
+  }
+
+(* See the [.mli]. *)
+let start_tracking () : unit =
+  tracking := true;
+  stopped_at := None;
+  let u : int option = used () in
+  started_at := u;
+  peak_seen := Stdlib.Option.value ~default:0 u
+;;
+
+(* See the [.mli]. *)
+let stop_tracking () : report option =
+  tracking := false;
+  let ended : int = Stdlib.Option.value ~default:0 (used ()) in
+  let peak : int = Stdlib.Int.max !peak_seen ended in
+  Stdlib.Option.map
+    (fun (start : int) ->
+      { start
+      ; peak = Stdlib.Int.max start peak
+      ; limit =
+          (match !stopped_at with Some (_, l) -> Some l | None -> !limit)
+      ; stopped_in = Stdlib.Option.map fst !stopped_at
+      })
+    !started_at
 ;;

@@ -456,8 +456,16 @@ let text : string list -> string option = function
           on: a MeBi Run, Draw or Benchmark command, or a MeBi Sim command \
           (Solve, Step, Begin), that takes that long or longer ends with a \
           notification naming it and how long it took, whether it succeeded or \
-          ended with an error. After 0 announces every command. A command run \
-          from inside another does not announce itself.\n\n\
+          ended with an error, and a line in the output saying the same. Both \
+          give the most memory the process reached against the memory bound \
+          (MeBi Config Bounds Memory), and what it held when the command \
+          began: Peak memory 3.1 GB of the 11.7 GB bound (26%%), up from 2.4 \
+          GB at its start. That is the process's, not the command's own: \
+          memory earlier commands left counts, which is why the start is \
+          given. A command the memory bound stopped says so, and where, \
+          instead of reporting an error. A shorter command prints and sends \
+          nothing. After 0 announces every command. A command run from inside \
+          another does not announce itself.\n\n\
           It runs notify-send (the libnotify package) and needs a notification \
           server in the desktop session; MeBi needs neither. Where notify-send \
           is not on PATH, or nothing receives the message, the command \
