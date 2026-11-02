@@ -10398,6 +10398,28 @@ New feature 0 · Refactor 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — A correction: what the author dropped about Graphviz
+
+**Docs.** On `docs/graphviz-clarified`. After the previous entry's session the
+author clarified: they were dropping my standalone *re-engineering* of Graphviz's
+splines (the prototype that re-drew `dot`'s output in TikZ), and **actively want
+the behaviour of the actual Graphviz**. I had read it as dropping Graphviz and
+had written, in the devlog and in my summary, that "the Graphviz engine is set
+aside"; that was wrong. `scripts/dump2dot.py` (previous entry) is on the route
+they want, since Graphviz draws its own picture.
+
+- **Corrected:** `OUTSTANDING.md` and `doc/future-work.md` (the item is now
+  "Graphviz inside the plugin", by the script's route: write DOT, let `dot` draw;
+  the TikZ-redrawing engine is marked dropped) and the devlog's 6.14 and index.
+  The estimate in `future-work.md` was for the dropped route; the cheaper route
+  has its own, marked as an estimate (about 150 lines and 100 of tests).
+- **Not done:** putting Graphviz in the plugin. That is the author's to ask for.
+
+**Session tally (2026-11-02, this entry):** Docs 1 · Bug fix 0 · New feature 0 ·
+Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
