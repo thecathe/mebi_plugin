@@ -10350,6 +10350,51 @@ Refactor 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `scripts/dump2dot.py`: diagrams from the plain-text dumps, with Graphviz
+
+**Tooling**, and **Docs**. On `feat/dump2dot`. The author found the Graphviz
+prototype's output on the `classic` examples unusable as it stood ("random
+kinks in the edges and detached arrows") and asked me not to go on towards a
+plugin engine, but for a means of drawing a diagram from the plain-text dumps
+with a script that uses Graphviz, outside the plugin.
+
+- **What the kinks were.** My prototype re-drew `dot`'s splines in TikZ and
+  joined the pieces itself; the detached arrowheads and the kinks were that
+  conversion's. I had looked at the classic machine at a reduced size and
+  called it good; the author was right and I was too generous. The script does
+  not convert anything: Graphviz draws its own picture (`dot -Tpng|pdf|svg`).
+- **The script** (`scripts/dump2dot.py`, Python standard library only, `dot` on
+  the PATH or `--dot`/`$DOT`): reads the text dump of an LTS or FSM (the
+  header, `states:`, `labels:` with the silent one marked, `transitions:` or
+  `edges:`), tidies the text as `MeBi Draw` does, merges parallel arrows, writes
+  `<name>.dot` and the picture into `./_diagrams/`. `--latest` takes the newest
+  graph dump in `_dumps/` (skipping a bisimilarity result, which is not one).
+  Options: `--rankdir LR` (landscape), `--labels node|edge`, `--kind K=COLOUR`
+  and `--kind-default` (explicit, as in the plugin), `--outline`, `--numbers`,
+  `--font`, `--fontsize`, `--ranksep`, `--nodesep`, `--max-states` (150: a
+  bigger dump is refused), `-T`.
+- **One real finding while writing it.** With each label a node of the layout
+  (`a -> l -> b`) Graphviz routes the two halves independently, and where they
+  met the lines did not line up: a kink at every label that was off the line.
+  Giving both halves a port on the label's centre (`headport=n`, `tailport=s`;
+  `w` and `e` growing right) makes the line pass straight through it. An arrow
+  back is laid out target to source with its head at the target (`dir=back`) and
+  `minlen` the length of the longest path it closes, so its label is half way:
+  the rule of the devlog, now in a script that Graphviz draws natively.
+- **Checked.** 31 unit tests (30 without Graphviz; the rendering test skips
+  without `dot`); the script on real dumps of the five-state cycle, the three
+  coffee machines (18, 31 and 23 states) and a saturated FSM, down and right,
+  looking at the pictures at full size: no detached arrowheads; labels on their
+  lines; the silent step's line as short as any other (Graphviz measures from
+  the borders). Not checked: other Graphviz versions (15.1.1 only), `dot` fonts
+  other than its default, and dumps over 31 states (a few have crossings).
+  No OCaml changed, so no `make` run.
+
+**Session tally (2026-11-02, this entry):** Tooling 1 · Docs 1 · Bug fix 0 ·
+New feature 0 · Refactor 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
