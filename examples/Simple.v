@@ -16,7 +16,8 @@ match d with | tea => 10 | coffee => 20 end.
 Inductive interface : Set :=
 | Select (d : drink)
 | Insert (c : coin)
-| Output (d : drink).
+| Output (d : drink)
+| ChipNPin.
 
 MeBi Config Weak As Option interface.
 
@@ -57,7 +58,7 @@ MeBi Draw LTS init Using lts As "0simple-right".
 MeBi Config Draw Direction Down.               (* Down | Right: Right is landscape *)
 MeBi Draw LTS init Using lts As "0simple-down".
 
-
+(*
 Definition drinks_upgrade : list drink := [coffee;tea].
 
 Inductive lts_upgrade : mode -> option interface -> mode -> Prop :=
@@ -66,16 +67,39 @@ Inductive lts_upgrade : mode -> option interface -> mode -> Prop :=
 | prepare' d n : In d drinks_upgrade -> Nat.eqb n (price d) = true -> lts_upgrade (Paid n d) None (Ready d)
 | payment' d n c : In d drinks_upgrade -> In c coins -> Nat.leb (n + value c) (price d) = true ->
               lts_upgrade (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
+*)
+
+(* Inductive interface' : Set :=
+| uSelect (d : drink)
+| uInsert (c : coin)
+| uOutput (d : drink)
+| ChipNPin. *)
+
+(* MeBi Config Weak As Option interface'. *)
+
+Inductive lts' : mode -> option interface -> mode -> Prop :=
+| select'  d : In d drinks -> lts' Idle (Some (Select d)) (Paid 0 d)
+| output'  d : In d drinks -> lts' (Ready d) (Some (Output d)) Idle
+| prepare' d n : In d drinks -> Nat.eqb n (price d) = true -> lts' (Paid n d) None (Ready d)
+| chip d : In d drinks -> lts' (Paid 0 d) (Some ChipNPin) (Paid (price d) d)
+| payment' d n c : In d drinks -> In c coins -> Nat.leb (n + value c) (price d) = true ->
+              lts' (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
+
 
 (* MeBi Config Output "DumpResults" True.
 MeBi Config Output Format Text. *)
 
-MeBi Run LTS init Using lts_upgrade.
-MeBi Config Draw Format PNG.                    (* TeX | PDF | PNG *)
 
-MeBi Draw LTS init Using lts_upgrade As "0simple-upgrade-down".
+
+MeBi Config Draw Kind "ChipNPin" "red!75!black".
+
+MeBi Run LTS init Using lts'.
+MeBi Config Draw Format PNG.                    (* TeX | PDF | PNG *)
+MeBi Config Draw Direction Down.               (* Down | Right: Right is landscape *)
+
+MeBi Draw LTS init Using lts' As "0simple-upgrade-down".
 
 MeBi Config Draw Direction Right.               (* Down | Right: Right is landscape *)
-MeBi Draw LTS init Using lts_upgrade As "0simple-upgrade-right".
+MeBi Draw LTS init Using lts' As "0simple-upgrade-right".
 
 
