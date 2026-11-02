@@ -134,7 +134,13 @@ turns the pin into a positive test.
   node of the layout, which keeps room for it, at 2.2 times the layout time at
   31 states and 4.1 times at 100, where it takes 85 s against the 60 s limit
   (`doc/measurements/draw-layout-time.md`); `MeBi Config Draw Labels Beside`
-  gives the cheaper, older placement back. The label of an arrow back to a
+  gives the cheaper, older placement back. The layered layout keeps its
+  layers a fixed distance apart from centre to centre, so when growing right
+  a narrow label (the silent step's tau) leaves a longer visible line than a
+  wide one, and the arrows are polylines (rounded at their corners), so an
+  arrow back growing down is an S-curve: both are the router's and the
+  layout's, and Graphviz's measure from the borders and draw splines
+  (`doc/future-work.md`). The label of an arrow back to a
   state it follows is half way along the longest path the arrow closes, not
   always half way along the arrow: the layout may stretch the arrow beyond
   that path, when the label sits nearer one end. Ways out, and the Graphviz

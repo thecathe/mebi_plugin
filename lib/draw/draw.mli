@@ -103,7 +103,9 @@ val back_arrows : t -> (int * int) list
     has arrows, so that its label sits half way along it, and a low [weight], so
     that it does not pull the path it closes out of line; its arrowhead is a
     decoration of the first half ({!Draw_style.back_tip}), which the layout
-    does not read as the arrow's direction. An arrow whose {!kind_of} has a
+    does not read as the arrow's direction. Each half leaves and arrives at
+    the side of its two ends that {!Draw_style.forward}, {!Draw_style.back_first}
+    and {!Draw_style.back_second} name. An arrow whose {!kind_of} has a
     colour in [style] ({!Draw_style.kind_colour}), or, if not, one that is
     not silent and there is a colour for {!Draw_style.Default}, is given the
     style for that kind ({!Draw_style.use_kind}) and its label the other

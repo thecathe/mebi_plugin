@@ -10292,6 +10292,64 @@ Refactor 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `MeBi Draw`: cardinal sides, a narrower right layout, the outline off, and a Graphviz prototype
+
+**New feature** (three changes to the default look, asked for, and one switch,
+`Draw Outline`), **Docs**, and a throwaway prototype that is not in the plugin.
+On `feat/draw-sides`. Jonah, looking at the pictures again, said: he had not
+required the label to be a node, only to be in the right place; he explicitly
+did not like `simple-down-colour.png` with the curved edges, and wondered if
+leaving the states from their cardinal sides would help; asked whether Graphviz-
+style splines are feasible and how much work they are; `Down`'s vertical spacing
+is far better now; `Right`'s horizontal spacing is too much (perhaps half the
+difference), and the visible line between a state and a label should not count
+the label's own width (the tau edge is far too wide); and to try the label's
+coloured outline off.
+
+- **Label as node.** In both engines a node is only how room is kept for a
+  label; what is drawn is the label on the line. Nothing about the placement
+  needed it to be visible as one.
+- **Cardinal sides** (the layered layout has `tail anchor` and `head anchor`):
+  each half of an arrow between states leaves and arrives at the sides facing the
+  way the layout grows, and an arrow back at the other sides (three internal
+  styles, defined for the direction). Tried before writing, on the five-state
+  cycle, with and without rounded corners. It helps: clean attachment points, the
+  arrow back in `Right` is a clean arc over the top, a fan of arrows from one
+  point in the 18-state machine. It does **not** cure `Down`: the arrow back
+  leaves and enters diagonally between layers, so it is an S-curve with rounded
+  corners and a jagged polyline without. That is the router's.
+- **`Right`'s level distance: 24 mm** (half the difference between 18 and 30). The
+  second ask, a visible line that does not count the label's width, is **not
+  possible in this engine**: the layered layout keeps its layers a fixed distance
+  apart from centre to centre (its own comment says large nodes may force more),
+  so a narrow label such as tau always leaves a longer line. I did not find a
+  setting that changes it. Graphviz measures from the borders.
+- **The outline is off by default** and `MeBi Config Draw Outline On | Off` sets
+  it (kept as a switch since it was "to try"; one line restores it).
+- **The Graphviz prototype** (a Python script, in the devlog; `dot` 15.1.1 fetched
+  for the session with `nix shell nixpkgs#graphviz`, nothing added to the
+  profile): measure with TeX, write DOT with each label a node, run `dot -Tplain`,
+  draw each piece as `dot` routed it in the plugin's named styles. On the
+  five-state cycle and the 18-state coffee machine, down and right: smooth
+  splines, a straight forward chain, uniform visible lines, the arrow back's label
+  half way, about 1.2 to 1.7 s. Its estimate and its gaps are in
+  `doc/future-work.md`. **Not built into the plugin**: it is the optional engine
+  whose design is still the author's to decide.
+- **Corrections to me.** I had offered rounded corners as the closest the
+  layered layout gets to curves, and reported the pictures as right; the author
+  disliked the result in `Down`, where the arrow back is an S-curve (I had looked
+  at it and not judged it). I also said `Right`'s gaps were "well spaced" at
+  30 mm; the tau edge showed they were not.
+- **Checked.** Library tests 320/320 (the pinned strings updated; new ones for the
+  anchors, the outline and its description); a Rocq-level test; a full `dune
+  build`; **a full `make -j$(nproc)` before the merge** (exit 0, 61 s, no warnings
+  from `lib/` or `src/`); `Simple.v` and the classic machine through the plugin.
+
+**Session tally (2026-11-02, this entry):** New feature 1 · Docs 1 · Bug fix 0 ·
+Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

@@ -66,6 +66,18 @@ val direction_name : direction -> string
     once, in {!tikzset}. *)
 val back_tip : string
 
+(** The names of three styles an arrow's halves add on the edge
+    ({!Draw.picture}): {!forward} to each half of an arrow between two states,
+    and {!back_first}, {!back_second} to the halves of an arrow back
+    ({!Draw.back_arrows}), its target's and its source's. Each says which side
+    of its two ends the half leaves from and arrives at ([tail anchor] and
+    [head anchor]), as {!tikzset} defines them for the layout's direction.
+    They are not {!component}s. *)
+val forward : string
+
+val back_first : string
+val back_second : string
+
 (** [balanced opts] is whether the braces in [opts] close in order. Options
     with unbalanced braces would swallow the rest of the style file, so
     callers refuse them. Raises nothing. *)
@@ -111,8 +123,8 @@ val get : component -> t -> string
 
 (** [set_kind k colour s] is [s] with [k]'s colour [colour], a colour name or
     an xcolor expression, such as [red] or [blue!75!black]: it colours the
-    arrows of that kind, their labels' text, and a light frame round the
-    labels. A blank [colour] clears it. Nothing is coloured that was not
+    arrows of that kind and their labels' text (and, with {!set_outline}, a
+    light frame round the labels). A blank [colour] clears it. Nothing is coloured that was not
     given a colour. Raises nothing. *)
 val set_kind : kind -> string -> t -> t
 
@@ -123,8 +135,16 @@ val kind_colour : kind -> t -> string option
     name, then {!Default}. Raises nothing. *)
 val kinds : t -> (kind * string) list
 
-(** [is_default s] is whether nothing of [s] is set: no component's options
-    and no kind's colour. Raises nothing. *)
+(** [set_outline b s] is [s] with the coloured outline of a kind's labels
+    on ([true]) or off ([false], the default): a light frame, 40% of the
+    kind's colour, with rounded corners. Raises nothing. *)
+val set_outline : bool -> t -> t
+
+(** [outline s] is whether [s] has the outline on. Raises nothing. *)
+val outline : t -> bool
+
+(** [is_default s] is whether nothing of [s] is set: no component's options,
+    no kind's colour and no outline. Raises nothing. *)
 val is_default : t -> bool
 
 (** [describe s] is a sentence saying which components of [s] are set, and the
