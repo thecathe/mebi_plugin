@@ -2591,6 +2591,16 @@ let test_draw_run () : unit =
     true
     (Draw_output.run ~timeout:5. ~dir:tmp [ "sh"; "-c"; "exit 0" ]
      = Draw_output.Exited 0);
+  (let path = Sys.getenv_opt "PATH" in
+   Unix.putenv "PATH" "";
+   let r = Draw_output.run ~timeout:5. ~dir:tmp [ "true" ] in
+   Unix.putenv "PATH" (Option.value path ~default:"");
+   check
+     "with no sh, the program is unrunnable, and it is sh the message names"
+     true
+     (match r with
+      | Draw_output.Unrunnable m -> contains ~sub:"sh, which launches it" m
+      | _ -> false));
   check
     "a program that does not exist exits 127"
     true
