@@ -10389,6 +10389,9 @@ with a script that uses Graphviz, outside the plugin.
   the borders). Not checked: other Graphviz versions (15.1.1 only), `dot` fonts
   other than its default, and dumps over 31 states (a few have crossings).
   No OCaml changed, so no `make` run.
+- **A slip, mine.** `git add scripts` committed Python's `scripts/__pycache__/*.pyc`
+  (created by running the tests) and they were merged; removed in the next
+  commit, with `__pycache__/` ignored. I should have staged the two files by name.
 
 **Session tally (2026-11-02, this entry):** Tooling 1 · Docs 1 · Bug fix 0 ·
 New feature 0 · Refactor 0 · Optimization 0.
