@@ -433,7 +433,22 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   had; splines need Graphviz (the optional engine), or Béziers drawn after the
   layout, which would lose the layout's routing around nodes for long arrows.
   Left: the Graphviz engine.
-- **A Graphviz engine** (optional, see above). **Prototyped 2026-11-02** (a
+- **Graphviz, the actual Graphviz** (clarified by the author, 2026-11-02: they
+  actively want Graphviz's own behaviour, its splines and its layout; what they
+  dropped was my *re-drawing* of `dot`'s output in TikZ, whose kinks and
+  detached arrowheads were that conversion's). `scripts/dump2dot.py` is that
+  now: DOT in, `dot` draws, from the plain-text dumps. **Into the plugin, the
+  cheap way is the script's, not the prototype's below:** write DOT from the
+  `Draw.t` the plugin already builds (the tidying, the merged arrows, the arrows
+  back and their longest paths and the kinds are all there), run `dot -T pdf|png|svg`
+  with the existing `Draw_output.run` and its time limit, and leave the `.dot`
+  if `dot` is absent. No TeX measurement, no `-Tplain` parser and no TikZ
+  emitter. My estimate, not measured: about 150 lines of OCaml and 100 of tests,
+  a few hours, plus the settings (an `Engine`, and Graphviz's `rankdir`,
+  `ranksep`, `nodesep` and font). The price, as in the 2026-11-01 entry: the
+  text is in Graphviz's font and not the document's, and the picture cannot be
+  restyled from LaTeX. The estimate and the notes below are for the other route.
+- **A Graphviz engine that re-draws in TikZ** (dropped; see above). **Prototyped 2026-11-02** (a
   throwaway script, not in the plugin; the devlog has it): from the picture the
   plugin writes it takes the states, arrows, kinds and labels; measures each
   state and label with TeX in the picture's own styles (one `lualatex` run), so
