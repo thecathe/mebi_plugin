@@ -10179,6 +10179,30 @@ Refactor 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — The `make` build: `Int.max`
+
+**Bug fix** and **Docs**. On `fix/make-int-max`. After the two draw merges Jonah
+ran `make dune && make -j$(nproc)` and got `Unbound value Int.max` in
+`lib/draw/draw.ml`. Under `make`'s packed build `Int` is Rocq's module, which has
+no `max`; `dune` resolves it to Stdlib's. **A mistake of process, mine:** I had
+run only `dune build`, the pure-OCaml test binary and scratch `rocq compile`
+runs, and merged with "Not run: `make`" in my own entries, although `CLAUDE.md`
+says in two places that `make` rejects what `dune` accepts (and names `Option`,
+the same trap). The `make` gate belongs *before* a merge whenever `lib/` or `src/`
+changed, not after; I have now run it that way.
+
+- Fix: `Stdlib.Int.max`, two uses, `lib/draw/draw.ml`.
+- Checked: a full `make -j$(nproc)` in a fresh worktree from `main` with the
+  fix: exit 0, 57 s, the existing warnings only, `test/rocq/Test.v` and the
+  examples included. The first run of `make -k` found only this error. That
+  `make` build had not covered the earlier label-node and direction commits
+  either, and it covers them now.
+
+**Session tally (2026-11-02, this entry):** Bug fix 1 · Docs 1 · Refactor 0 ·
+New feature 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
