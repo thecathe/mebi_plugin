@@ -1735,7 +1735,7 @@ let test_draw_picture () : unit =
     e1[as={$\tau$}, mebi silent label];
     s1 ->[mebi silent edge, -] e1 ->[mebi silent edge] s2;
     e2[as={serve}, mebi label];
-    s0 --[mebi edge, -, mebi back tip, minimum layers=2] e2 --[mebi edge, -, minimum layers=2] s2;
+    s0 --[mebi edge, -, mebi back tip, minimum layers=2, weight=0.2] e2 --[mebi edge, -, minimum layers=2, weight=0.2] s2;
   };
   \path (s1) edge[mebi edge, mebi loop, "{tick, tock}"] (s1);
   \node[mebi caption, anchor=north] at (current bounding box.south) {Incomplete: some states or transitions may be missing.};
@@ -1817,8 +1817,8 @@ let test_draw_picture () : unit =
      && contains ~sub:"s0 ->[mebi edge, -] e0 ->[mebi edge] s1;" on_edge
      && contains
           ~sub:
-            "s0 --[mebi edge, -, mebi back tip, minimum layers=1] e1 --[mebi \
-             edge, -, minimum layers=1] s1;"
+            "s0 --[mebi edge, -, mebi back tip, minimum layers=1, weight=0.2] \
+             e1 --[mebi edge, -, minimum layers=1, weight=0.2] s1;"
           on_edge);
   check
     "a state's arrow to itself keeps its quoted label, drawn after the layout"
@@ -1929,8 +1929,8 @@ let test_draw_back_arrows () : unit =
     true
     (contains
        ~sub:
-         "s0 --[mebi edge, -, mebi back tip, minimum layers=4] e4 --[mebi \
-          edge, -, minimum layers=4] s4;"
+         "s0 --[mebi edge, -, mebi back tip, minimum layers=4, weight=0.2] e4 \
+          --[mebi edge, -, minimum layers=4, weight=0.2] s4;"
        p
      && count_sub ~sub:"mebi back tip" p = 1);
   check
