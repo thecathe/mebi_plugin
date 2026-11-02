@@ -234,10 +234,10 @@ MeBi Config Draw Style "Edge" "draw=blue, thick".
 MeBi Config Draw Style "State" "".                        (* back to the default *)
 ```
 
-Colour is by *kind* of label, the first word of it (the kind of `Insert ten` is `Insert`), and explicit: nothing is coloured unless you say so.
+Colour is by *kind* of label, the first word of it (the kind of `Insert ten` is `Insert`), and explicit: nothing is coloured unless you say so. `MeBi Config Draw Outline On` also puts a light frame, in the kind's colour, round the labels of the kinds with a colour.
 
 ```
-MeBi Config Draw Kind "Select" "green!50!black".          (* its arrows, its labels' text and a light frame round them *)
+MeBi Config Draw Kind "Select" "green!50!black".          (* its arrows and its labels' text *)
 MeBi Config Draw Kind "Insert" "blue!75!black".
 MeBi Config Draw Kind Default "black".                    (* every other kind, in the one colour *)
 MeBi Config Draw Kind "Insert" "".                        (* no colour of its own again *)
@@ -335,6 +335,7 @@ MeBi Config Draw Labels OnEdge|Beside.             (* a label on its arrow, as a
 MeBi Config Draw Direction Down|Right.             (* the way the layout grows; Right makes a wide (landscape) picture; default Down *)
 MeBi Config Draw Kind "<Kind>" "<colour>".         (* colour the arrows and labels whose label starts with <Kind>; nothing is coloured unless set *)
 MeBi Config Draw Kind Default "<colour>".          (* the colour of those whose kind has none of its own *)
+MeBi Config Draw Outline On|Off.                   (* a light frame, in the kind's colour, round the labels of the kinds with a colour; default Off *)
 MeBi Config Draw Dir "<dir>".                      (* default ./_diagrams/ *)
 MeBi Config Draw Style "<Component>" "<TikZ options>".
 MeBi Config Notify After <s>.                         (* a notification, and a line saying the time and memory, when a command takes <s> seconds or more; off by default *)

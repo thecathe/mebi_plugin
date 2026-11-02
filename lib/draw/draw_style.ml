@@ -122,10 +122,11 @@ type kind =
 type t =
   { components : (component * string) list
   ; kinds : (kind * string) list
+  ; outline : bool
   }
 
 (* See the [.mli]. *)
-let empty : t = { components = []; kinds = [] }
+let empty : t = { components = []; kinds = []; outline = false }
 
 (* See the [.mli]. *)
 let get (c : component) (s : t) : string =
@@ -145,8 +146,14 @@ let set (c : component) (opts : string) (s : t) : t =
 
 (* See the [.mli]. *)
 let is_default (s : t) : bool =
-  List.is_empty s.components && List.is_empty s.kinds
+  List.is_empty s.components && List.is_empty s.kinds && not s.outline
 ;;
+
+(* See the [.mli]. *)
+let set_outline (b : bool) (s : t) : t = { s with outline = b }
+
+(* See the [.mli]. *)
+let outline (s : t) : bool = s.outline
 
 (* See the [.mli]. *)
 let valid_kind (k : string) : bool =
@@ -207,7 +214,7 @@ let describe (s : t) : string =
       (fun (k, c) -> Printf.sprintf "Kind %s: %s" (kind_name k) c)
       (kinds s)
   in
-  match components @ kinds with
+  match components @ kinds @ if s.outline then [ "Outline: On" ] else [] with
   | [] -> "every component has its default style"
   | set_ -> String.concat "; " set_
 ;;
@@ -224,6 +231,36 @@ let back_tip_definition : string =
    {\\arrowreversed{>}}}}"
 ;;
 
+(* See the [.mli]. *)
+let forward : string = "mebi forward"
+
+(* See the [.mli]. *)
+let back_first : string = "mebi back first"
+
+(* See the [.mli]. *)
+let back_second : string = "mebi back second"
+
+(** [anchor_definitions direction] define {!forward}, {!back_first} and
+    {!back_second}: the side of a state, or of a label, each half of an arrow
+    leaves from and arrives at. An arrow goes between the sides that face the
+    way the layout grows, and an arrow back leaves its state, and arrives at
+    it, from the side that does not (the right when growing down, the top when
+    growing right), so that it goes round the others. *)
+let anchor_definitions (direction : direction) : string list =
+  let f_tail, f_head, b1_tail, b1_head, b2_tail, b2_head =
+    match direction with
+    | Down -> "south", "north", "east", "north", "south", "east"
+    | Right -> "east", "west", "north", "west", "east", "north"
+  in
+  let def (name : string) (tail : string) (head : string) : string =
+    Printf.sprintf "  %s/.style={tail anchor=%s, head anchor=%s}" name tail head
+  in
+  [ def forward f_tail f_head
+  ; def back_first b1_tail b1_head
+  ; def back_second b2_tail b2_head
+  ]
+;;
+
 (** [default_in direction c] is [default c], but for {!Layout} the one that
     grows in [direction]. Growing right takes a larger level distance: at the
     one that suits growing down, the labels between the states are squeezed
@@ -232,7 +269,7 @@ let back_tip_definition : string =
 let default_in (direction : direction) (c : component) : string =
   match direction, c with
   | Right, Layout ->
-    "layered layout, grow=right, level distance=30mm, sibling distance=12mm"
+    "layered layout, grow=right, level distance=24mm, sibling distance=12mm"
   | _ -> default c
 ;;
 
@@ -276,7 +313,9 @@ let key (c : component) : string =
     in the same colour. A label quoted beside its arrow is drawn in the second
     by the first; a label that is a node of the layout is given the second
     directly. *)
-let kind_definitions ((k, colour) : kind * string) : string list =
+let kind_definitions ~(outline : bool) ((k, colour) : kind * string)
+  : string list
+  =
   [ Printf.sprintf
       "  %s/.style={draw=%s, every edge quotes/.style={%s, %s}}"
       (use_kind k)
@@ -284,10 +323,12 @@ let kind_definitions ((k, colour) : kind * string) : string list =
       (use Label)
       (use_kind_label k)
   ; Printf.sprintf
-      "  %s/.style={text=%s, draw=%s!40, rounded corners=5pt}"
+      "  %s/.style={text=%s%s}"
       (use_kind_label k)
       colour
-      colour
+      (if outline
+       then Printf.sprintf ", draw=%s!40, rounded corners=5pt" colour
+       else "")
   ]
 ;;
 
@@ -311,7 +352,8 @@ let tikzset ?(direction : direction = Down) (s : t) : string =
                 Printf.sprintf "  %s/.style={%s}" (key c) (body direction c s))
               components
             @ [ Printf.sprintf "  %s/.style={%s}" back_tip back_tip_definition ]
-            @ List.concat_map kind_definitions (kinds s))
+            @ anchor_definitions direction
+            @ List.concat_map (kind_definitions ~outline:s.outline) (kinds s))
        ; "}"
        ])
   ^ "\n"

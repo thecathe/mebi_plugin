@@ -397,6 +397,7 @@ let text : string list -> string option = function
           MeBi Config Draw Direction Down | Right.\n\
           MeBi Config Draw Kind \"<Kind>\" \"<colour>\".\n\
           MeBi Config Draw Kind Default \"<colour>\".\n\
+          MeBi Config Draw Outline On | Off.\n\
           MeBi Config Draw Dir \"<dir>\".\n\
           MeBi Config Draw Style \"<Component>\" \"<TikZ options>\".\n\
           MeBi Config Bounds Draw States <n>.\n\
@@ -441,22 +442,24 @@ let text : string list -> string option = function
           below the one before; Right grows it to the right, which makes a \
           picture wider than it is tall (landscape), as a talk slide is. It \
           adds grow=right and a larger level distance to Layout's default, \
-          which your own Layout options still follow. The distances are \
-          chosen for OnEdge: with Beside a label sits beside its arrow and \
-          may want more room (MeBi Config Draw Style \"Layout\" \
-          \"level distance=18mm\").\n\n\
+          which your own Layout options still follow. The distances are chosen \
+          for OnEdge: with Beside a label sits beside its arrow and may want \
+          more room (MeBi Config Draw Style \"Layout\" \"level \
+          distance=18mm\").\n\n\
           Kind: nothing is coloured unless you say so. A kind is the first \
           word of a label (the kind of Insert ten is Insert); Kind \"Insert\" \
-          \"blue!75!black\" colours the arrows of that kind, their labels' \
-          text and a light frame round their labels, in that colour (a colour \
-          name or an xcolor expression, such as red or green!50!black). Kind \
-          Default colours the same way the labels whose kind has no colour of \
-          its own. An arrow whose labels are of several kinds is of none, and \
-          a silent step is not coloured by kind (see SilentEdge and \
-          SilentLabel). An empty colour clears it. For example:\n\
+          \"blue!75!black\" colours the arrows of that kind and their labels' \
+          text in that colour (a colour name or an xcolor expression, such as \
+          red or green!50!black). Kind Default colours the same way the labels \
+          whose kind has no colour of its own. An arrow whose labels are of \
+          several kinds is of none, and a silent step is not coloured by kind \
+          (see SilentEdge and SilentLabel). An empty colour clears it. For \
+          example:\n\
          \  MeBi Config Draw Kind \"Select\" \"green!50!black\".\n\
          \  MeBi Config Draw Kind \"Insert\" \"blue!75!black\".\n\
-         \  MeBi Config Draw Kind Default \"black\".\n\n\
+         \  MeBi Config Draw Kind Default \"black\".\n\
+          Outline On puts a light frame, in the kind's colour, round the \
+          labels of the kinds with a colour; it is Off by default.\n\n\
           The defaults:\n\
           %s\n\n\
           To style a picture by hand, leave <name>.style.tikz out and define \

@@ -266,6 +266,11 @@ val set_draw_kind : string -> string -> unit
     steps are not coloured by kind. Shows the change. Raises nothing. *)
 val set_draw_kind_default : string -> unit
 
+(** [set_draw_outline b] puts a light frame, in the kind's colour, round the
+    labels of the kinds with a colour ([true]), or not ([false], the default),
+    and shows the change. Raises nothing. *)
+val set_draw_outline : bool -> unit
+
 (** [set_draw_labels l] chooses where [MeBi Draw] puts an arrow's label
     ({!Draw.labels}), and shows the change. Raises nothing. *)
 val set_draw_labels : Draw.labels -> unit
