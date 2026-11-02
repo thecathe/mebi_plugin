@@ -322,7 +322,7 @@ MeBi Config Reset [Bounds|Weak|FailIf|Output|Draw|Notify].
 MeBi Config Draw Format TeX|PDF|PNG.               (* what MeBi Draw makes; default PDF *)
 MeBi Config Draw Dir "<dir>".                      (* default ./_diagrams/ *)
 MeBi Config Draw Style "<Component>" "<TikZ options>".
-MeBi Config Notify After <s>.                         (* a desktop notification when a command takes <s> seconds or more; off by default *)
+MeBi Config Notify After <s>.                         (* a notification, and a line saying the time and memory, when a command takes <s> seconds or more; off by default *)
 MeBi Config Notify Off.
 MeBi Config Notify Test.                           (* send one now, to see that it works *)
 MeBi Config Bounds Draw States <n>.                (* most states drawn; default 50 *)
@@ -414,7 +414,7 @@ MeBi Config Notify After 30.    (* announce any command that takes 30 seconds or
 MeBi Config Notify Off.
 ```
 
-A `MeBi Run`, `Draw` or `Benchmark` command, or a `MeBi Sim` command (`Solve`, `Step`, `Begin`), that takes at least that long ends with a desktop notification naming it and how long it took, also when it ends with an error. It is off by default, and nothing in MeBi needs it: it runs `notify-send` (the `libnotify` package; `libnotify-bin` on Debian and Ubuntu, and in the dev shell of this repository's flake), which needs a notification server in your desktop session. Where `notify-send` is not on `PATH`, or nothing receives the message, the command finishes as usual and a single warning says why. It does not work over SSH, in a container or on CI, where there is no session to notify, and has not been tried on macOS or Windows. `MeBi Help Config Notify` has the same.
+A `MeBi Run`, `Draw` or `Benchmark` command, or a `MeBi Sim` command (`Solve`, `Step`, `Begin`), that takes at least that long ends with a desktop notification naming it and how long it took, also when it ends with an error, and with a line in the output saying the same. Both give the most memory the process reached while it ran, against the memory bound (`MeBi Config Bounds Memory`), and how much it held when the command began: for example `Peak memory 3.1 GB of the 11.7 GB bound (26%), up from 2.4 GB at its start`. That is the process's, not the command's own: memory an earlier command left behind counts, which is why the starting figure is given. A command the memory bound stopped says so (`Run Bisim was stopped by the memory bound`), and where, instead of reporting an error. A command shorter than the threshold prints and sends nothing. It is off by default, and nothing in MeBi needs it: it runs `notify-send` (the `libnotify` package; `libnotify-bin` on Debian and Ubuntu, and in the dev shell of this repository's flake), which needs a notification server in your desktop session. Where `notify-send` is not on `PATH`, or nothing receives the message, the command finishes as usual and a single warning says why. It does not work over SSH, in a container or on CI, where there is no session to notify, and has not been tried on macOS or Windows. `MeBi Help Config Notify` has the same.
 
 ### Diagnostics
 

@@ -9964,6 +9964,89 @@ self-contained, and not part of his personal configuration.
 **Session tally (2026-11-01, this entry):** New feature 1 · Tooling 1 · Docs 1 ·
 Refactor 1 · Bug fix 0 · Optimization 0.
 
+## 2026-11-02 — `MeBi Config Notify` reports the time and the memory, and says when the memory bound stopped a command
+
+**New feature** (an extension of the one above, asked for and agreed in the
+conversation before any code) and **Docs**. On branch `feat/notify-report`,
+`15cc927`, on top of `fork/main`. Jonah asked whether the notification, and
+the feedback, could state how long the command took and how much memory it
+used out of the configured bound, and that a command the bound stopped be shown
+as that rather than as an error. Two choices were theirs: report "the highest
+value the guard sees, set against the bound", and print the line "only above the
+notification threshold".
+
+- **What it does.** A command that reaches the threshold now ends with a line
+  in the feedback and a two-line notification: `Run Bisim finished after 3m
+  07s` / `Peak memory 3.1 GB of the 11.7 GB bound (26%), up from 2.4 GB at its
+  start`. If `Memory_guard` stopped it: `Run LTS was stopped by the memory
+  bound after 4m 02s` / `Memory reached 11.8 GB during extraction, over the 11.7
+  GB bound, up from 2.4 GB at its start`. Under the threshold nothing is
+  printed or sent, as before.
+- **The offset.** Jonah asked whether, knowing the memory at the start, the
+  command's own use could be inferred. Only as a lower bound: OCaml keeps memory
+  it has freed, so a command that reuses it does not raise the peak, and one
+  that lets earlier data be collected can lower it. So the start is printed, as
+  the reader's offset, and nothing claims `peak - start` is the command's use
+  (`doc/future-work.md`, "The command's own memory").
+- **A mechanism measured and rejected.** The kernel keeps an exact peak
+  (`VmHWM`) that `echo 5 > /proc/self/clear_refs` resets, which would make it
+  per-command. A test process that peaked at 420MB and reset it exited
+  reporting 12MB to its parent: the reset also erases the peak the OS reports at
+  exit. `bench/lib.sh` takes its figures from `/usr/bin/time`'s `%M`, so every
+  benchmark's memory would have been under-reported whenever notifications
+  were on. The peak is therefore the most `Memory_guard.check` read, which is
+  also what the bound enforces. Its blind spots are the bound's own: Rocq's kernel
+  in `Qed`, and anything between two checks.
+- **How a stop is recognised.** `Memory_guard` records the phase and the limit
+  where it raises, and `Notify` reads that, instead of matching the exception.
+  Rocq wraps an exception raised inside a tactic, and `lib/utils` cannot see
+  Rocq's types; checked through a tactic path (`Sim Begin`) as well as the
+  monadic one (`Run LTS`).
+- **Cost.** `check` is on every hot loop. With no limit and nothing tracked it
+  still does nothing but read two references; with the default limit it is the
+  old path plus one comparison per read. Not measured separately.
+- **Verified.** `dune exec test/tests.exe`: 279/279 (254 before, 25 new: the
+  wording from literal reports, the tracker, a stop, the feedback line, and
+  "nothing under the threshold"). `make -j src/mebi_plugin.cmxs
+  test/rocq/Test.vo` exit 0 (the packed-build gate that caught the last
+  feature's `Int.max`). `dune build` in a fresh worktree. **On the work
+  laptop** (niri, quickshell 1.2 owns `org.freedesktop.Notifications`, `notify-send`
+  0.8.8 from the dev shell): `rocq compile` of two small files against the
+  dune build, with the real `notify-send` and a D-Bus monitor on the server:
+  the test, a finished command, a Rocq error, a stop by a 1MB bound from
+  `Run LTS` and from `Sim Begin`, and a 100s threshold that sent nothing, all
+  received as described, and Jonah confirmed the two direct test notifications
+  appeared on screen. **Not checked:** the proof suite (nothing the solver reads
+  changed, and the default path of `check` is as before, but it was not run);
+  vsrocq on this host (a VS Code window inherits its own `PATH` and D-Bus
+  address; `MeBi Config Notify Test` run from there answers it); a command
+  long enough to matter, or a real stop at the default bound; a laptop that
+  suspends mid-run (the duration is wall-clock, `doc/future-work.md`); macOS.
+- **Mistakes in this session.** (1) I told Jonah mid-session that my earlier
+  "merged to main" had been wrong, because this clone's local `main` lacks
+  the feature. That correction was the error: local `main` is 62 commits
+  behind `fork/main`, which is at `12f853a`, so the feature is on the fork's
+  `main`. I had based the branch on `example/coffeemachine` meanwhile, and
+  rebased it onto `fork/main` once I looked at the history instead of the
+  branch names. (2) Asked whether the existing build had the notifier, I
+  searched the plugin's `.cmxs` for its strings; the code is in `utils.cmxs`.
+  The `tests.exe` check (0 strings, then 7 after the rebuild) was valid and the
+  conclusion, a stale build, held. (3) `pkill -f` matched my own command line
+  and killed the shell, which `CLAUDE.md` warns about; the run it was ending had
+  finished. (4) My first edit of `memory_guard.ml` dropped two definitions
+  (`last_used`, `may_compact`) and put a doc comment where `make` would flag
+  warning 50; both were caught on reading the diff, before a build. (5) A
+  `%` in the help text, which is a `Printf` format, broke the build; fixed. (6) A
+  test line I left in with no purpose was removed before the first run.
+- **Housekeeping.** The primary checkout held stale `make` output in `src/`,
+  `theories/`, `test/` and `examples/`, which made `dune build` refuse ("Multiple
+  rules generated"). `git clean -fX` there, as `CLAUDE.md` says, after listing
+  what it would remove: only compiled files and the stale generated
+  `src/g_mebi.ml`. Local `main` is still 62 behind `fork/main`: not moved.
+
+**Session tally (2026-11-02, this entry):** New feature 1 · Docs 1 · Tooling 0 ·
+Refactor 0 · Bug fix 0 · Optimization 0.
+
 ---
 
 ## Outstanding

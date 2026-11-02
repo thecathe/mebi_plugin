@@ -496,6 +496,25 @@ minimal): nothing open. The last item, trace preservation, became
   stray `\a` could do harm; it would also tell the user nothing in an editor.
   Worth adding only if it is written to a terminal known to be one
   (`Unix.isatty`).
+- **The command's own memory.** What is reported is the process's peak as
+  `Memory_guard.check` saw it, and what it held at the start; the command's
+  own use is not recoverable from the two. OCaml keeps memory it has freed, so
+  a command that reuses it never raises the peak (the figure under-counts),
+  and one that lets an earlier command's data be collected can lower it.
+  `Gc.stat`'s live words would be exact for the OCaml heap, but a full
+  major scan of a large heap takes seconds, and Rocq's own memory is not in it.
+- **Peak by the kernel's counter (`VmHWM`), rejected.** Exact, and it sees
+  what the plugin's loops do not check (Rocq's kernel in `Qed`). But the only
+  way to make it per command is to reset it (`echo 5 > /proc/self/clear_refs`),
+  and that also resets the peak the operating system reports when the process
+  exits: measured 2026-11-02, a process that peaked at 420MB exited reporting
+  12MB. `bench/lib.sh` takes its figures from `/usr/bin/time`'s `%M`, so every
+  benchmark would under-report whenever notifications were on. Reading it
+  without resetting gives the whole process's peak so far, not the command's.
+- **Wall-clock time.** The duration is `Unix.gettimeofday`. On a laptop that
+  suspends mid-run it would probably include the sleep, and a clock step
+  would change it. Not measured. A monotonic clock (OCaml's stdlib has none
+  that is portable) is the fix if it matters.
 - **Announce a proof when it is closed.** `Qed` is Rocq's command, not the
   plugin's, so it is not announced; the last `MeBi Sim Solve` is.
 
