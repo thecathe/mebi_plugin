@@ -259,6 +259,7 @@ type draw_config =
   ; mutable draw_style : Draw_style.t
   ; mutable draw_labels : Draw.labels
   ; mutable draw_direction : Draw_style.direction
+  ; mutable draw_engine : Draw_output.engine
   }
 
 (* See the [.mli]. *)
@@ -270,6 +271,7 @@ let draw_config_default () : draw_config =
   ; draw_style = Draw_style.empty
   ; draw_labels = Draw.On_edge
   ; draw_direction = Draw_style.Down
+  ; draw_engine = Draw_output.Luatex
   }
 ;;
 
@@ -422,6 +424,15 @@ let set_draw_labels (l : Draw.labels) : unit =
 ;;
 
 (* See the [.mli]. *)
+let set_draw_engine (e : Draw_output.engine) : unit =
+  !the_draw_config.draw_engine <- e;
+  Printf.sprintf
+    "(MeBi Config: Set Draw Engine to: %s.)"
+    (Draw_output.engine_name e)
+  |> Logger.show
+;;
+
+(* See the [.mli]. *)
 let set_draw_direction (d : Draw_style.direction) : unit =
   !the_draw_config.draw_direction <- d;
   Printf.sprintf
@@ -435,16 +446,20 @@ let describe_draw () : string =
   let c : draw_config = !the_draw_config in
   Printf.sprintf
     "MeBi Draw makes %s into %s, for at most %s, with %i seconds for each \
-     program it runs. Labels: %s. Direction: %s. Style: %s."
-    (match c.draw_format with
-     | Draw_output.Tex -> "the TeX files"
-     | Pdf -> "a PDF as well as the TeX files"
-     | Png -> "a PDF and a PNG as well as the TeX files")
+     program it runs. Engine: %s. Labels: %s. Direction: %s. Style: %s."
+    (match c.draw_engine, c.draw_format with
+     | Draw_output.Luatex, Draw_output.Tex -> "the TeX files"
+     | Luatex, Pdf -> "a PDF as well as the TeX files"
+     | Luatex, Png -> "a PDF and a PNG as well as the TeX files"
+     | Graphviz, Tex -> "the DOT file"
+     | Graphviz, Pdf -> "a PDF as well as the DOT file"
+     | Graphviz, Png -> "a PDF and a PNG as well as the DOT file")
     c.draw_dir
     (match c.draw_bounds with
      | States i -> Printf.sprintf "%i states" i
      | Transitions i -> Printf.sprintf "%i transitions" i)
     c.draw_time
+    (Draw_output.engine_name c.draw_engine)
     (match c.draw_labels with
      | Draw.On_edge -> "on the arrows (OnEdge)"
      | Beside -> "beside the arrows (Beside)")

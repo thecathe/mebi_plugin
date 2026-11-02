@@ -39,6 +39,7 @@ Saturation_estimate
 Model
 Draw_style
 Draw
+Draw_dot
 Draw_output
 Decoder
 Api

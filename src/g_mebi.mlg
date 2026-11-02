@@ -386,6 +386,10 @@ VERNAC COMMAND EXTEND MeBi_Config_Draw CLASSIFIED AS QUERY
   { Api.set_draw_labels Draw.On_edge }
 | ["MeBi" "Config" "Draw" "Labels" "Beside"] ->
   { Api.set_draw_labels Draw.Beside }
+| ["MeBi" "Config" "Draw" "Engine" "LuaTeX"] ->
+  { Api.set_draw_engine Draw_output.Luatex }
+| ["MeBi" "Config" "Draw" "Engine" "Graphviz"] ->
+  { Api.set_draw_engine Draw_output.Graphviz }
 | ["MeBi" "Config" "Draw" "Direction" "Down"] ->
   { Api.set_draw_direction Draw_style.Down }
 | ["MeBi" "Config" "Draw" "Direction" "Right"] ->

@@ -245,6 +245,8 @@ MeBi Config Draw Kind "Insert" "".                        (* no colour of its ow
 
 The colour is a colour name or an xcolor expression. An arrow whose labels are of several kinds is of none (it takes the default's colour, if set), and a silent step is not coloured by kind: it has its own styles, `SilentEdge` and `SilentLabel`.
 
+**Graphviz is optional, and off unless asked for.** `MeBi Config Draw Engine Graphviz` makes `MeBi Draw` write `<name>.dot` (and nothing else of the three files) and, for `Format PDF` or `PNG`, run Graphviz's `dot` on it: Graphviz's own layout and splines, with the label of an arrow a small node on it, so the arrow runs through it and a narrow label does not lengthen its arrow. With `Format TeX` only the `.dot` is written, and a `dot` that is missing, fails or runs past the time limit is a warning (the `.dot` is kept, to draw by hand: `dot -Tpdf <name>.dot -o <name>.pdf`), never an error. It uses `Direction`, `Labels` (`Beside` is Graphviz's own edge labels), `Kind`, `Kind Default` and `Outline`; a colour such as `blue!75!black` is converted to what Graphviz reads. The TikZ styles (`Style`, `Layout`, `TwoWay`) apply to the LuaTeX engine only, and the text is in Graphviz's font, not the document's. Nothing is installed or needed unless you ask: the default engine and its output are unchanged. (`scripts/dump2dot.py`, below, does the same from a plain-text dump, outside the plugin.)
+
 The parts are `Layout` (the `\graph` options, so spacing), `State`, `Initial`, `Terminal`, `Edge`, `Label`, `SilentEdge`, `SilentLabel`, `TwoWay`, `Loop` and `Caption`. To style a picture from LaTeX instead, leave `<name>.style.tikz` out and define the same names (`mebi state`, `mebi edge`, ...) in your document. `MeBi Help Config Draw` lists the defaults.
 
 ### Drawing a dump with Graphviz
@@ -345,6 +347,7 @@ MeBi Config Reset.                                 (* everything below *)
 MeBi Config Reset [Bounds|Weak|FailIf|Output|Draw|Notify].
 MeBi Config Draw Format TeX|PDF|PNG.               (* what MeBi Draw makes; default PDF *)
 MeBi Config Draw Labels OnEdge|Beside.             (* a label on its arrow, as a node of the layout (default; 2-4 times the layout time), or beside it *)
+MeBi Config Draw Engine LuaTeX|Graphviz.           (* LuaTeX (default): TikZ's layered layout; Graphviz (opt-in, not bundled): write DOT and have `dot` draw it *)
 MeBi Config Draw Direction Down|Right.             (* the way the layout grows; Right makes a wide (landscape) picture; default Down *)
 MeBi Config Draw Kind "<Kind>" "<colour>".         (* colour the arrows and labels whose label starts with <Kind>; nothing is coloured unless set *)
 MeBi Config Draw Kind Default "<colour>".          (* the colour of those whose kind has none of its own *)

@@ -211,6 +211,8 @@ lib/draw/draw_style.ml
 lib/draw/draw_style.mli
 lib/draw/draw.ml
 lib/draw/draw.mli
+lib/draw/draw_dot.ml
+lib/draw/draw_dot.mli
 lib/draw/draw_output.ml
 lib/draw/draw_output.mli
 

@@ -214,6 +214,9 @@ type draw_config =
         default ({!Draw.labels}) *)
   ; mutable draw_direction : Draw_style.direction
     (** the way the layout grows: [Down] by default ({!Draw_style.direction}) *)
+  ; mutable draw_engine : Draw_output.engine
+    (** which program lays a diagram out: [Luatex] by default
+        ({!Draw_output.engine}); [Graphviz] is opt-in *)
   }
 
 (** [draw_config_default ()]: a fresh default {!draw_config}, as its fields
@@ -274,6 +277,12 @@ val set_draw_outline : bool -> unit
 (** [set_draw_labels l] chooses where [MeBi Draw] puts an arrow's label
     ({!Draw.labels}), and shows the change. Raises nothing. *)
 val set_draw_labels : Draw.labels -> unit
+
+(** [set_draw_engine e] chooses which program lays a diagram out
+    ({!Draw_output.engine}), and shows the change. [Graphviz] writes DOT, and
+    runs [dot] only for a PDF or a PNG, warning if it is missing; the default,
+    [Luatex], is unchanged. Raises nothing. *)
+val set_draw_engine : Draw_output.engine -> unit
 
 (** [set_draw_direction d] chooses the way the layout grows
     ({!Draw_style.direction}), and shows the change. Raises nothing. *)

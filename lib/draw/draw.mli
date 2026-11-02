@@ -75,6 +75,20 @@ val escape : string -> string
     Raises nothing. *)
 val kind_of : label list -> string option
 
+(** [back_spans d] are {!back_arrows}, each with the number of arrows on the
+    longest path it closes (at least 1): the arrows of [d] without the back
+    ones are acyclic, and an arrow back from [s] to [t] closes the longest
+    path from [t] to [s] among them. An arrow back is laid out from its target
+    to its source with its label half way, so each half spans this many
+    arrows' worth of layers. Raises nothing. *)
+val back_spans : t -> ((int * int) * int) list
+
+(** [coloured_kind style labels] is the kind of an arrow with [labels] that
+    has a colour in [style]: its own ({!kind_of}), or, if that has none, the
+    {!Draw_style.Default} one, if [style] has one. A silent step has none.
+    Raises nothing. *)
+val coloured_kind : Draw_style.t -> label list -> Draw_style.kind option
+
 (** [merge edges] is [edges] with those between the same two states made one,
     as [(src, dst, labels)], the labels in the order they were given and
     without repeats, sorted by [(src, dst)]. Raises nothing. *)

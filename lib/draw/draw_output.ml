@@ -20,6 +20,25 @@ let format_of_string (s : string) : format option =
 ;;
 
 (* See the [.mli]. *)
+type engine =
+  | Luatex
+  | Graphviz
+
+(* See the [.mli]. *)
+let engine_name : engine -> string = function
+  | Luatex -> "LuaTeX"
+  | Graphviz -> "Graphviz"
+;;
+
+(* See the [.mli]. *)
+let engine_of_string (s : string) : engine option =
+  match String.lowercase_ascii s with
+  | "luatex" -> Some Luatex
+  | "graphviz" -> Some Graphviz
+  | _ -> None
+;;
+
+(* See the [.mli]. *)
 type problem =
   | Missing_tool of
       { tools : string list
@@ -304,4 +323,83 @@ let render
            | Ok png -> [ pdf; png ], []
            | Error p -> [ pdf ], [ p ])
         | Tex | Pdf -> [ pdf ], []))
+;;
+
+(* See the [.mli]. *)
+let write_dot
+      ?(labels : Draw.labels option)
+      ?(direction : Draw_style.direction option)
+      ~(dir : string)
+      ~(name : string)
+      ~(style : Draw_style.t)
+      (d : Draw.t)
+  : string list
+  =
+  Utils.FileWriter.create_parent_dir (Filename.concat dir name);
+  let path : string = Filename.concat dir (name ^ ".dot") in
+  Out_channel.with_open_text path (fun oc ->
+    output_string oc (Draw_dot.dot ?labels ?direction ~style d));
+  [ path ]
+;;
+
+(* See the [.mli]. [dot]'s own message is not kept (a child process has its
+   output discarded), so a failure says how to see it. *)
+let render_dot
+      ~(format : format)
+      ~(timeout : float)
+      ~(dir : string)
+      ~(name : string)
+  : string list * problem list
+  =
+  match format with
+  | Tex -> [], []
+  | Pdf | Png ->
+    (match find_exe "dot" with
+     | None ->
+       ( []
+       , [ Missing_tool
+             { tools = [ "dot" ]
+             ; needed_for =
+                 "a PDF or a PNG from the Graphviz engine (install Graphviz, \
+                  or use [MeBi Config Draw Engine LuaTeX])"
+             }
+         ] )
+     | Some dot ->
+       let path (ext : string) : string = Filename.concat dir (name ^ ext) in
+       let attempt (ext : string) (extra : string list)
+         : (string, problem) result
+         =
+         let flag : string = "-T" ^ String.sub ext 1 (String.length ext - 1) in
+         let st : status =
+           run
+             ~timeout
+             ~dir
+             ((dot :: flag :: extra) @ [ name ^ ".dot"; "-o"; name ^ ext ])
+         in
+         match exit_problem ~tool:"dot" ~timeout ~log:None st with
+         | None -> Ok (path ext)
+         | Some (Failed { tool; detail; log }) ->
+           Error
+             (Failed
+                { tool
+                ; detail =
+                    Printf.sprintf
+                      "%s; run [dot %s %s.dot] in %s to see its message"
+                      detail
+                      flag
+                      name
+                      dir
+                ; log
+                })
+         | Some p -> Error p
+       in
+       (match attempt ".pdf" [] with
+        | Error p -> [], [ p ]
+        | Ok pdf ->
+          (match format with
+           | Png ->
+             (match attempt ".png" [ "-Gdpi=200" ] with
+              | Ok png -> [ pdf; png ], []
+              | Error p -> [ pdf ], [ p ])
+           | Tex | Pdf -> [ pdf ], [])))
 ;;
