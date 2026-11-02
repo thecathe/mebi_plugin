@@ -50,3 +50,6 @@ RocqMakefile*
 **/_diagrams_test
 src/_dump
 .lia.cache
+
+# Python bytecode (scripts/)
+__pycache__/
