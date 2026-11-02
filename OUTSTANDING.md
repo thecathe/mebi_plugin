@@ -47,7 +47,9 @@ Decision 2 would change every checked-in proof bound if it went against
   drawing side becomes a second plugin in the same package,
   `rocq-mebi.graph`), and its details are not: the hooks the core needs.
   (Labels as nodes, a back arrow's label half way, a landscape layout, colour
-  by kind of label and an opt-in Graphviz engine are done, 2026-11-02.)
+  by kind of label, an opt-in Graphviz engine, TeX's tau, equal lines to an
+  arrowhead and round loops growing down are done, 2026-11-02. Possible: an
+  LTS drawn over another, a Graphviz look with derived constants.)
   `doc/future-work.md`, "`MeBi Draw`".
 
 ## Next up (agreed, not started)
