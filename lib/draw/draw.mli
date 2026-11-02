@@ -30,6 +30,15 @@ type edge =
   ; dst : int
   }
 
+(** Where an arrow's label is drawn. [On_edge]: as a node of the layout, on the
+    arrow's way, so that the layout keeps room for it and the arrow runs
+    through it. [Beside]: as TikZ places a quoted label, beside the last
+    stretch of the arrow, with no room kept; it costs less layout time, and
+    labels can then cover each other or be taken for another arrow's. *)
+type labels =
+  | Beside
+  | On_edge
+
 (** A diagram. [incomplete] says the LTS or FSM it is of is not the whole
     system, which the picture notes. *)
 type t =
@@ -66,11 +75,17 @@ val merge : edge list -> (int * int * label list) list
 
 (** [picture d] is [d]'s TikZ [tikzpicture], to [\input] into a document
     that has loaded the libraries {!Draw_style.tikzset} lists, and either its
-    style file or styles of its own. Every state is a node named [s<id>];
-    arrows between the same two states share one, labelled with all of
-    theirs, one to a line; a state's arrow to itself is drawn after the
-    layout, as the layered layout leaves it out. Raises nothing. *)
-val picture : t -> string
+    style file or styles of its own. Every state is a node named [s<id>],
+    with its style named on it (not given to [\graph] for all its nodes, so
+    that a label's node does not inherit it); arrows between the same two
+    states share one, labelled with all of theirs, one to a line; a state's
+    arrow to itself is drawn after the layout, as the layered layout leaves
+    it out, with its label beside it. [labels] says where the other arrows'
+    labels go ({!labels}, [On_edge] by default). On the edge, a label is a
+    node [e<k>], and the arrow is two, [s -> e<k> -> t]: the two arrows of a
+    pair of states are then not bent apart, as each has a label node to
+    itself. Raises nothing. *)
+val picture : ?labels:labels -> t -> string
 
 (** [wrapper ~name] is a LuaLaTeX document that draws [name].tikz with
     [name].style.tikz, on a page exactly as large as the picture, to be

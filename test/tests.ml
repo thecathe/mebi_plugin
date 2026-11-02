@@ -1722,13 +1722,34 @@ let test_draw_merge () : unit =
 
 let test_draw_picture () : unit =
   check_string
-    "the picture"
+    "the picture: each label a node on its arrow's way"
     {|% MeBi diagram: the states, then the arrows. Styles are named, not set,
 % here: see the style file.
 \begin{tikzpicture}[>=Stealth, every edge quotes/.style={mebi label}]
-  \graph[mebi layout, nodes={mebi state}, edges={mebi edge}]{
+  \graph[mebi layout, edges={mebi edge}]{
     s0[as={(Idle, 0)}, mebi initial];
-    s1[as={Brew\_1}];
+    s1[as={Brew\_1}, mebi state];
+    s2[as={Done}, mebi terminal];
+    e0[as={insert\\ select}, mebi label];
+    s0 ->[mebi edge, -] e0 ->[mebi edge] s1;
+    e1[as={$\tau$}, mebi silent label];
+    s1 ->[mebi silent edge, -] e1 ->[mebi silent edge] s2;
+    e2[as={serve}, mebi label];
+    s2 ->[mebi edge, -] e2 ->[mebi edge] s0;
+  };
+  \path (s1) edge[mebi edge, mebi loop, "{tick, tock}"] (s1);
+  \node[mebi caption, anchor=north] at (current bounding box.south) {Incomplete: some states or transitions may be missing.};
+\end{tikzpicture}
+|}
+    (Draw.picture a_diagram);
+  check_string
+    "and with the labels beside their arrows"
+    {|% MeBi diagram: the states, then the arrows. Styles are named, not set,
+% here: see the style file.
+\begin{tikzpicture}[>=Stealth, every edge quotes/.style={mebi label}]
+  \graph[mebi layout, edges={mebi edge}]{
+    s0[as={(Idle, 0)}, mebi initial];
+    s1[as={Brew\_1}, mebi state];
     s2[as={Done}, mebi terminal];
     s0 ->[mebi edge, "{insert\\ select}"] s1;
     s1 ->[mebi silent edge, "{$\tau$}"] s2;
@@ -1738,7 +1759,11 @@ let test_draw_picture () : unit =
   \node[mebi caption, anchor=north] at (current bounding box.south) {Incomplete: some states or transitions may be missing.};
 \end{tikzpicture}
 |}
-    (Draw.picture a_diagram);
+    (Draw.picture ~labels:Beside a_diagram);
+  check
+    "a state's style is its own, so that a label's node does not inherit it"
+    false
+    (contains ~sub:"nodes={" (Draw.picture a_diagram));
   check
     "a complete diagram has no caption"
     false
@@ -1766,10 +1791,10 @@ let test_draw_picture () : unit =
     ; incomplete = false
     }
   in
-  let lines = String.split_on_char '\n' (Draw.picture pair) in
-  let line prefix = List.find (contains ~sub:prefix) lines in
+  let beside = String.split_on_char '\n' (Draw.picture ~labels:Beside pair) in
+  let line prefix = List.find (contains ~sub:prefix) beside in
   check
-    "arrows with one back between the same states are both bent"
+    "beside: arrows with one back between the same states are both bent"
     true
     (contains ~sub:"mebi two-way" (line "s0 ->")
      && contains
@@ -1782,7 +1807,21 @@ let test_draw_picture () : unit =
   check
     "nor is a state's arrow to itself"
     false
-    (contains ~sub:"mebi two-way" (line "\"{d}\""))
+    (contains ~sub:"mebi two-way" (line "\"{d}\""));
+  let on_edge = Draw.picture pair in
+  check
+    "on the edge: the two arrows of a pair have a label node each, so are not \
+     bent"
+    true
+    ((not (contains ~sub:"mebi two-way" on_edge))
+     && contains ~sub:"s0 ->[mebi edge, -] e0 ->[mebi edge] s1;" on_edge
+     && contains ~sub:"s1 ->[mebi edge, -] e1 ->[mebi edge] s0;" on_edge);
+  check
+    "a state's arrow to itself keeps its quoted label, drawn after the layout"
+    true
+    (contains
+       ~sub:"\\path (s2) edge[mebi edge, mebi loop, \"{d}\"] (s2);"
+       on_edge)
 ;;
 
 let test_draw_style () : unit =

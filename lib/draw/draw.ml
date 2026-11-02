@@ -19,6 +19,11 @@ type edge =
   }
 
 (* See the [.mli]. *)
+type labels =
+  | Beside
+  | On_edge
+
+(* See the [.mli]. *)
 type t =
   { nodes : node list
   ; edges : edge list
@@ -158,11 +163,16 @@ let label_node (labels : label list) : string =
   Printf.sprintf "\"{%s}\"" (String.concat "\\\\ " (List.map label_text labels))
 ;;
 
-(** [node_line n] is the statement for the state [n]. *)
+(** [node_line n] is the statement for the state [n]. Its style is named
+    here, not given to [\graph] for all its nodes, as a label drawn as a node
+    of the layout ({!picture}) must not inherit the look of a state. *)
 let node_line (n : node) : string =
   let styles : string list =
-    (if n.initial then [ Draw_style.(use Initial) ] else [])
-    @ if n.terminal then [ Draw_style.(use Terminal) ] else []
+    match n.initial, n.terminal with
+    | false, false -> [ Draw_style.(use State) ]
+    | _ ->
+      (if n.initial then [ Draw_style.(use Initial) ] else [])
+      @ if n.terminal then [ Draw_style.(use Terminal) ] else []
   in
   Printf.sprintf
     "    s%i[as={%s}%s];"
@@ -179,8 +189,16 @@ let edge_options (labels : label list) : string =
   else Draw_style.(use Edge)
 ;;
 
+(** [label_style labels] is the style of the label of an arrow with [labels]:
+    the silent one if they are all silent. *)
+let label_style (labels : label list) : string =
+  if List.for_all (fun l -> l = Silent) labels
+  then Draw_style.(use Silent_label)
+  else Draw_style.(use Label)
+;;
+
 (* See the [.mli]. *)
-let picture (d : t) : string =
+let picture ?(labels : labels = On_edge) (d : t) : string =
   let nodes : node list =
     List.sort (fun a b -> Int.compare a.id b.id) d.nodes
   in
@@ -200,6 +218,25 @@ let picture (d : t) : string =
       (if has_opposite s t then ", " ^ Draw_style.(use Two_way) else "")
       (label_node ls)
       t
+  in
+  (* A label that is a node of the layout, [e<k>], on the arrow's way: the
+     layout then keeps room for it, and the arrow runs through it. *)
+  let on_edge_lines (k : int) ((s, t, ls) : int * int * label list)
+    : string list
+    =
+    [ Printf.sprintf
+        "    e%i[as={%s}, %s];"
+        k
+        (String.concat "\\\\ " (List.map label_text ls))
+        (label_style ls)
+    ; Printf.sprintf
+        "    s%i ->[%s, -] e%i ->[%s] s%i;"
+        s
+        (edge_options ls)
+        k
+        (edge_options ls)
+        t
+    ]
   in
   let loop_line ((s, _, ls) : int * int * label list) : string =
     Printf.sprintf
@@ -231,13 +268,14 @@ let picture (d : t) : string =
     then []
     else
       [ Printf.sprintf
-          "  \\graph[%s, nodes={%s}, edges={%s}]{"
+          "  \\graph[%s, edges={%s}]{"
           Draw_style.(use Layout)
-          Draw_style.(use State)
           Draw_style.(use Edge)
       ]
       @ List.map node_line nodes
-      @ List.map arrow_line arrows
+      @ (match labels with
+         | Beside -> List.map arrow_line arrows
+         | On_edge -> List.concat (List.mapi on_edge_lines arrows))
       @ [ "  };" ]
   in
   String.concat
