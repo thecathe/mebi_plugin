@@ -5,7 +5,7 @@
  (name draw)
  (public_name rocq-mebi.draw)
  (libraries rocq-mebi.utils unix)
- (modules draw_style draw draw_output)
+ (modules draw_style draw draw_dot draw_output)
  (wrapped false))
 
 (include_subdirs no)

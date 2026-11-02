@@ -847,13 +847,23 @@ module Make (Enc : Encoding.S) :
       in
       let written : string list =
         try
-          Draw_output.write
-            ~labels:c.draw_labels
-            ~direction:c.draw_direction
-            ~dir:c.draw_dir
-            ~name
-            ~style:c.draw_style
-            d
+          match c.draw_engine with
+          | Draw_output.Luatex ->
+            Draw_output.write
+              ~labels:c.draw_labels
+              ~direction:c.draw_direction
+              ~dir:c.draw_dir
+              ~name
+              ~style:c.draw_style
+              d
+          | Graphviz ->
+            Draw_output.write_dot
+              ~labels:c.draw_labels
+              ~direction:c.draw_direction
+              ~dir:c.draw_dir
+              ~name
+              ~style:c.draw_style
+              d
         with
         | Sys_error e ->
           CErrors.user_err
@@ -865,7 +875,9 @@ module Make (Enc : Encoding.S) :
                   e))
       in
       let made, problems =
-        Draw_output.render
+        (match c.draw_engine with
+         | Draw_output.Luatex -> Draw_output.render
+         | Graphviz -> Draw_output.render_dot)
           ~format:c.draw_format
           ~timeout:(Float.of_int c.draw_time)
           ~dir:c.draw_dir

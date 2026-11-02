@@ -2174,6 +2174,240 @@ let test_draw_kinds () : unit =
     (contains ~sub:"kind" (Draw.picture d))
 ;;
 
+let test_draw_dot () : unit =
+  let open Draw_style in
+  check_string
+    "an xcolor mix becomes its hex"
+    "#0000bf"
+    (Draw_dot.colour "blue!75!black");
+  check_string
+    "a half of green and black"
+    "#008000"
+    (Draw_dot.colour "green!50!black");
+  check_string
+    "a mix with white when none is given"
+    "#999999"
+    (Draw_dot.colour "black!40");
+  check_string "a mix of a mix" "#9999e5" (Draw_dot.colour "blue!75!black!40");
+  check_string
+    "an xcolor base name is xcolor's, not Graphviz's"
+    "#ff8000"
+    (Draw_dot.colour "orange");
+  check
+    "what is not xcolor's is left for Graphviz"
+    true
+    (String.equal (Draw_dot.colour "#12ab34") "#12ab34"
+     && String.equal (Draw_dot.colour "darkgreen") "darkgreen"
+     && String.equal (Draw_dot.colour "red!50!nosuch") "red!50!nosuch"
+     && String.equal (Draw_dot.colour "red!x") "red!x");
+  check_string
+    "quotes, backslashes and line breaks"
+    "\"a\\\"b\\\\c\\nd\""
+    (Draw_dot.q "a\"b\\c\nd");
+  check
+    "the engines are named, and read back ignoring case"
+    true
+    (Draw_output.engine_of_string "GRAPHVIZ" = Some Draw_output.Graphviz
+     && Draw_output.engine_of_string "luatex" = Some Draw_output.Luatex
+     && Draw_output.engine_of_string "nope" = None
+     && String.equal (Draw_output.engine_name Draw_output.Graphviz) "Graphviz");
+  (* the five-state cycle of examples/Simple.v: five arrows, the last back *)
+  let cycle = a_graph 5 [ 0, 1; 1, 2; 2, 3; 3, 4; 4, 0 ] in
+  check
+    "an arrow back has the longest path it closes"
+    true
+    (Draw.back_spans cycle = [ (4, 0), 4 ]);
+  let out = Draw_dot.dot cycle in
+  check
+    "a label is a node on its arrow, both halves meeting it at the middle of \
+     its sides"
+    true
+    (contains ~sub:"digraph G {" out
+     && contains ~sub:"rankdir=TB" out
+     && contains ~sub:"s0 -> l1 [arrowhead=none, weight=8, headport=n];" out
+     && contains ~sub:"l1 -> s1 [weight=8, tailport=s];" out);
+  check
+    "an arrow back is laid out target to source, its head at the target, its \
+     label half way"
+    true
+    (contains
+       ~sub:
+         "s0 -> l5 [dir=back, arrowtail=normal, arrowhead=none, minlen=4, \
+          headport=n];"
+       out
+     && contains ~sub:"l5 -> s4 [arrowhead=none, minlen=4, tailport=s];" out);
+  check
+    "growing right changes the ports, and beside the arrow makes Graphviz's \
+     own labels"
+    true
+    (let right = Draw_dot.dot ~direction:Right cycle in
+     let beside = Draw_dot.dot ~labels:Beside cycle in
+     contains ~sub:"rankdir=LR" right
+     && contains ~sub:"headport=w" right
+     && contains ~sub:"tailport=e" right
+     && contains ~sub:"s0 -> s1 [label=\"a\"];" beside
+     && not (contains ~sub:"l1" beside));
+  check
+    "nothing is coloured unless asked, and the file is deterministic"
+    true
+    ((not (contains ~sub:"#" out))
+     && (not (contains ~sub:"fontcolor" out))
+     && String.equal out (Draw_dot.dot cycle));
+  (* two kinds, one with no colour, a silent step, a loop, and quotes *)
+  let d : Draw.t =
+    { nodes =
+        List.init 4 (fun id : Draw.node ->
+          { id
+          ; text = (if id = 3 then "He said \"hi\"" else string_of_int id)
+          ; initial = id = 0
+          ; terminal = id = 3
+          })
+    ; edges =
+        [ { src = 0; label = Label "Select a"; dst = 1 }
+        ; { src = 1; label = Label "Insert x"; dst = 2 }
+        ; { src = 2; label = Silent; dst = 3 }
+        ; { src = 3; label = Label "Other z"; dst = 0 }
+        ; { src = 1; label = Label "Insert y"; dst = 1 }
+        ]
+    ; incomplete = true
+    }
+  in
+  let coloured =
+    empty
+    |> set_kind (Named "Select") "green4"
+    |> set_kind (Named "Insert") "blue!75!black"
+  in
+  let c = Draw_dot.dot ~style:coloured d in
+  check
+    "a kind's colour is on its arrow and its label, converted for Graphviz"
+    true
+    (contains ~sub:"color=\"green4\", fontcolor=\"green4\"" c
+     && contains ~sub:"color=\"#0000bf\", fontcolor=\"#0000bf\"" c);
+  check
+    "a kind with no colour has none, until there is a default"
+    true
+    ((not (contains ~sub:"label=\"Other z\", fontcolor" c))
+     && contains
+          ~sub:"fontcolor=\"#808080\""
+          (Draw_dot.dot ~style:(set_kind Default "gray" coloured) d));
+  check
+    "a silent step is dashed, grey and tau, whatever the colours"
+    true
+    (contains ~sub:"style=dashed" c
+     && contains ~sub:"label=\"\xcf\x84\"" c
+     && contains ~sub:"color=\"gray50\"" c);
+  check
+    "the initial state is bold and has an arrow in, a state with no way out \
+     has two borders"
+    true
+    (contains ~sub:"start -> s0" c
+     && contains ~sub:"s0 [label=\"0\", penwidth=2.5]" c
+     && contains ~sub:"peripheries=2" c);
+  check
+    "a state's arrow to itself has Graphviz's own label, an incomplete diagram \
+     says so, and quotes are escaped"
+    true
+    (contains ~sub:"s1 -> s1 [label=\"Insert y\"" c
+     && contains ~sub:"Incomplete" c
+     && contains ~sub:"He said \\\"hi\\\"" c);
+  check
+    "an outline is for a label with a colour, when asked"
+    true
+    ((not (contains ~sub:"rounded,filled\", fillcolor=white, penwidth=0.6" c))
+     && contains
+          ~sub:
+            "style=\"rounded,filled\", fillcolor=white, penwidth=0.6, \
+             color=\"green4\""
+          (Draw_dot.dot ~style:(set_outline true coloured) d));
+  check
+    "an empty diagram says so, and has no arrow in"
+    true
+    (let e = Draw_dot.dot { nodes = []; edges = []; incomplete = false } in
+     contains ~sub:"Empty: no states." e && not (contains ~sub:"start" e));
+  check
+    "the colour of an arrow of several kinds, and the kind with a colour"
+    true
+    (Draw.coloured_kind coloured [ Label "Select a" ] = Some (Named "Select")
+     && Draw.coloured_kind coloured [ Label "Other z" ] = None
+     && Draw.coloured_kind (set_kind Default "red" coloured) [ Label "Other z" ]
+        = Some Default
+     && Draw.coloured_kind (set_kind Default "red" coloured) [ Silent ] = None
+     && Draw.coloured_kind coloured [ Label "Select a"; Label "Insert x" ]
+        = None);
+  (* files, and the child process *)
+  let root = Filename.temp_dir "mebi-dot" "" in
+  let dir = Filename.concat root "nested/dir" in
+  let paths = Draw_output.write_dot ~dir ~name:"g" ~style:coloured d in
+  let read p = In_channel.with_open_text p In_channel.input_all in
+  check
+    "write_dot writes the one file, where it is told, and it is Draw_dot's"
+    true
+    (paths = [ Filename.concat dir "g.dot" ]
+     && String.equal (read (List.hd paths)) (Draw_dot.dot ~style:coloured d));
+  check
+    "TeX asks for nothing more"
+    true
+    (Draw_output.render_dot ~format:Tex ~timeout:5. ~dir ~name:"g" = ([], []));
+  let path = Sys.getenv_opt "PATH" in
+  Unix.putenv "PATH" "";
+  let made, problems =
+    Draw_output.render_dot ~format:Pdf ~timeout:5. ~dir ~name:"g"
+  in
+  Unix.putenv "PATH" (Option.value path ~default:"");
+  check
+    "with no dot there is no PDF, and it says what is missing, and keeps the \
+     .dot"
+    true
+    (made = []
+     && Sys.file_exists (List.hd paths)
+     &&
+     match problems with
+     | [ Draw_output.Missing_tool { tools = [ "dot" ]; _ } ] -> true
+     | _ -> false);
+  match Draw_output.find_exe "dot" with
+  | None -> print_endline "  skip  Graphviz draws the diagram (no dot on PATH)"
+  | Some _ ->
+    let made, problems =
+      Draw_output.render_dot ~format:Png ~timeout:60. ~dir ~name:"g"
+    in
+    let png = Filename.concat dir "g.png" in
+    check
+      "dot makes a PDF and then a PNG"
+      true
+      (problems = []
+       && made = [ Filename.concat dir "g.pdf"; png ]
+       && Sys.file_exists png
+       && String.equal
+            "\137PNG"
+            (In_channel.with_open_bin png (fun ic -> really_input_string ic 4))
+      );
+    (* every setting at once compiles under dot too *)
+    ignore
+      (Draw_output.write_dot
+         ~labels:Beside
+         ~direction:Right
+         ~dir
+         ~name:"h"
+         ~style:(set_outline true (set_kind Default "teal" coloured))
+         d);
+    check
+      "a diagram with every setting draws"
+      true
+      (snd (Draw_output.render_dot ~format:Pdf ~timeout:60. ~dir ~name:"h") = []);
+    (* a dot that fails is a problem, not an exception *)
+    Out_channel.with_open_text (Filename.concat dir "bad.dot") (fun oc ->
+      output_string oc "digraph { this is not dot");
+    check
+      "a dot that fails is a problem that says how to see why"
+      true
+      (match
+         Draw_output.render_dot ~format:Pdf ~timeout:60. ~dir ~name:"bad"
+       with
+       | [], [ Draw_output.Failed { tool = "dot"; detail; _ } ] ->
+         contains ~sub:"run [dot -Tpdf bad.dot]" detail
+       | _ -> false)
+;;
+
 let test_draw_style () : unit =
   let open Draw_style in
   let default = tikzset empty in
@@ -3091,6 +3325,7 @@ let () =
   test_draw_picture ();
   test_draw_back_arrows ();
   test_draw_kinds ();
+  test_draw_dot ();
   test_draw_style ();
   test_draw_names ();
   test_draw_run ();
