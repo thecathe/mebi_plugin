@@ -10548,6 +10548,36 @@ New feature 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `graphviz` in the flake's dev shell
+
+**Tooling.** On `chore/flake-graphviz`. Jonah asked: can we just add `dot` to the
+flake? His machine has no `dot`, and the plugin's Graphviz engine (opt-in) needs
+it. It was always the plan that the flake would *offer* Graphviz and nothing
+would bundle it.
+
+- **The change.** `graphviz` in the dev shell's `nativeBuildInputs`, beside
+  `libnotify` (the other optional tool), with a comment saying it is not needed to
+  build or run MeBi; a sentence in the README's account of what the flake
+  provides. `flake.lock` is unchanged. It affects only whoever enters the dev
+  shell (direnv's `use flake`, `nix develop`); the opam package, and anyone
+  installing the plugin with opam, are not touched.
+- **Checked** (not assumed). `nix develop --command dot -V` with the locked
+  nixpkgs gives **15.1.0** (I had been testing with 15.1.1 from a transient
+  `nix shell`), so I ran the tests against that exact `dot`: 349/349 OCaml tests,
+  the three that run `dot` included, and the script's 32.
+- **A consequence to know about.** CI runs `dune exec test/tests.exe` inside
+  `nix develop`, so CI now has `dot` and those three tests run there instead of
+  skipping (`lualatex` is still absent in CI, so the LaTeX compile tests still
+  skip). They pass locally against the same version; CI itself was not run.
+- **For the user:** direnv reloads when `flake.nix` changes; VS Code needs its
+  environment refreshed (reload the window or restart it) so that the process
+  running Rocq sees `dot`.
+
+**Session tally (2026-11-02, this entry):** Tooling 1 · Bug fix 0 · New feature 0 ·
+Refactor 0 · Docs 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
