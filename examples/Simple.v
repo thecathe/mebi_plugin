@@ -34,8 +34,8 @@ Inductive lts : mode -> option interface -> mode -> Prop :=
 
 Definition init : mode := Idle.
 
-MeBi Config Output "DumpResults" True.
-MeBi Config Output Format Text.
+(* MeBi Config Output "DumpResults" True. *)
+(* MeBi Config Output Format Text. *)
 
 MeBi Run LTS init Using lts.
 
