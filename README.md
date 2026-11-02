@@ -321,6 +321,7 @@ MeBi Config Reset.                                 (* everything below *)
 MeBi Config Reset [Bounds|Weak|FailIf|Output|Draw|Notify].
 MeBi Config Draw Format TeX|PDF|PNG.               (* what MeBi Draw makes; default PDF *)
 MeBi Config Draw Labels OnEdge|Beside.             (* a label on its arrow, as a node of the layout (default; 2-4 times the layout time), or beside it *)
+MeBi Config Draw Direction Down|Right.             (* the way the layout grows; Right makes a wide (landscape) picture; default Down *)
 MeBi Config Draw Dir "<dir>".                      (* default ./_diagrams/ *)
 MeBi Config Draw Style "<Component>" "<TikZ options>".
 MeBi Config Notify After <s>.                         (* a notification, and a line saying the time and memory, when a command takes <s> seconds or more; off by default *)

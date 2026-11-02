@@ -212,6 +212,8 @@ type draw_config =
   ; mutable draw_labels : Draw.labels
     (** where an arrow's label goes: [On_edge] (a node of the layout) by
         default ({!Draw.labels}) *)
+  ; mutable draw_direction : Draw_style.direction
+    (** the way the layout grows: [Down] by default ({!Draw_style.direction}) *)
   }
 
 (** [draw_config_default ()]: a fresh default {!draw_config}, as its fields
@@ -255,6 +257,10 @@ val set_draw_style : string -> string -> unit
 (** [set_draw_labels l] chooses where [MeBi Draw] puts an arrow's label
     ({!Draw.labels}), and shows the change. Raises nothing. *)
 val set_draw_labels : Draw.labels -> unit
+
+(** [set_draw_direction d] chooses the way the layout grows
+    ({!Draw_style.direction}), and shows the change. Raises nothing. *)
+val set_draw_direction : Draw_style.direction -> unit
 
 (** [describe_draw ()] is a sentence saying how [MeBi Draw] draws now, for
     messages. Raises nothing. *)

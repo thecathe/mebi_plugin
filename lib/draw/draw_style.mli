@@ -46,9 +46,19 @@ val of_string : string -> component option
     ["mebi state"]. Raises nothing. *)
 val use : component -> string
 
-(** [default c] is the TikZ options [c] has before anyone sets any. Raises
-    nothing. *)
+(** [default c] is the TikZ options [c] has before anyone sets any, for a
+    layout that grows {!Down}. Raises nothing. *)
 val default : component -> string
+
+(** Which way the layered layout grows: [Down], each layer below the one
+    before it (the default), or [Right], each to the right of the one before,
+    which makes a picture wider than it is tall. *)
+type direction =
+  | Down
+  | Right
+
+(** [direction_name d] is [Down] or [Right]. Raises nothing. *)
+val direction_name : direction -> string
 
 (** [balanced opts] is whether the braces in [opts] close in order. Options
     with unbalanced braces would swallow the rest of the style file, so
@@ -76,8 +86,11 @@ val is_default : t -> bool
     to what, for messages. Raises nothing. *)
 val describe : t -> string
 
-(** [tikzset s] is the contents of the diagram's style file: a [\tikzset]
-    defining {!use}'s name for every {!component} from its {!default} and
-    [s]'s options. The same [s] always gives the same text. Raises
+(** [tikzset ?direction s] is the contents of the diagram's style file: a
+    [\tikzset] defining {!use}'s name for every {!component} from its
+    {!default} and [s]'s options. [direction] ({!Down} by default) is the
+    way the layout grows: it changes {!Layout}'s default (to add
+    [grow=right] for {!Right}), and so can be overridden by the user's own
+    options for it. The same arguments always give the same text. Raises
     nothing. *)
-val tikzset : t -> string
+val tikzset : ?direction:direction -> t -> string

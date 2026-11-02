@@ -394,6 +394,7 @@ let text : string list -> string option = function
       (Printf.sprintf
          "MeBi Config Draw Format TeX | PDF | PNG.\n\
           MeBi Config Draw Labels OnEdge | Beside.\n\
+          MeBi Config Draw Direction Down | Right.\n\
           MeBi Config Draw Dir \"<dir>\".\n\
           MeBi Config Draw Style \"<Component>\" \"<TikZ options>\".\n\
           MeBi Config Bounds Draw States <n>.\n\
@@ -433,6 +434,12 @@ let text : string list -> string option = function
           another arrow's, and the two arrows between a pair of states in \
           opposite directions are then bent apart (the TwoWay style, which \
           OnEdge has no use for).\n\n\
+          Direction: Down (the default) grows the layout downwards, a layer \
+          below the one before; Right grows it to the right, which makes a \
+          picture wider than it is tall (landscape), as a talk slide is. It \
+          adds grow=right to Layout's default, which your own Layout options \
+          still follow. With Beside, the labels of a Right layout are squeezed \
+          between the layers.\n\n\
           The defaults:\n\
           %s\n\n\
           To style a picture by hand, leave <name>.style.tikz out and define \

@@ -67,6 +67,17 @@ let use : component -> string = function
   | Caption -> "mebi caption"
 ;;
 
+(* See the [.mli]. *)
+type direction =
+  | Down
+  | Right
+
+(* See the [.mli]. *)
+let direction_name : direction -> string = function
+  | Down -> "Down"
+  | Right -> "Right"
+;;
+
 (* See the [.mli]. [initial] draws the arrow into the initial state (TikZ's
    [automata] library); [initial text=] leaves it unlabelled. *)
 let default : component -> string = function
@@ -132,29 +143,43 @@ let describe (s : t) : string =
       (List.map (fun c -> Printf.sprintf "%s: %s" (name c) (get c s)) set_)
 ;;
 
+(** [default_in direction c] is [default c], but for {!Layout} the one that
+    grows in [direction]: the same distances, as the layers' own widths are
+    already allowed for. *)
+let default_in (direction : direction) (c : component) : string =
+  match direction, c with
+  | Right, Layout ->
+    "layered layout, grow=right, level distance=18mm, sibling distance=12mm"
+  | _ -> default c
+;;
+
 (** [join parts] is the non-blank [parts], comma separated. Raises nothing. *)
 let join (parts : string list) : string =
   List.filter (fun p -> not (String.equal (String.trim p) "")) parts
   |> String.concat ", "
 ;;
 
-(** [options c s] is [c]'s own TikZ options: its default, then the user's. *)
-let options (c : component) (s : t) : string = join [ default c; get c s ]
+(** [options direction c s] is [c]'s own TikZ options: its default, then the
+    user's. *)
+let options (direction : direction) (c : component) (s : t) : string =
+  join [ default_in direction c; get c s ]
+;;
 
 (** [body c s] is what [c]'s style is defined as: the style it builds on,
     if any, then {!options}. A silent edge also has its label drawn in the
     silent label style, for that edge only. *)
-let body (c : component) (s : t) : string =
+let body (direction : direction) (c : component) (s : t) : string =
+  let options : t -> string = options direction c in
   match c with
-  | Initial | Terminal -> join [ use State; options c s ]
+  | Initial | Terminal -> join [ use State; options s ]
   | Silent_edge ->
     join
       [ use Edge
-      ; options c s
+      ; options s
       ; Printf.sprintf "every edge quotes/.style={%s}" (use Silent_label)
       ]
-  | Silent_label -> join [ use Label; options c s ]
-  | Layout | State | Edge | Label | Two_way | Loop | Caption -> options c s
+  | Silent_label -> join [ use Label; options s ]
+  | Layout | State | Edge | Label | Two_way | Loop | Caption -> options s
 ;;
 
 (** [key c] is the key [c]'s style is defined under. [\graph]'s own options
@@ -164,7 +189,7 @@ let key (c : component) : string =
 ;;
 
 (* See the [.mli]. *)
-let tikzset (s : t) : string =
+let tikzset ?(direction : direction = Down) (s : t) : string =
   String.concat
     "\n"
     ([ "% MeBi diagram styles, generated. The picture names these styles and"
@@ -178,7 +203,8 @@ let tikzset (s : t) : string =
      @ [ String.concat
            ",\n"
            (List.map
-              (fun c -> Printf.sprintf "  %s/.style={%s}" (key c) (body c s))
+              (fun c ->
+                Printf.sprintf "  %s/.style={%s}" (key c) (body direction c s))
               components)
        ; "}"
        ])

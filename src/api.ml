@@ -258,6 +258,7 @@ type draw_config =
   ; mutable draw_dir : string
   ; mutable draw_style : Draw_style.t
   ; mutable draw_labels : Draw.labels
+  ; mutable draw_direction : Draw_style.direction
   }
 
 (* See the [.mli]. *)
@@ -268,6 +269,7 @@ let draw_config_default () : draw_config =
   ; draw_dir = default_draw_dir
   ; draw_style = Draw_style.empty
   ; draw_labels = Draw.On_edge
+  ; draw_direction = Draw_style.Down
   }
 ;;
 
@@ -356,11 +358,20 @@ let set_draw_labels (l : Draw.labels) : unit =
 ;;
 
 (* See the [.mli]. *)
+let set_draw_direction (d : Draw_style.direction) : unit =
+  !the_draw_config.draw_direction <- d;
+  Printf.sprintf
+    "(MeBi Config: Set Draw Direction to: %s.)"
+    (Draw_style.direction_name d)
+  |> Logger.show
+;;
+
+(* See the [.mli]. *)
 let describe_draw () : string =
   let c : draw_config = !the_draw_config in
   Printf.sprintf
     "MeBi Draw makes %s into %s, for at most %s, with %i seconds for each \
-     program it runs. Labels: %s. Style: %s."
+     program it runs. Labels: %s. Direction: %s. Style: %s."
     (match c.draw_format with
      | Draw_output.Tex -> "the TeX files"
      | Pdf -> "a PDF as well as the TeX files"
@@ -373,6 +384,7 @@ let describe_draw () : string =
     (match c.draw_labels with
      | Draw.On_edge -> "on the arrows (OnEdge)"
      | Beside -> "beside the arrows (Beside)")
+    (Draw_style.direction_name c.draw_direction)
     (Draw_style.describe c.draw_style)
 ;;
 
