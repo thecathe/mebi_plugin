@@ -153,10 +153,16 @@ turns the pin into a positive test.
   the `.dot`. Its text is in Graphviz's font and not the document's, a label
   cannot hold LaTeX, the picture cannot be restyled from a document, `Style`,
   `Layout` and `TwoWay` do not apply to it, and its spacing and font are fixed.
-  Only Graphviz 15.1.1 was tried; layouts differ between versions.
+  Only Graphviz 15.1.0 and 15.1.1 were tried; layouts differ between versions.
   A silent step's tau is the mathematical bold italic small tau (U+1D749) in
   Latin Modern Math, then STIX Two Math and Asana Math; where none is installed
   Graphviz takes the letter from whatever font has it, so the glyph differs.
+  The extra room that makes the line to an arrowhead as long as the other
+  (`Draw_dot.head_allowance`, 11 units) was measured for `arrowsize=0.8` and
+  `penwidth=1.4`, down and right, and is not derived: change either and it needs
+  measuring again. Where a label shares its layer with a state it is a little
+  taller than (a back arrow's label, say), the lines beside that layer are up to
+  about 3 points longer than the rest.
 - **`MeBi Draw` starts its programs (`lualatex`, `pdftocairo`, `gs`, `dot`)
   through a POSIX `sh`** (*limit*; found 2026-11-02; the message is pinned by
   `test/tests.ml`). On a system without one (native Windows, say) each is

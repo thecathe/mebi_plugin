@@ -39,7 +39,10 @@ val html : string -> string
     line passes straight through it, and the layout keeps room for it (an
     arrow back to an earlier state is laid out the other way round, its head
     at its target and each half as long as {!Draw.back_spans} says, so that
-    its label is half way along it); or [Beside], as Graphviz's own edge
+    its label is half way along it); both halves are as long to look at,
+    though Graphviz counts an arrow from border to border with its head in
+    it: the label has a little empty room on the side of the head, which the
+    line crosses; or [Beside], as Graphviz's own edge
     label. A state's arrow to itself keeps an edge label either way. [style]
     ({!Draw_style.empty} by default) gives the colour of each kind and
     whether a coloured label has an outline ({!Draw_style.outline}); nothing is
