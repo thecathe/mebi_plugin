@@ -1717,6 +1717,9 @@ Module Draw.
   MeBi Config Draw Kind "Ca" "red".
   MeBi Config Draw Kind Default "gray".
   MeBi Draw LTS 0 Using lts As "lts-kinds".
+  MeBi Config Draw Outline On.
+  MeBi Draw LTS 0 Using lts As "lts-outline".
+  MeBi Config Draw Outline Off.
   MeBi Config Draw Kind "Ca" "".
   MeBi Config Draw Kind Default "".
   MeBi Config Draw Kind "not a kind" "red".

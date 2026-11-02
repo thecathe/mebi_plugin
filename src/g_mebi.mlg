@@ -394,6 +394,10 @@ VERNAC COMMAND EXTEND MeBi_Config_Draw CLASSIFIED AS QUERY
   { Api.set_draw_kind_default c }
 | ["MeBi" "Config" "Draw" "Kind" string(k) string(c)] ->
   { Api.set_draw_kind k c }
+| ["MeBi" "Config" "Draw" "Outline" "On"] ->
+  { Api.set_draw_outline true }
+| ["MeBi" "Config" "Draw" "Outline" "Off"] ->
+  { Api.set_draw_outline false }
 | ["MeBi" "Config" "Draw" "Dir" string(d)] ->
   { Api.set_draw_dir d }
 | ["MeBi" "Config" "Draw" "Style" string(c) string(o)] ->

@@ -1731,11 +1731,11 @@ let test_draw_picture () : unit =
     s1[as={Brew\_1}, mebi state];
     s2[as={Done}, mebi terminal];
     e0[as={insert\\ select}, mebi label];
-    s0 ->[mebi edge, -] e0 ->[mebi edge] s1;
+    s0 ->[mebi edge, -, mebi forward] e0 ->[mebi edge, mebi forward] s1;
     e1[as={$\tau$}, mebi silent label];
-    s1 ->[mebi silent edge, -] e1 ->[mebi silent edge] s2;
+    s1 ->[mebi silent edge, -, mebi forward] e1 ->[mebi silent edge, mebi forward] s2;
     e2[as={serve}, mebi label];
-    s0 --[mebi edge, -, mebi back tip, minimum layers=2, weight=0.2] e2 --[mebi edge, -, minimum layers=2, weight=0.2] s2;
+    s0 --[mebi edge, -, mebi back first, mebi back tip, minimum layers=2, weight=0.2] e2 --[mebi edge, -, mebi back second, minimum layers=2, weight=0.2] s2;
   };
   \path (s1) edge[mebi edge, mebi loop, "{tick, tock}"] (s1);
   \node[mebi caption, anchor=north] at (current bounding box.south) {Incomplete: some states or transitions may be missing.};
@@ -1814,11 +1814,16 @@ let test_draw_picture () : unit =
      bent"
     true
     ((not (contains ~sub:"mebi two-way" on_edge))
-     && contains ~sub:"s0 ->[mebi edge, -] e0 ->[mebi edge] s1;" on_edge
      && contains
           ~sub:
-            "s0 --[mebi edge, -, mebi back tip, minimum layers=1, weight=0.2] \
-             e1 --[mebi edge, -, minimum layers=1, weight=0.2] s1;"
+            "s0 ->[mebi edge, -, mebi forward] e0 ->[mebi edge, mebi forward] \
+             s1;"
+          on_edge
+     && contains
+          ~sub:
+            "s0 --[mebi edge, -, mebi back first, mebi back tip, minimum \
+             layers=1, weight=0.2] e1 --[mebi edge, -, mebi back second, \
+             minimum layers=1, weight=0.2] s1;"
           on_edge);
   check
     "a state's arrow to itself keeps its quoted label, drawn after the layout"
@@ -1929,8 +1934,9 @@ let test_draw_back_arrows () : unit =
     true
     (contains
        ~sub:
-         "s0 --[mebi edge, -, mebi back tip, minimum layers=4, weight=0.2] e4 \
-          --[mebi edge, -, minimum layers=4, weight=0.2] s4;"
+         "s0 --[mebi edge, -, mebi back first, mebi back tip, minimum \
+          layers=4, weight=0.2] e4 --[mebi edge, -, mebi back second, minimum \
+          layers=4, weight=0.2] s4;"
        p
      && count_sub ~sub:"mebi back tip" p = 1);
   check
@@ -2026,13 +2032,42 @@ let test_draw_kinds () : unit =
          "mebi kind Select/.style={draw=green!50!black, every edge \
           quotes/.style={mebi label, mebi kind Select label}}"
        def
+     && contains ~sub:"mebi kind Select label/.style={text=green!50!black}" def
+     && contains ~sub:"mebi default kind/.style={draw=gray" def
+     && contains ~sub:"mebi default kind label/.style={text=gray" def);
+  check
+    "a kind's label has no outline unless asked, and then a light one"
+    true
+    ((not (contains ~sub:"rounded corners=5pt" def))
+     && (not (outline s))
+     && outline (set_outline true s)
      && contains
           ~sub:
             "mebi kind Select label/.style={text=green!50!black, \
              draw=green!50!black!40, rounded corners=5pt}"
+          (tikzset (set_outline true s))
+     && (not (is_default (set_outline true empty)))
+     && is_default (set_outline false (set_outline true empty))
+     && contains ~sub:"Outline: On" (describe (set_outline true empty)));
+  check
+    "each half of an arrow leaves and arrives at the side that faces the way \
+     the layout grows, and an arrow back at the others"
+    true
+    (contains
+       ~sub:"mebi forward/.style={tail anchor=south, head anchor=north}"
+       def
+     && contains
+          ~sub:"mebi back first/.style={tail anchor=east, head anchor=north}"
           def
-     && contains ~sub:"mebi default kind/.style={draw=gray" def
-     && contains ~sub:"mebi default kind label/.style={text=gray" def);
+     && contains
+          ~sub:"mebi back second/.style={tail anchor=south, head anchor=east}"
+          def
+     && contains
+          ~sub:"mebi forward/.style={tail anchor=east, head anchor=west}"
+          (tikzset ~direction:Right s)
+     && contains
+          ~sub:"mebi back first/.style={tail anchor=north, head anchor=west}"
+          (tikzset ~direction:Right s));
   check
     "and a style with no kind set defines none"
     false
@@ -2073,11 +2108,11 @@ let test_draw_kinds () : unit =
     (contains ~sub:"e0[as={Select a}, mebi label, mebi kind Select label];" p
      && contains
           ~sub:
-            "s0 ->[mebi edge, -, mebi kind Select] e0 ->[mebi edge, mebi kind \
-             Select] s1;"
+            "s0 ->[mebi edge, -, mebi kind Select, mebi forward] e0 ->[mebi \
+             edge, mebi kind Select, mebi forward] s1;"
           p
      && contains ~sub:"e1[as={Insert x}, mebi label, mebi kind Insert label];" p
-     && count_sub ~sub:"mebi kind Insert]" p = 4);
+     && count_sub ~sub:"mebi kind Insert, mebi forward]" p = 4);
   check
     "a kind with no colour is not named (TikZ would refuse it), nor is a \
      silent step"
@@ -2085,8 +2120,11 @@ let test_draw_kinds () : unit =
     ((not (contains ~sub:"mebi kind Other" p))
      && (not (contains ~sub:"default kind" p))
      && contains ~sub:"e3[as={$\\tau$}, mebi silent label];" p
-     && contains ~sub:"s3 ->[mebi silent edge, -] e3 ->[mebi silent edge] s4;" p
-    );
+     && contains
+          ~sub:
+            "s3 ->[mebi silent edge, -, mebi forward] e3 ->[mebi silent edge, \
+             mebi forward] s4;"
+          p);
   check
     "an arrow of two kinds has none"
     true
@@ -2106,7 +2144,11 @@ let test_draw_kinds () : unit =
     true
     (contains ~sub:"mebi default kind label];" q
      && contains ~sub:"e5[as={Other w}, mebi label, mebi default kind label];" q
-     && contains ~sub:"s3 ->[mebi silent edge, -] e3 ->[mebi silent edge] s4;" q
+     && contains
+          ~sub:
+            "s3 ->[mebi silent edge, -, mebi forward] e3 ->[mebi silent edge, \
+             mebi forward] s4;"
+          q
      && contains
           ~sub:
             "e4[as={Other z\\\\ Insert q}, mebi label, mebi default kind \
@@ -2117,7 +2159,8 @@ let test_draw_kinds () : unit =
     true
     (contains
        ~sub:
-         "s0 --[mebi edge, -, mebi default kind, mebi back tip, minimum layers="
+         "s0 --[mebi edge, -, mebi default kind, mebi back first, mebi back \
+          tip, minimum layers="
        q);
   check
     "beside the arrows, the style is on the arrow, which draws its label in it"
@@ -2176,7 +2219,7 @@ let test_draw_style () : unit =
      && contains
           ~sub:
             "graphs/mebi layout/.style={layered layout, grow=right, level \
-             distance=30mm, sibling distance=12mm}"
+             distance=24mm, sibling distance=12mm}"
           (tikzset ~direction:Right empty)
      && String.equal default (tikzset ~direction:Down empty));
   check
@@ -2190,7 +2233,10 @@ let test_draw_style () : unit =
     true
     (let lines s = String.split_on_char '\n' s in
      let rest s =
-       List.filter (fun l -> not (contains ~sub:"mebi layout" l)) (lines s)
+       List.filter
+         (fun l ->
+           not (contains ~sub:"mebi layout" l || contains ~sub:"anchor" l))
+         (lines s)
      in
      rest default = rest (tikzset ~direction:Right empty));
   check

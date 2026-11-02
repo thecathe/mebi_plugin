@@ -433,7 +433,38 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   had; splines need Graphviz (the optional engine), or Béziers drawn after the
   layout, which would lose the layout's routing around nodes for long arrows.
   Left: the Graphviz engine.
-- **A Graphviz engine** (optional, see above). Written for Graphviz, the
+- **A Graphviz engine** (optional, see above). **Prototyped 2026-11-02** (a
+  throwaway script, not in the plugin; the devlog has it): from the picture the
+  plugin writes it takes the states, arrows, kinds and labels; measures each
+  state and label with TeX in the picture's own styles (one `lualatex` run), so
+  that `dot`'s boxes are TeX's; writes DOT with each label a node of the layout
+  (`a -> l -> b`, the forward chain weighted, an arrow back laid out target to
+  source with `minlen` the half-length the plugin already computes); runs
+  `dot -Tplain`; and draws each piece as `dot` routed it (a Bézier) in the
+  plugin's own named styles, the label on top at the node's centre. On the
+  five-state cycle and the 18-state coffee machine, down and right, it gives
+  smooth splines, a straight forward chain, **uniform visible lines** (`dot`'s
+  `ranksep` is border to border: the silent step's tau is no longer a long
+  dashed line) and the arrow back's label half way; about 1.2 to 1.7 s in all,
+  most of it the two `lualatex` runs, `dot` itself a few ms. Not covered by the
+  prototype, and what a real engine needs: a state's arrow to itself, merged
+  labels, a terminal state, the incomplete caption, the bounds (`dot` is fast,
+  so the state bound could rise: measured 5.8 s at 300 states and no result at
+  1,000 with every label a node, 2026-11-01), a way to say the spacing (`Layout`
+  is LuaTeX's; `ranksep` and `nodesep` would be new settings), and a fallback to
+  the LuaTeX engine when `dot` is absent, fails or is killed at the time limit.
+  **Estimate for the real thing, in OCaml in `lib/draw` (no `rocq-runtime`):**
+  the DOT writer about 80 lines, the TeX measurement about 60 (or an estimate
+  from the text's length, cruder: arrowheads would not touch their boxes), the
+  `-Tplain` parser about 50, the TikZ emitter about 120, then the wiring
+  (`MeBi Config Draw Engine Auto | LuaTeX | Graphviz`, help, README, the fallback)
+  and tests (the parser and emitter on captured `dot` output, a compile test that
+  skips without `dot`), and the packaging (`depopts: conf-graphviz`, the Nix
+  flake). Roughly 350 to 450 lines of code and 200 of tests: about a day of
+  work, in a session or two, plus a review of what the author wants from the
+  settings. It adds a runtime program, not an install-time dependency, and the
+  licence note of the 2026-11-01 entry stands. Old notes on the rule for a back
+  edge, below, were for this engine. Written for Graphviz, the
   rule for a back edge (found by a depth-first search from the initial
   state) is: lay it out reversed, and pin its label half way with `minlen`
   after a first pass that reads the ranks off the y coordinates. The author
@@ -442,12 +473,9 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   tried and gives a cleaner exit but a harder edge to read; flipping alone
   leaves the label at the top, the first pass is what centres it. For a
   TikZ picture drawn from `dot -Tplain`, route first and place the label at
-  half the curve's arc length. Measured: `dot` takes
-  0.17 s at 100 states with every label a node, 5.8 s at 300, and did not
-  finish 1,000 in five minutes (random back edges are hard on its ordering).
-  `dot2tex` is the existing converter: with `--preproc` it needs
-  `preview.sty` (absent from this host's TeX Live), and it cannot put a
-  label on the middle of an edge.
+  half the curve's arc length. `dot2tex` is the existing converter: with
+  `--preproc` it needs `preview.sty` (absent from this host's TeX Live), and
+  it cannot put a label on the middle of an edge.
 - **Colour by kind of label** (done 2026-11-02, flagged first and agreed:
   `MeBi Config Draw Kind "<Kind>" "<colour>"` and `Kind Default "<colour>"`).
   The colours are explicit, as the author asked: nothing is coloured unless

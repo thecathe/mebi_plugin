@@ -401,6 +401,18 @@ let set_draw_kind_default (colour : string) : unit =
 ;;
 
 (* See the [.mli]. *)
+let set_draw_outline (b : bool) : unit =
+  !the_draw_config.draw_style
+  <- Draw_style.set_outline b !the_draw_config.draw_style;
+  Printf.sprintf
+    "(MeBi Config: Draw Outline is %s.)"
+    (if b
+     then "On: a light frame round the labels of the kinds with a colour"
+     else "Off")
+  |> Logger.show
+;;
+
+(* See the [.mli]. *)
 let set_draw_labels (l : Draw.labels) : unit =
   !the_draw_config.draw_labels <- l;
   Printf.sprintf

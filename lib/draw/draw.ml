@@ -383,9 +383,11 @@ let picture
           t
           (join
              ((edge_options ls :: "-" :: kind_arrow ls)
-              @ (Draw_style.back_tip :: pin half)))
+              @ (Draw_style.back_first :: Draw_style.back_tip :: pin half)))
           k
-          (join ((edge_options ls :: "-" :: kind_arrow ls) @ pin half))
+          (join
+             ((edge_options ls :: "-" :: kind_arrow ls)
+              @ (Draw_style.back_second :: pin half)))
           s
       ])
     else
@@ -393,9 +395,10 @@ let picture
       ; Printf.sprintf
           "    s%i ->[%s] e%i ->[%s] s%i;"
           s
-          (join (edge_options ls :: "-" :: kind_arrow ls))
+          (join
+             (edge_options ls :: "-" :: (kind_arrow ls @ [ Draw_style.forward ])))
           k
-          (join (edge_options ls :: kind_arrow ls))
+          (join (edge_options ls :: (kind_arrow ls @ [ Draw_style.forward ])))
           t
       ]
   in
