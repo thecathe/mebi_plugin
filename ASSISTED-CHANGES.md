@@ -10513,6 +10513,41 @@ Refactor 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — A missing `sh` is named, and `Simple.v` set to the confirmed look
+
+**Bug fix** (a misleading message) and **Docs**. On `fix/draw-no-sh-message`.
+Jonah asked, after I showed what a missing tool does: warn about no `sh` if it is
+actually an issue; and said that, after recompiling in VS Code, `simple` did not
+look like what he had confirmed, asking for `Simple.v` to be configured to that.
+
+- **Is a missing `sh` an issue?** Only where there is none (native Windows, say):
+  on Linux and macOS it cannot happen. But where it does, the old message was
+  wrong: with `lualatex` present and no `sh` the warning read "Lualatex failed
+  (No such file or directory)", which blames the program. `Draw_output.run` now
+  says "sh, which launches it, could not be started: ...", so the warning reads
+  "Lualatex failed (sh, which launches it, could not be started: No such file or
+  directory)". Still a warning, never an error, and the files made are kept
+  (the run exit code was 0 before and is unchanged). A test pins it (with `PATH`
+  emptied); `doc/limitations.md` says `MeBi Draw` needs a POSIX `sh`. I did not
+  test it on Windows.
+- **Why `simple` looked different.** The look he confirmed is the **Graphviz**
+  engine's, coloured by kind, which I had been drawing with a copy of Graphviz
+  fetched for the session (`nix shell`); his `Simple.v` had no settings, so it drew
+  with the default LuaTeX engine. And **`dot` is not installed on his machine**, so
+  setting the engine alone would have written only the `.dot` and a warning. I
+  added the settings to `examples/Simple.v` (the Graphviz engine, `Format PNG`,
+  `Direction Right` as he said he wants for the talk, and `Kind` colours for
+  `Select`, `Insert` and `Output`), left uncommitted for him to review, and told
+  him that `dot` has to be on the `PATH` of the process that runs Rocq.
+- **Checked.** The new test, 349/349 with Graphviz (346/346 without), a full
+  `dune build` and `make -j$(nproc)`; and the edited `Simple.v` compiled through
+  the plugin with `dot` on the `PATH` and looked at.
+
+**Session tally (2026-11-02, this entry):** Bug fix 1 · Docs 1 · Refactor 0 ·
+New feature 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
