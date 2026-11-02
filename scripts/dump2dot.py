@@ -45,6 +45,14 @@ import sys
 from pathlib import Path
 
 TAU = "\u03c4"
+# A silent step is TeX's \boldmath$\tau$: the mathematical bold italic small tau (U+1D749) in the fonts
+# of TeX's math italic (Latin Modern Math is Computer Modern's), or the nearest to them.
+TAU_MARKUP = '<FONT FACE="Latin Modern Math, STIX Two Math, Asana Math">\U0001d749</FONT>'
+# How much longer the line from a label to the arrowhead is made than the other, in the units of an
+# HTML-like label (a little under a point): Graphviz measures an arrow from border to border, head
+# included, so that line is shorter by the head (10 * arrowsize points) and by the short way a tip stops
+# from its node (about 2.5 points at this pen width). Measured at 11, growing down and right.
+HEAD_ALLOWANCE = 11
 
 
 # --- reading the dump ------------------------------------------------------
@@ -249,13 +257,33 @@ def html(s):
             .replace('"', "&quot;").replace("\n", " "))
 
 
+def label_markup(ls):
+    """The labels [ls] (text, silent) as the text of an HTML-like label, a line each."""
+    return "<BR/>".join(TAU_MARKUP if silent else html(t) for t, silent in ls)
+
+
 def label_value(ls):
     """The value of a DOT label for the labels [ls] (text, silent), a line each. A silent step is a
-    bold italic tau, as TeX's math italic is, which a plain string cannot be: when one is among them
-    the value is an HTML-like label, <...>; otherwise a quoted string."""
+    bold italic tau in a math font, which a plain string cannot be: when one is among them the value
+    is an HTML-like label, <...>; otherwise a quoted string."""
     if any(silent for _, silent in ls):
-        return "<" + "<BR/>".join("<B><I>%s</I></B>" % TAU if silent else html(t) for t, silent in ls) + ">"
+        return "<" + label_markup(ls) + ">"
     return q("\n".join(t for t, _ in ls))
+
+
+def label_node(ls, rankdir, after, frame=None):
+    """The HTML-like label of the node that is the label [ls] of an arrow: the text in a cell with a
+    port, t, for the arrow's halves, and HEAD_ALLOWANCE of nothing after it (below, or to its right:
+    [after]) or before it, which makes the line to the arrowhead as long as the other."""
+    border = ' BORDER="1" STYLE="ROUNDED" COLOR=%s' % q(frame) if frame else ""
+    cell = '<TD PORT="t" BGCOLOR="white" CELLPADDING="1"%s>%s</TD>' % (border, label_markup(ls))
+    if rankdir in ("TB", "BT"):
+        pad = '<TR><TD HEIGHT="%d"></TD></TR>' % HEAD_ALLOWANCE
+        rows = "<TR>" + cell + "</TR>" + pad if after else pad + "<TR>" + cell + "</TR>"
+    else:
+        pad = '<TD WIDTH="%d"></TD>' % HEAD_ALLOWANCE
+        rows = "<TR>" + cell + pad + "</TR>" if after else "<TR>" + pad + cell + "</TR>"
+    return '<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0">' + rows + "</TABLE>>"
 
 
 def to_dot(d, opts):
@@ -300,22 +328,25 @@ def to_dot(d, opts):
             out.append("  s%d -> s%d [label=%s%s];" % (s, t, text, "".join(", " + a for a in cattr + sattr)))
             continue
         k += 1
-        lbl_attrs = ["shape=box", "style=filled", "fillcolor=white", "penwidth=0",
-                     "margin=\"0.05,0.03\"", "label=%s" % text]
+        is_back = (s, t) in back
+        # the head is at the target, so the extra line is on the label's side towards it: the side the
+        # arrow leaves by, for an arrow that goes the way the layout grows, and the side it arrives by
+        # for an arrow back
+        grows_forward = opts.rankdir in ("TB", "LR")
+        frame = colour if opts.outline and colour and not silent else None
+        lbl_attrs = ["shape=plain", "label=%s" % label_node(ls, opts.rankdir, grows_forward != is_back, frame)]
         if colour:
             lbl_attrs.append("fontcolor=%s" % q(colour))
         if silent:
             lbl_attrs.append("fontsize=%d" % (opts.fontsize + 3))
-        if opts.outline and colour:
-            lbl_attrs[1:3] = ["style=\"rounded,filled\"", "fillcolor=white", "color=%s" % q(colour)]
-            lbl_attrs[3:4] = ["penwidth=0.6"]
         out.append("  l%d [%s];" % (k, ", ".join(lbl_attrs)))
         ea = "".join(", " + a for a in cattr + sattr)
         into, outof = {"TB": ("n", "s"), "BT": ("s", "n"), "LR": ("w", "e"), "RL": ("e", "w")}[opts.rankdir]
-        # both halves meet the label at the middle of its sides, so that the line goes straight through it
-        pi = ", headport=%s" % into
-        po = ", tailport=%s" % outof
-        if (s, t) in back:
+        # both halves meet the text's cell at the middle of its sides, so that the line goes straight
+        # through the label
+        pi = ', headport="t:%s"' % into
+        po = ', tailport="t:%s"' % outof
+        if is_back:
             half = longest_path(arrows, back, t, s)
             # laid out target -> source, so that the label sits half way; the head is at the target
             out.append("  s%d -> l%d [dir=back, arrowtail=normal, arrowhead=none, minlen=%d%s%s];" % (t, k, half, ea, pi))

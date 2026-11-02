@@ -101,31 +101,92 @@ let html (s : string) : string =
   Buffer.contents b
 ;;
 
-(** [label_value ls] is the value of the [label] attribute for the labels [ls],
-    one to a line. A silent step is a bold, italic tau (as TeX's [$\tau$] is,
-    in math italic), which a plain string cannot be: so when one is among them
-    the value is an HTML-like label, [<...>], with the lines apart by [<BR/>];
-    otherwise it is a plain quoted string. A line break inside a label is a
+(** The fonts TeX's [$\tau$] is drawn in: Latin Modern Math is Computer Modern's
+    math italic, so the same letter, and the others are the nearest to it, for
+    a machine without it (Graphviz tries them in turn, and then any font with
+    the letter). *)
+let tau_fonts : string = "Latin Modern Math, STIX Two Math, Asana Math"
+
+(** A silent step: TeX's [\boldmath$\tau$], the mathematical bold italic small
+    tau (U+1D749, so it needs neither [<B>] nor [<I>]) in {!tau_fonts}. *)
+let tau : string = "<FONT FACE=\"" ^ tau_fonts ^ "\">\u{1d749}</FONT>"
+
+(** [label_markup ls] is the labels [ls] as the text of an HTML-like label, one
+    to a line, the lines apart by [<BR/>]. A line break inside a label is a
     space. *)
+let label_markup (ls : Draw.label list) : string =
+  String.concat
+    "<BR/>"
+    (List.map (function Draw.Silent -> tau | Draw.Label s -> html s) ls)
+;;
+
+(** [label_value ls] is the value of the [label] attribute for the labels [ls],
+    one to a line. A silent step is a bold italic tau in a math font, which a
+    plain string cannot be: so when one is among them the value is an
+    HTML-like label, [<...>] ({!label_markup}); otherwise it is a plain quoted
+    string. *)
 let label_value (ls : Draw.label list) : string =
   let clean (s : string) : string =
     String.map (function '\n' | '\r' | '\t' -> ' ' | c -> c) s
   in
   if List.exists (fun l -> l = Draw.Silent) ls
-  then
-    "<"
-    ^ String.concat
-        "<BR/>"
-        (List.map
-           (function
-             | Draw.Silent -> "<B><I>\u{03c4}</I></B>" | Draw.Label s -> html s)
-           ls)
-    ^ ">"
+  then "<" ^ label_markup ls ^ ">"
   else
     q
       (String.concat
          "\n"
          (List.map (function Draw.Silent -> "" | Draw.Label s -> clean s) ls))
+;;
+
+(** How much longer the line from a label to the arrowhead is made than the
+    other, in the units of an HTML-like label (a little under a point). Graphviz
+    measures an arrow from border to border, head included, so the visible line
+    on the head's side is shorter than the other by the head ([10 * arrowsize]
+    points) and by the short way a tip stops from its node (about 2.5 points at
+    this pen width): measured at 11 units, in both directions. The label is
+    one table with its text in one cell and this much empty beside it, on the
+    arrow's side; the arrow's halves meet the text's cell, so the empty part
+    is part of the line. The text's cell is padded by only 1, because a layer
+    is as tall as its tallest node, and a label with this much spare that is
+    much taller than a state would lengthen the lines beside it. *)
+let head_allowance : int = 11
+
+(** [label_node ~direction ~after ?frame ls] is the HTML-like label of the node
+    that is the label [ls] of an arrow: the text in a cell with a port, [t],
+    for the arrow's halves; and [head_allowance] of nothing after it ([after]:
+    below it, or to its right) or before it. [frame] is the colour of a frame
+    round the text, if it has one. *)
+let label_node
+      ~(direction : Draw_style.direction)
+      ~(after : bool)
+      ?(frame : string option)
+      (ls : Draw.label list)
+  : string
+  =
+  let cell : string =
+    Printf.sprintf
+      "<TD PORT=\"t\" BGCOLOR=\"white\" CELLPADDING=\"1\"%s>%s</TD>"
+      (match frame with
+       | Some c -> Printf.sprintf " BORDER=\"1\" STYLE=\"ROUNDED\" COLOR=%s" (q c)
+       | None -> "")
+      (label_markup ls)
+  in
+  let rows : string =
+    match direction with
+    | Draw_style.Down ->
+      let pad : string =
+        Printf.sprintf "<TR><TD HEIGHT=\"%i\"></TD></TR>" head_allowance
+      in
+      if after
+      then "<TR>" ^ cell ^ "</TR>" ^ pad
+      else pad ^ "<TR>" ^ cell ^ "</TR>"
+    | Draw_style.Right ->
+      let pad : string = Printf.sprintf "<TD WIDTH=\"%i\"></TD>" head_allowance in
+      if after then "<TR>" ^ cell ^ pad ^ "</TR>" else "<TR>" ^ pad ^ cell ^ "</TR>"
+  in
+  "<<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">"
+  ^ rows
+  ^ "</TABLE>>"
 ;;
 
 (* See the [.mli]. *)
@@ -214,36 +275,29 @@ let dot
       else (
         incr k;
         let l : int = !k in
-        let outline : bool =
-          Draw_style.outline style
-          && (not (silent ls))
-          && Stdlib.Option.is_some (colour_of ls)
+        let frame : string option =
+          if Draw_style.outline style && not (silent ls)
+          then colour_of ls
+          else None
         in
+        (* the head is at the target, so the extra line is on the side of the
+           label towards it: after the label, for an arrow that goes the way
+           the layout grows, and before it for an arrow back *)
+        let back : bool = List.mem_assoc (s, t) spans in
         add
           (Printf.sprintf
              "  l%i [%s];"
              l
              (attrs
-                ((if outline
-                  then
-                    [ "shape=box"
-                    ; "style=\"rounded,filled\""
-                    ; "fillcolor=white"
-                    ; "penwidth=0.6"
-                    ; "color="
-                      ^ q (Stdlib.Option.value (colour_of ls) ~default:"black")
-                    ]
-                  else
-                    [ "shape=box"
-                    ; "style=filled"
-                    ; "fillcolor=white"
-                    ; "penwidth=0"
-                    ])
-                 @ [ "margin=\"0.05,0.03\""; "label=" ^ label_value ls ]
+                ([ "shape=plain"
+                 ; "label=" ^ label_node ~direction ~after:(not back) ?frame ls
+                 ]
                  @ (match colour_of ls with
                     | Some c -> [ "fontcolor=" ^ q c ]
                     | None -> [])
                  @ if silent ls then [ "fontsize=14" ] else [])));
+        let into : string = "\"t:" ^ into ^ "\"" in
+        let outof : string = "\"t:" ^ outof ^ "\"" in
         match List.assoc_opt (s, t) spans with
         | Some half ->
           (* laid out target to source, its head at the target *)

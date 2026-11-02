@@ -10578,6 +10578,71 @@ Refactor 0 · Docs 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `MeBi Draw` (Graphviz): both halves of an arrow as long to the eye, and TeX's own tau
+
+**Bug fix** x2 and **Docs**; two look corrections to the opt-in Graphviz engine,
+not new capabilities. On `fix/draw-graphviz-arrow-pad`. Jonah, on the new
+pictures: the line from a label to the arrowhead is shorter than the one before
+it (growing right the labels want to sit further left, growing down further up),
+and the tau should be the classic math-mode one, not the font it was switched to.
+
+- **The line.** Measured, not eyeballed: with a label node on `s -> l -> t`,
+  Graphviz gives each half the same border-to-border length, and the arrowhead
+  is *inside* the second half. The visible line after the label was 7.6 points
+  against 17.7 before it: short by the head (`10 * arrowsize` = 8) and by about
+  2.5 more, the distance an arrow's tip stops from its node (it grows with the
+  pen width: 1.84 at 1, 2.45 at 1.4, 3.35 at 2). So the label looked pushed
+  towards the target by about 10 points, in both directions.
+- **The fix.** A label is now an HTML-like table (`shape=plain`): the text in
+  one cell, with a port `t`, and `11` units of empty room beside it on the side of
+  the head, below it growing down, to its right growing right (for an arrow
+  back, whose head is at the other half, above or to the left). The arrow's two
+  halves meet the *cell* (`headport="t:n"`), so the line runs through the room
+  and the visible lines are equal: measured 17.67 and 17.63 down, 17.93 and 17.84
+  right; on the 5-state cycle's four forward labels within 1 point except where a
+  neighbouring layer is taller (below). `11` is measured, not derived (an HTML
+  unit is a little under a point, and the tip gap depends on the pen width): it
+  is right for `arrowsize=0.8`, `penwidth=1.4`, Graphviz 15.1.0, and needs
+  measuring again if either changes (`doc/limitations.md`).
+- **What I got wrong on the way.** First padded the text cell by 3. A label
+  with its room is then 30 points tall against a state's 22, and a layer is as
+  tall as its tallest node, so the lines beside a layer that holds such a label
+  (a back arrow's, say) came out 4 points longer than the rest. Padding 1 cuts
+  that to 2 to 3 points; padding 0 would give 1.5, but then growing right the
+  lines touch the text. The residual is documented, not removed. I also wrote a
+  call to a function that does not exist (the compiler said so) before using
+  the colour the code already had.
+- **Costs, said plainly.** The label's padding is now 1 point all round (it was
+  3.6 across, 2.2 up and down), so a label's white box is a little tighter; an
+  *outline* is a table cell's border, whose width is a whole number (1), not the
+  node's 0.6 it was, so an outlined label's frame is slightly heavier (the
+  outline is off by default). `scripts/dump2dot.py` does the same, and `BT` and
+  `RL` mirror `TB` and `LR` (measured).
+- **The tau.** Which fonts have it, by `fc-list` and by looking: Latin Modern
+  Math (U+1D70F is Computer Modern's math italic: compared with TeX's `$\tau$`,
+  the same glyph; U+1D749 is `\boldmath$\tau$`, which is what the LuaTeX engine
+  draws), STIX Two Math, TeX Gyre Termes, Pagella, Bonum, Schola and DejaVu Math,
+  Asana Math, Noto Sans Math, the STIX Two and TeX Gyre text fonts. The old one
+  was U+03C4 in the default text font. Now U+1D749 in `Latin Modern Math, STIX Two
+  Math, Asana Math`; a font list falls through, and if none is installed
+  Graphviz takes the letter from any font that has it (tried with a made-up
+  name). It is bold, as the LuaTeX engine's is and as Jonah asked last time;
+  U+1D70F is the regular weight, one character to change.
+- **Checked.** 350/350 OCaml tests with Graphviz 15.1.0 present (the two
+  commits: 349 and 350), the script's 34; `dune build` and `make -j$(nproc)
+  src/mebi_plugin.cmxs test/rocq/Test.vo` (exit 0); pictures looked at, and the
+  line lengths measured from `dot -Tjson` (forward, down and right, and the four
+  directions of the script). **Not done:** the plugin itself was not run on Jonah's
+  `examples/` (`Draw_dot` was run from a scratch executable on the five-state
+  cycle, and the script on two dumps, one of them a larger coffee machine than
+  the 18-state one in the pictures); `Draw_output`'s `dot` runs are covered by
+  the existing compile tests. No proof suite: nothing the solver reads changed.
+
+**Session tally (2026-11-02, this entry):** Bug fix 2 · Docs 1 · New feature 0 ·
+Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
