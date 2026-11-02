@@ -424,7 +424,7 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   `\arrowreversed`) of the first half, which the layout does not see.
   `minimum layers` alone, on the arrow as it was, made it worse: only the
   half that closes the cycle is reversed, so the label stays one layer from
-  the source. Left: the label's look in a colour per kind (below), and the
+  the source. Colour per kind of label is done too (below). Left: the
   Graphviz engine.
 - **A Graphviz engine** (optional, see above). Written for Graphviz, the
   rule for a back edge (found by a depth-first search from the initial
@@ -441,23 +441,17 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   `dot2tex` is the existing converter: with `--preproc` it needs
   `preview.sty` (absent from this host's TeX Live), and it cannot put a
   label on the middle of an edge.
-- **Colour by kind of action** (noted 2026-11-01 at the author's request;
-  not built, and a new capability to agree first). A colour is per *part*
-  today (`Style`), so colouring the arrows of each action meant
-  post-processing the TikZ with a script, three times as the author's
-  wishes changed (per label, then per *kind*: every `Insert X` alike, every
-  `Select X`, `Serve X`, `Return X`). A sketch:
-  `MeBi Config Draw Kind "<Constructor>" "<colour>"`. A label's kind is its
-  first word once tidied (`Insert ten` is `Insert`). `Draw_style` keeps the
-  kinds, and the style file defines `mebi kind <name>` for each: the arrow's
-  colour, its label's text colour and a light frame of the same colour
-  (`draw=<colour>!40`). The override has to sit inside a named style: set
-  inline on one arrow it does not take effect. `Draw.picture` adds the style
-  to the arrows of a configured kind only (TikZ rejects a style it does not
-  know). Optionally a palette cycled over the kinds when none is given.
-  Touches `draw_style`, `draw`, `draw_output` (what `write` is given), `api`,
-  `g_mebi.mlg`, `help.ml`, the tests and the README: about 150 lines, which
-  is why it was not slipped in beside a small change.
+- **Colour by kind of label** (done 2026-11-02, flagged first and agreed:
+  `MeBi Config Draw Kind "<Kind>" "<colour>"` and `Kind Default "<colour>"`).
+  The colours are explicit, as the author asked: nothing is coloured unless
+  set, and no palette is cycled over the kinds (considered, and set aside).
+  A kind is the first word of the printed label; the arrow, its label's text
+  and a frame at 40% of the colour are coloured; the default colour is for
+  the kinds with none of their own; an arrow of several kinds has none, and
+  a silent step is not coloured by kind. Left: a kind from the term's
+  constructor rather than the printed text (a label that is not `Word
+  args`, such as `(a, b)`, has no kind a name can be given for); the frame
+  and its rounding are fixed (`40%` and `5pt`), not configurable.
 - **A label's second half.** A label is the term printed, tidied (no outer
   parentheses, no `Some` when every label has one). When a colour already
   says `Insert`, only the argument (`ten`) would do; that needs the kind
