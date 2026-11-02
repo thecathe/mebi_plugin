@@ -1705,6 +1705,12 @@ Module Draw.
   MeBi Draw LTS 0 Using lts As "lts-beside".
   MeBi Config Draw Labels OnEdge.
 
+  (* the layout grows to the right, then down again (the default, which
+     [Reset Draw] restores) *)
+  MeBi Config Draw Direction Right.
+  MeBi Draw LTS 0 Using lts As "lts-right".
+  MeBi Config Draw Direction Down.
+
   (* a style is set, and an empty one restores the default; an unknown
      component, and braces that do not close, are warned about *)
   MeBi Config Draw Style "State" "fill=yellow!20".

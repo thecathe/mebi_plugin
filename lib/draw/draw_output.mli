@@ -73,14 +73,16 @@ type status =
     [timeout] seconds for it to end. Raises nothing. *)
 val run : timeout:float -> dir:string -> string list -> status
 
-(** [write ?labels ~dir ~name ~style d] writes [d]'s three files into [dir],
-    which it makes if need be, replacing any of the same names, and is their
-    paths, in the order above. [labels] is where the arrows' labels go
-    ({!Draw.picture}).
+(** [write ?labels ?direction ~dir ~name ~style d] writes [d]'s three files
+    into [dir], which it makes if need be, replacing any of the same names,
+    and is their paths, in the order above. [labels] is where the arrows'
+    labels go ({!Draw.picture}), and [direction] the way the layout grows
+    ({!Draw_style.tikzset}).
 
     @raise Sys_error if the directory or a file cannot be made (propagated). *)
 val write
   :  ?labels:Draw.labels
+  -> ?direction:Draw_style.direction
   -> dir:string
   -> name:string
   -> style:Draw_style.t

@@ -1856,6 +1856,30 @@ let test_draw_style () : unit =
           ~sub:"font=\\normalsize\\boldmath}"
           (tikzset (set Silent_label "font=\\normalsize\\boldmath" empty)));
   check
+    "the layout grows down by default, and right when asked"
+    true
+    ((not (contains ~sub:"grow=right" default))
+     && contains
+          ~sub:
+            "graphs/mebi layout/.style={layered layout, grow=right, level \
+             distance=18mm, sibling distance=12mm}"
+          (tikzset ~direction:Right empty)
+     && String.equal default (tikzset ~direction:Down empty));
+  check
+    "the user's layout options still follow the direction's"
+    true
+    (contains
+       ~sub:"sibling distance=12mm, level distance=30mm}"
+       (tikzset ~direction:Right (set Layout "level distance=30mm" empty)));
+  check
+    "only the layout depends on the direction"
+    true
+    (let lines s = String.split_on_char '\n' s in
+     let rest s =
+       List.filter (fun l -> not (contains ~sub:"mebi layout" l)) (lines s)
+     in
+     rest default = rest (tikzset ~direction:Right empty));
+  check
     "every component is defined, once"
     true
     (List.for_all

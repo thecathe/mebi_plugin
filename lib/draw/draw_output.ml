@@ -159,6 +159,7 @@ let run ~(timeout : float) ~(dir : string) (argv : string list) : status =
    that will hold a file, so it is given one in [dir]. *)
 let write
       ?(labels : Draw.labels option)
+      ?(direction : Draw_style.direction option)
       ~(dir : string)
       ~(name : string)
       ~(style : Draw_style.t)
@@ -168,7 +169,7 @@ let write
   Utils.FileWriter.create_parent_dir (Filename.concat dir name);
   let files : (string * string) list =
     [ name ^ ".tikz", Draw.picture ?labels d
-    ; name ^ ".style.tikz", Draw_style.tikzset style
+    ; name ^ ".style.tikz", Draw_style.tikzset ?direction style
     ; name ^ ".tex", Draw.wrapper ~name
     ]
   in
