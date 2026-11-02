@@ -247,6 +247,19 @@ The colour is a colour name or an xcolor expression. An arrow whose labels are o
 
 The parts are `Layout` (the `\graph` options, so spacing), `State`, `Initial`, `Terminal`, `Edge`, `Label`, `SilentEdge`, `SilentLabel`, `TwoWay`, `Loop` and `Caption`. To style a picture from LaTeX instead, leave `<name>.style.tikz` out and define the same names (`mebi state`, `mebi edge`, ...) in your document. `MeBi Help Config Draw` lists the defaults.
 
+### Drawing a dump with Graphviz
+
+`scripts/dump2dot.py` draws an LTS or FSM from the plugin's plain-text dump, with [Graphviz](https://graphviz.org/) (`dot` on the `PATH`; it is not bundled, and nothing in the plugin needs it). Turn the dumps on with `MeBi Config Output "DumpResults" True.` (plain text is the default format), then:
+
+```
+scripts/dump2dot.py "_dumps/<...> | Finished Extracting LTS.txt"      # -> _diagrams/<name>.dot and .png
+scripts/dump2dot.py --latest                                          # the newest LTS or FSM dump in _dumps/
+scripts/dump2dot.py --latest --rankdir LR -T pdf                      # to the right (landscape); png, pdf, svg or dot
+scripts/dump2dot.py DUMP --kind Select=green4 --kind Insert=blue3 --kind-default gray20
+```
+
+A state and a label are drawn without the parentheses round all of them, and the labels without `Some` if every label that is not silent has it; a silent step is dashed grey, labelled τ; parallel arrows share one; the initial state is bold, one with no way out has a double border, and an incomplete LTS says so. Colour is by *kind* of label (the first word: `Insert` for `Insert ten`) and explicit: nothing is coloured unless `--kind` or `--kind-default` says so. A label is a small node on its arrow, so the arrow runs through it (`--labels edge` leaves it to Graphviz's own labels, beside the arrow); `--numbers` shows each state's number in the dump; `--font`, `--fontsize`, `--ranksep` and `--nodesep` are Graphviz's. A dump of more than 150 states is refused (`--max-states`). `python3 -m unittest scripts/test_dump2dot.py` runs its tests.
+
 ### Bisimilarity, merging, minimizing, saturating
 
 ```
