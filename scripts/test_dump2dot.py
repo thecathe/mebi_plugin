@@ -237,6 +237,13 @@ class Dot(unittest.TestCase):
         out = self.dot(FSM)
         self.assertIn('s1 -> s1 [label="go"', out)
 
+    def test_growing_down_a_loop_is_round_and_growing_right_it_is_left_to_graphviz(self):
+        # Graphviz draws a loop only as high as the gap to the next layer allows, a flat sliver
+        self.assertIn('s1 -> s1 [label="go", tailport=ne, headport=se', self.dot(FSM))
+        self.assertIn('s1 -> s1 [label="go", tailport=ne, headport=se', self.dot(FSM, "--rankdir", "BT"))
+        self.assertNotIn("tailport=ne", self.dot(FSM, "--rankdir", "LR"))
+        self.assertNotIn("tailport=ne", self.dot(SIMPLE, "--labels", "edge"))   # no loops in it
+
     def test_markup_is_escaped_and_a_silent_step_among_labels_is_a_line(self):
         self.assertEqual(d2d.html('a<b&"c">'), "a&lt;b&amp;&quot;c&quot;&gt;")
         v = d2d.label_value([("x<y", False), (d2d.TAU, True)])

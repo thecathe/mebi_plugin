@@ -325,7 +325,11 @@ def to_dot(d, opts):
         cattr = ["color=%s" % q(colour), "fontcolor=%s" % q(colour)] if colour else []
         sattr = ["style=dashed"] if silent else []
         if s == t or opts.labels == "edge":
-            out.append("  s%d -> s%d [label=%s%s];" % (s, t, text, "".join(", " + a for a in cattr + sattr)))
+            # Graphviz makes a loop only as high as the gap to the next layer allows, a flat sliver at this
+            # layer spacing: growing down it leaves the state's top right corner and comes back to its bottom
+            # right one, so it is as high as the state and round (growing right it is round already)
+            ports = ", tailport=ne, headport=se" if s == t and opts.rankdir in ("TB", "BT") else ""
+            out.append("  s%d -> s%d [label=%s%s%s];" % (s, t, text, ports, "".join(", " + a for a in cattr + sattr)))
             continue
         k += 1
         is_back = (s, t) in back

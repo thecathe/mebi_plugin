@@ -167,7 +167,8 @@ let label_node
     Printf.sprintf
       "<TD PORT=\"t\" BGCOLOR=\"white\" CELLPADDING=\"1\"%s>%s</TD>"
       (match frame with
-       | Some c -> Printf.sprintf " BORDER=\"1\" STYLE=\"ROUNDED\" COLOR=%s" (q c)
+       | Some c ->
+         Printf.sprintf " BORDER=\"1\" STYLE=\"ROUNDED\" COLOR=%s" (q c)
        | None -> "")
       (label_markup ls)
   in
@@ -181,8 +182,12 @@ let label_node
       then "<TR>" ^ cell ^ "</TR>" ^ pad
       else pad ^ "<TR>" ^ cell ^ "</TR>"
     | Draw_style.Right ->
-      let pad : string = Printf.sprintf "<TD WIDTH=\"%i\"></TD>" head_allowance in
-      if after then "<TR>" ^ cell ^ pad ^ "</TR>" else "<TR>" ^ pad ^ cell ^ "</TR>"
+      let pad : string =
+        Printf.sprintf "<TD WIDTH=\"%i\"></TD>" head_allowance
+      in
+      if after
+      then "<TR>" ^ cell ^ pad ^ "</TR>"
+      else "<TR>" ^ pad ^ cell ^ "</TR>"
   in
   "<<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">"
   ^ rows
@@ -264,14 +269,25 @@ let dot
         String.concat "" (List.map (fun a -> ", " ^ a) l)
       in
       if Int.equal s t || labels = Draw.Beside
-      then
+      then (
+        (* Graphviz makes a loop only as high as the gap to the next layer
+           allows, a flat sliver at this layer spacing: growing down, it
+           leaves the state's top right corner and comes back to its bottom
+           right one, so it is as high as the state and round. (Growing
+           right it is drawn above the state, and is round already.) *)
+        let loop_ports : string =
+          if Int.equal s t && direction = Draw_style.Down
+          then ", tailport=ne, headport=se"
+          else ""
+        in
         add
           (Printf.sprintf
-             "  s%i -> s%i [label=%s%s];"
+             "  s%i -> s%i [label=%s%s%s];"
              s
              t
              (label_value ls)
-             (tail ea))
+             loop_ports
+             (tail ea)))
       else (
         incr k;
         let l : int = !k in

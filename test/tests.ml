@@ -2252,10 +2252,10 @@ let test_draw_dot () : unit =
      && contains ~sub:"s0 -> s1 [label=\"a\"];" beside
      && not (contains ~sub:"l1" beside));
   check
-    "a label's table has its text in the port cell, and the extra line for \
-     the arrowhead on the side of the head: after the label for an arrow that \
-     goes the way the layout grows, before it for an arrow back, and to the \
-     right, not below, when growing right"
+    "a label's table has its text in the port cell, and the extra line for the \
+     arrowhead on the side of the head: after the label for an arrow that goes \
+     the way the layout grows, before it for an arrow back, and to the right, \
+     not below, when growing right"
     true
     (let right = Draw_dot.dot ~direction:Right cycle in
      let cell = "<TD PORT=\"t\" BGCOLOR=\"white\" CELLPADDING=\"1\">" in
@@ -2264,7 +2264,9 @@ let test_draw_dot () : unit =
      contains ~sub:("<TR>" ^ cell ^ "a</TD></TR>" ^ pad) out
      && contains ~sub:(pad ^ "<TR>" ^ cell ^ "a</TD></TR>") out
      && contains ~sub:(cell ^ "a</TD><TD WIDTH=\"11\"></TD></TR>") right
-     && contains ~sub:("<TR><TD WIDTH=\"11\"></TD>" ^ cell ^ "a</TD></TR>") right
+     && contains
+          ~sub:("<TR><TD WIDTH=\"11\"></TD>" ^ cell ^ "a</TD></TR>")
+          right
      && contains ~sub:"shape=plain" out
      && not (contains ~sub:"margin=\"0.05" out));
   check
@@ -2367,6 +2369,24 @@ let test_draw_dot () : unit =
     (contains ~sub:"s1 -> s1 [label=\"Insert y\"" c
      && contains ~sub:"Incomplete" c
      && contains ~sub:"He said \\\"hi\\\"" c);
+  check
+    "growing down, a state's arrow to itself leaves its top right corner and \
+     returns to its bottom right one, so it is round; growing right it is left \
+     to Graphviz, and an arrow between two states has no such ports"
+    true
+    (contains
+       ~sub:
+         "s1 -> s1 [label=\"Insert y\", tailport=ne, headport=se, \
+          color=\"#0000bf\""
+       c
+     && (not
+           (contains
+              ~sub:"tailport=ne"
+              (Draw_dot.dot ~direction:Right ~style:coloured d)))
+     && contains
+          ~sub:"s1 -> s1 [label=\"Insert y\", tailport=ne, headport=se"
+          (Draw_dot.dot ~labels:Beside ~style:coloured d)
+     && not (contains ~sub:"s0 -> s1 [label=\"Select a\", tailport=ne" c));
   check
     "an outline is for a label with a colour, when asked, and frames the text \
      alone"

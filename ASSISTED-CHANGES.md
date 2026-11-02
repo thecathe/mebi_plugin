@@ -10643,6 +10643,37 @@ Refactor 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `MeBi Draw` (Graphviz): round self-loops growing down
+
+**Bug fix.** On `fix/draw-graphviz-loops` (stacked on `fix/draw-graphviz-arrow-pad`,
+which is not merged either). Jonah, in passing: in the `Down` view a state's
+arrow to itself is often very squished and elliptical, and should be rounder.
+
+- **Reproduced** on the old five-state dump that has two (`Pay 0 coffee`, `Pay 0
+  tea`): both were flat slivers pressed against the state's right side.
+- **Cause, as I read it** (not checked against Graphviz's source; I found the
+  fix by trying it): with no ports a loop starts and ends at the state's centre
+  height, so its height is whatever Graphviz allows from the gap to the next
+  layer, which at `ranksep` 0.25in is little. Growing right the same loop is
+  drawn above the state and the gap is wide, so it was already round.
+- **The fix.** Growing down, a loop gets `tailport=ne, headport=se`: it leaves the
+  state's top right corner and returns to its bottom right one, so it is as high
+  as the state. Four port pairs tried and looked at (`ne`/`se`, `se`/`ne`, `n`/`e`,
+  `e`/`s`); `ne`/`se` is the roundest and reads as an ordinary loop. The label
+  stays beside it (Graphviz places it, and makes room). In `Draw_dot` and
+  `scripts/dump2dot.py` (`TB` and `BT`).
+- **Left alone, on purpose.** `Right`: the generated DOT is byte-identical before
+  and after (checked on that dump). `Beside` labels use the same loop, so get the
+  same ports growing down.
+- **Checked.** 351/351 OCaml tests, the script's 35; the picture looked at (down).
+  **Not run:** the plugin itself (the current `examples/Simple.v` has no loop),
+  and `make` is run on the commit, below.
+
+**Session tally (2026-11-02, this entry):** Bug fix 1 · Refactor 0 · New feature 0 ·
+Docs 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
