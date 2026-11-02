@@ -10444,7 +10444,10 @@ from that.
   LuaTeX and its output is unchanged. (2) Nothing is installed or required:
   Graphviz is not bundled, there is no new opam or dune dependency, nothing runs
   when the plugin loads. (3) `dot` runs only for a PDF or a PNG, as a child
-  process with no shell and the existing time limit; `Format TeX` writes the
+  process (launched through a fixed `sh -c 'cd "$0" && exec "$@"'`, the directory
+  and the arguments passed as arguments and never spliced into the script, so
+  nothing is shell-parsed, but a POSIX `sh` is needed: *corrected 2026-11-02,
+  this said "no shell"*) with the existing time limit; `Format TeX` writes the
   `.dot` alone. (4) A missing, failing or slow `dot` is a warning and never an
   error (the compile still exits 0, checked), and the `.dot` is kept, with the
   warning saying how to see `dot`'s own message (a child's output is discarded).
@@ -10473,6 +10476,40 @@ from that.
 
 **Session tally (2026-11-02, this entry):** New feature 1 · Refactor 1 · Docs 1 ·
 Bug fix 0 · Tooling 0 · Optimization 0.
+
+---
+
+## 2026-11-02 (cont.) — `MeBi Draw`: a bold italic tau in Graphviz, and boxes that hug their text
+
+**New feature** (a change to the look, asked for) and **Docs**, and a correction
+to an earlier entry. On `feat/draw-tau-italic`. Jonah: the diagrams are much
+better; the tau does not look like it is in math mode (italic) and could be
+bolder.
+
+- **Which tau.** The Graphviz engine's (and `scripts/dump2dot.py`'s): a plain
+  upright Unicode letter in Graphviz's font. The LuaTeX engine's was already
+  `$\tau$`, math italic, bold. A plain DOT string cannot be bold or italic, so a
+  label with a silent step among its lines is an HTML-like label
+  (`<<B><I>τ</I></B>>`, lines apart by `<BR/>`, other lines' markup escaped).
+- **Found while looking at it.** Growing right, the line round the tau was still
+  longer than the others. Graphviz gives a node a minimum width of 0.75in, so
+  a narrow label (tau, `Cancel`) was a wide box. `width=0` makes the box as wide
+  as its text; after it the tau's line is as short as any, which is what Jonah
+  asked for about the tau edge a few turns back and I had attributed to the
+  engine alone.
+- **Checked.** The two tests that pinned the plain tau updated, new ones for the
+  escaping and a silent step among other labels (OCaml and Python): 348/348 with
+  Graphviz, 345/345 without, the script's 32; a full `dune build` and **`make
+  -j$(nproc)`** (exit 0); pictures looked at (down and right).
+- **Correction.** The previous Graphviz entry said `dot` runs "with no shell".
+  `Draw_output.run` launches every child through a fixed `sh -c 'cd "$0" && exec
+  "$@"'` with the directory and arguments passed as arguments, so nothing is
+  shell-parsed, but a POSIX `sh` is needed (without one I expect a warning, not a
+  crash; untried). Corrected in that entry. The notifier's "no shell involved"
+  (`Unix.create_process` of `notify-send` itself) is accurate.
+
+**Session tally (2026-11-02, this entry):** New feature 1 · Docs 1 · Bug fix 0 ·
+Refactor 0 · Tooling 0 · Optimization 0.
 
 ---
 

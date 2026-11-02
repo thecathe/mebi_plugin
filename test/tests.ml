@@ -2291,11 +2291,34 @@ let test_draw_dot () : unit =
           ~sub:"fontcolor=\"#808080\""
           (Draw_dot.dot ~style:(set_kind Default "gray" coloured) d));
   check
-    "a silent step is dashed, grey and tau, whatever the colours"
+    "a silent step is dashed, grey and a bold italic tau, whatever the colours"
     true
     (contains ~sub:"style=dashed" c
-     && contains ~sub:"label=\"\xcf\x84\"" c
+     && contains ~sub:"label=<<B><I>\xcf\x84</I></B>>" c
      && contains ~sub:"color=\"gray50\"" c);
+  check
+    "markup in a label is escaped, and a silent step among other labels is one \
+     line of an HTML-like label"
+    true
+    (String.equal (Draw_dot.html "a<b&\"c\">") "a&lt;b&amp;&quot;c&quot;&gt;"
+     &&
+     let m : Draw.t =
+       { nodes =
+           List.init 2 (fun id : Draw.node ->
+             { id
+             ; text = string_of_int id
+             ; initial = Int.equal id 0
+             ; terminal = false
+             })
+       ; edges =
+           [ { src = 0; label = Silent; dst = 1 }
+           ; { src = 0; label = Label "x<y"; dst = 1 }
+           ]
+       ; incomplete = false
+       }
+     in
+     contains ~sub:"label=<<B><I>\xcf\x84</I></B><BR/>x&lt;y>" (Draw_dot.dot m)
+    );
   check
     "the initial state is bold and has an arrow in, a state with no way out \
      has two borders"
