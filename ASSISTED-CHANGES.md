@@ -10116,6 +10116,69 @@ Refactor 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `MeBi Draw`: a landscape option, and a back arrow's label half way
+
+**New feature** (one config command, `Draw Direction`, asked for), **Bug fix**
+(the back arrow's label) and **Docs**. On `feat/draw-direction` and, stacked on
+it, `fix/draw-back-edge-label`, from `main` after `fix/draw-label-nodes` was
+merged (and `main` merged into `example/coffeemachine`, at Jonah's request,
+so that he could see the output). Jonah asked for the option for a landscape
+graph in the config, and asked whether the fix for the label at the bottom
+that I had made by hand with the scripts on his other host could be recalled
+from the devlog, or had to be done again.
+
+- **What the devlog said, and what it did not.** The rule that put a back
+  edge's label half way (lay the edge out reversed, pin the label with a first
+  `dot` pass and `minlen`) was worked out and demonstrated **in Graphviz**
+  (`tikz2dot-lbl2.pl`, `twopass.pl`), and the standalone engine's version was
+  only described ("a first LuaTeX run, then `minimum layers`"), never built.
+  Jonah's recollection, that it worked, was right for the pictures I made with
+  those scripts; it was not in the plugin. `dot` is not installed on this
+  host, so I did it in the standalone engine.
+- **`MeBi Config Draw Direction Down | Right`** (`feat/draw-direction`).
+  `Right` adds `grow=right` to `Layout`'s default, so the picture is wider than
+  it is tall. The distances are unchanged: the same 18 mm looked right on the
+  five-state cycle and the 18-state classic machine (the layered layout allows
+  for the layers' own widths); I also generated 12 and 24 mm and did not look
+  at them. The user's `Layout`
+  options still follow the default. `Direction` rather than `Landscape`
+  because it is what the layout is told; the help says `Right` is landscape.
+  Library tests 283 -> 286, plus a Rocq-level test.
+- **The fix** (`fix/draw-back-edge-label`). An arrow back to a state it follows
+  (`Draw.back_arrows`: a depth-first search from the initial state; without
+  these the rest is acyclic, tested on 200 fixed random graphs) is laid out from
+  its target to its source, each half `minimum layers` as many layers as the
+  longest path it closes has arrows, which is half of what that path spans, so
+  the label node is half way along it. Its arrowhead is a decoration, not a tip.
+  **Two attempts failed first, and I record them:** (1) `minimum layers` on the
+  arrow as it was made the picture worse, the label further out, since the
+  layout reverses only the half that closes the cycle; (2) laying it out
+  reversed with `<-` on the first half put the label *above* the target, since
+  the layered layout reads an arrow tip as the edge's direction. A `postaction`
+  with `decorations.markings` (`\arrowreversed{>}`), which the layout does not
+  see, is what works; the generated document now loads that library.
+- **Checked.** `dune build` (the Rocq-level tests included), the test binary
+  297/297 (compiling a picture with the decoration under real `lualatex`), and
+  `Simple.v` and the classic coffee machine through the plugin, `Down` and
+  `Right`: every label on its arrow, the back arrow's label (and the dashed
+  one's τ) half way, its head at the target. The layout time of the synthetic
+  graphs with label nodes did not rise with the new constraints (31 states
+  3.6 s, 50 states 6.4 s, 75 states 41.0 s; against 3.8, 7.0 and 40.2).
+  Not run: `make`, the proof suites, vsrocq.
+- **Housekeeping.** The primary checkout's stale `make` output made `dune build`
+  refuse ("Multiple rules generated"), as `CLAUDE.md` says it can; `git clean
+  -fX theories test src examples` after listing what it would remove (only
+  compiled files, `.d` files and the generated `src/g_mebi.ml`), then a full
+  `dune build` there so that the merged plugin can be used from the editor.
+  Jonah's uncommitted edit of `examples/Simple.v` was left alone.
+- **Not done.** Colour by kind (wanted; its own branch, to be flagged first),
+  the Graphviz engine and `rocq-mebi.graph`.
+
+**Session tally (2026-11-02, this entry):** New feature 1 · Bug fix 1 · Docs 1 ·
+Refactor 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

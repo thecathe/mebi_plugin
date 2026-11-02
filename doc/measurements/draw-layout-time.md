@@ -71,6 +71,12 @@ threads), 14GB RAM, Linux 7.0.0-42-generic, TeX Live 2025 from Nix
 table's figures (1.7, 2.7, 11.5 against 11.7, 20.5 against 20.8), so the two
 hosts are comparable for this purpose. Same cap (`MemoryMax=3G`).
 
+Re-measured the same day with an arrow back to an earlier state laid out
+the other way round and its label pinned half way (`fix/draw-back-edge-label`;
+the synthetic graphs have such arrows): `OnEdge` 31 states 3.6 s, 50 states
+6.4 s, 75 states 41.0 s. The same, within a run's noise, so the pinning
+costs nothing measurable.
+
 The factor grows with size, as the layout's time does. So the default bound
 (50 states) stays far inside the 60 s limit, **but `Bounds Draw States 100`
 no longer finishes under `OnEdge` without `Bounds Draw Time` raised** (84.7 s
