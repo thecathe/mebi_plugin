@@ -101,26 +101,36 @@ let html (s : string) : string =
   Buffer.contents b
 ;;
 
-(** [label_value ls] is the value of the [label] attribute for the labels [ls],
-    one to a line. A silent step is a bold, italic tau (as TeX's [$\tau$] is,
-    in math italic), which a plain string cannot be: so when one is among them
-    the value is an HTML-like label, [<...>], with the lines apart by [<BR/>];
-    otherwise it is a plain quoted string. A line break inside a label is a
+(** The fonts TeX's [$\tau$] is drawn in: Latin Modern Math is Computer Modern's
+    math italic, so the same letter, and the others are the nearest to it, for
+    a machine without it (Graphviz tries them in turn, and then any font with
+    the letter). *)
+let tau_fonts : string = "Latin Modern Math, STIX Two Math, Asana Math"
+
+(** A silent step: TeX's [\boldmath$\tau$], the mathematical bold italic small
+    tau (U+1D749, so it needs neither [<B>] nor [<I>]) in {!tau_fonts}. *)
+let tau : string = "<FONT FACE=\"" ^ tau_fonts ^ "\">\u{1d749}</FONT>"
+
+(** [label_markup ls] is the labels [ls] as the text of an HTML-like label, one
+    to a line, the lines apart by [<BR/>]. A line break inside a label is a
     space. *)
+let label_markup (ls : Draw.label list) : string =
+  String.concat
+    "<BR/>"
+    (List.map (function Draw.Silent -> tau | Draw.Label s -> html s) ls)
+;;
+
+(** [label_value ls] is the value of the [label] attribute for the labels [ls],
+    one to a line. A silent step is a bold italic tau in a math font, which a
+    plain string cannot be: so when one is among them the value is an
+    HTML-like label, [<...>] ({!label_markup}); otherwise it is a plain quoted
+    string. *)
 let label_value (ls : Draw.label list) : string =
   let clean (s : string) : string =
     String.map (function '\n' | '\r' | '\t' -> ' ' | c -> c) s
   in
   if List.exists (fun l -> l = Draw.Silent) ls
-  then
-    "<"
-    ^ String.concat
-        "<BR/>"
-        (List.map
-           (function
-             | Draw.Silent -> "<B><I>\u{03c4}</I></B>" | Draw.Label s -> html s)
-           ls)
-    ^ ">"
+  then "<" ^ label_markup ls ^ ">"
   else
     q
       (String.concat

@@ -2291,10 +2291,15 @@ let test_draw_dot () : unit =
           ~sub:"fontcolor=\"#808080\""
           (Draw_dot.dot ~style:(set_kind Default "gray" coloured) d));
   check
-    "a silent step is dashed, grey and a bold italic tau, whatever the colours"
+    "a silent step is dashed, grey and a bold italic tau in TeX's math font, \
+     whatever the colours"
     true
     (contains ~sub:"style=dashed" c
-     && contains ~sub:"label=<<B><I>\xcf\x84</I></B>>" c
+     && contains
+          ~sub:
+            "label=<<FONT FACE=\"Latin Modern Math, STIX Two Math, Asana \
+             Math\">\u{1d749}</FONT>>"
+          c
      && contains ~sub:"color=\"gray50\"" c);
   check
     "markup in a label is escaped, and a silent step among other labels is one \
@@ -2317,8 +2322,11 @@ let test_draw_dot () : unit =
        ; incomplete = false
        }
      in
-     contains ~sub:"label=<<B><I>\xcf\x84</I></B><BR/>x&lt;y>" (Draw_dot.dot m)
-    );
+     contains
+       ~sub:
+         "label=<<FONT FACE=\"Latin Modern Math, STIX Two Math, Asana \
+          Math\">\u{1d749}</FONT><BR/>x&lt;y>"
+       (Draw_dot.dot m));
   check
     "the initial state is bold and has an arrow in, a state with no way out \
      has two borders"

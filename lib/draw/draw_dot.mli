@@ -6,8 +6,9 @@
     follows {!Draw.picture}: the same arrows (parallel ones merged), the
     same kinds and their colours ({!Draw_style.kind_colour}), the initial
     state bold and with an arrow in, a state with no way out with a double
-    border, a silent step dashed and grey and labelled with a bold italic [τ], and an incomplete
-    diagram saying so. The look is Graphviz's own; the TikZ styles
+    border, a silent step dashed and grey and labelled with a bold italic [τ]
+    (in Latin Modern Math, the font of TeX's [$\tau$], or the nearest to it
+    that is installed), and an incomplete diagram saying so. The look is Graphviz's own; the TikZ styles
     ({!Draw_style.component}) do not apply.
 
     Contains no reference to the Rocq API. *)

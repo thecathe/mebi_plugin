@@ -45,6 +45,9 @@ import sys
 from pathlib import Path
 
 TAU = "\u03c4"
+# A silent step is TeX's \boldmath$\tau$: the mathematical bold italic small tau (U+1D749) in the fonts
+# of TeX's math italic (Latin Modern Math is Computer Modern's), or the nearest to them.
+TAU_MARKUP = '<FONT FACE="Latin Modern Math, STIX Two Math, Asana Math">\U0001d749</FONT>'
 
 
 # --- reading the dump ------------------------------------------------------
@@ -249,12 +252,17 @@ def html(s):
             .replace('"', "&quot;").replace("\n", " "))
 
 
+def label_markup(ls):
+    """The labels [ls] (text, silent) as the text of an HTML-like label, a line each."""
+    return "<BR/>".join(TAU_MARKUP if silent else html(t) for t, silent in ls)
+
+
 def label_value(ls):
     """The value of a DOT label for the labels [ls] (text, silent), a line each. A silent step is a
-    bold italic tau, as TeX's math italic is, which a plain string cannot be: when one is among them
-    the value is an HTML-like label, <...>; otherwise a quoted string."""
+    bold italic tau in a math font, which a plain string cannot be: when one is among them the value
+    is an HTML-like label, <...>; otherwise a quoted string."""
     if any(silent for _, silent in ls):
-        return "<" + "<BR/>".join("<B><I>%s</I></B>" % TAU if silent else html(t) for t, silent in ls) + ">"
+        return "<" + label_markup(ls) + ">"
     return q("\n".join(t for t, _ in ls))
 
 

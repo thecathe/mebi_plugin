@@ -198,7 +198,9 @@ class Dot(unittest.TestCase):
     def test_the_silent_step_is_dashed_and_tau(self):
         out = self.dot(SIMPLE)
         self.assertIn("style=dashed", out)
-        self.assertIn("label=<<B><I>%s</I></B>>" % d2d.TAU, out)  # bold italic, as math italic is
+        # TeX's bold math italic tau, in the fonts of TeX's math italic
+        self.assertIn("label=<%s>" % d2d.TAU_MARKUP, out)
+        self.assertIn("Latin Modern Math", d2d.TAU_MARKUP)
 
     def test_initial_terminal_and_incomplete(self):
         out = self.dot(INCOMPLETE)
@@ -215,7 +217,7 @@ class Dot(unittest.TestCase):
     def test_markup_is_escaped_and_a_silent_step_among_labels_is_a_line(self):
         self.assertEqual(d2d.html('a<b&"c">'), "a&lt;b&amp;&quot;c&quot;&gt;")
         v = d2d.label_value([("x<y", False), (d2d.TAU, True)])
-        self.assertEqual(v, "<x&lt;y<BR/><B><I>%s</I></B>>" % d2d.TAU)
+        self.assertEqual(v, "<x&lt;y<BR/>%s>" % d2d.TAU_MARKUP)
         self.assertEqual(d2d.label_value([("a", False), ("b", False)]), '"a\\nb"')
 
     def test_numbers(self):
