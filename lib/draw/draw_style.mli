@@ -71,7 +71,31 @@ val back_tip : string
     callers refuse them. Raises nothing. *)
 val balanced : string -> bool
 
-(** The user's own TikZ options, per {!component}. *)
+(** A kind of label, the colour of which can be set: [Named k] is the labels
+    whose first word is [k] (the kind of [Insert ten] is [Insert]), and
+    [Default] those whose kind has no colour of its own. *)
+type kind =
+  | Named of string
+  | Default
+
+(** [valid_kind k] is whether [k] can be the name of a kind: letters, digits,
+    [-] and [.] only, as it becomes part of a TikZ style name. *)
+val valid_kind : string -> bool
+
+(** [kind_name k] is [k]'s name in [MeBi Config Draw Kind]: the word itself, or
+    [Default]. Raises nothing. *)
+val kind_name : kind -> string
+
+(** [use_kind k] is the TikZ style name the picture gives an arrow of kind [k]
+    (such as ["mebi kind Insert"]), and {!use_kind_label} the one for its
+    label. They are defined in {!tikzset} for a kind with a colour, and only
+    then. Raises nothing. *)
+val use_kind : kind -> string
+
+val use_kind_label : kind -> string
+
+(** The user's own TikZ options, per {!component}, and the colour of each kind
+    of label. *)
 type t
 
 (** No component set: the built-in look. *)
@@ -85,11 +109,26 @@ val set : component -> string -> t -> t
 (** [get c s] is the options [s] has for [c], or [""]. Raises nothing. *)
 val get : component -> t -> string
 
-(** [is_default s] is whether no component of [s] is set. Raises nothing. *)
+(** [set_kind k colour s] is [s] with [k]'s colour [colour], a colour name or
+    an xcolor expression, such as [red] or [blue!75!black]: it colours the
+    arrows of that kind, their labels' text, and a light frame round the
+    labels. A blank [colour] clears it. Nothing is coloured that was not
+    given a colour. Raises nothing. *)
+val set_kind : kind -> string -> t -> t
+
+(** [kind_colour k s] is [k]'s colour in [s], if it has one. Raises nothing. *)
+val kind_colour : kind -> t -> string option
+
+(** [kinds s] are the kinds of [s] with a colour, with it: the named ones by
+    name, then {!Default}. Raises nothing. *)
+val kinds : t -> (kind * string) list
+
+(** [is_default s] is whether nothing of [s] is set: no component's options
+    and no kind's colour. Raises nothing. *)
 val is_default : t -> bool
 
-(** [describe s] is a sentence saying which components of [s] are set, and
-    to what, for messages. Raises nothing. *)
+(** [describe s] is a sentence saying which components of [s] are set, and the
+    kinds with a colour, and to what, for messages. Raises nothing. *)
 val describe : t -> string
 
 (** [tikzset ?direction s] is the contents of the diagram's style file: a

@@ -219,6 +219,25 @@ let longest_path (next : int -> int list) ~(target : int) ~(from : int)
   go from
 ;;
 
+(** [first_word s] is [s] up to its first space. *)
+let first_word (s : string) : string =
+  match String.index_opt s ' ' with Some i -> String.sub s 0 i | None -> s
+;;
+
+(* See the [.mli]. *)
+let kind_of (labels : label list) : string option =
+  match
+    List.sort_uniq
+      String.compare
+      (List.filter_map
+         (function
+           | Silent -> None | Label s -> Some (first_word (String.trim s)))
+         labels)
+  with
+  | [ k ] when not (String.equal k "") -> Some k
+  | _ -> None
+;;
+
 (** [label_text l] is [l] as LaTeX text. *)
 let label_text : label -> string = function
   | Silent -> "$\\tau$"
@@ -267,7 +286,12 @@ let label_style (labels : label list) : string =
 ;;
 
 (* See the [.mli]. *)
-let picture ?(labels : labels = On_edge) (d : t) : string =
+let picture
+      ?(labels : labels = On_edge)
+      ?(style : Draw_style.t = Draw_style.empty)
+      (d : t)
+  : string
+  =
   let nodes : node list =
     List.sort (fun a b -> Int.compare a.id b.id) d.nodes
   in
@@ -279,11 +303,31 @@ let picture ?(labels : labels = On_edge) (d : t) : string =
   let has_opposite (s : int) (t : int) : bool =
     List.exists (fun (s', t', _) -> Int.equal s' t && Int.equal t' s) arrows
   in
+  (* The kind of an arrow that has a colour: its own, or else the default
+     one, if there is one; a silent step has none. *)
+  let kind (ls : label list) : Draw_style.kind option =
+    if List.for_all (fun l -> l = Silent) ls
+    then None
+    else (
+      let has (k : Draw_style.kind) : bool =
+        Stdlib.Option.is_some (Draw_style.kind_colour k style)
+      in
+      match kind_of ls with
+      | Some k when has (Draw_style.Named k) -> Some (Draw_style.Named k)
+      | _ -> if has Draw_style.Default then Some Draw_style.Default else None)
+  in
+  let kind_arrow (ls : label list) : string list =
+    match kind ls with Some k -> [ Draw_style.use_kind k ] | None -> []
+  in
+  let kind_label (ls : label list) : string list =
+    match kind ls with Some k -> [ Draw_style.use_kind_label k ] | None -> []
+  in
+  let join : string list -> string = String.concat ", " in
   let arrow_line ((s, t, ls) : int * int * label list) : string =
     Printf.sprintf
       "    s%i ->[%s%s, %s] s%i;"
       s
-      (edge_options ls)
+      (join (edge_options ls :: kind_arrow ls))
       (if has_opposite s t then ", " ^ Draw_style.(use Two_way) else "")
       (label_node ls)
       t
@@ -316,7 +360,7 @@ let picture ?(labels : labels = On_edge) (d : t) : string =
         "    e%i[as={%s}, %s];"
         k
         (String.concat "\\\\ " (List.map label_text ls))
-        (label_style ls)
+        (join (label_style ls :: kind_label ls))
     in
     if List.mem (s, t) back
     then (
@@ -327,25 +371,26 @@ let picture ?(labels : labels = On_edge) (d : t) : string =
       in
       [ node
       ; Printf.sprintf
-          "    s%i --[%s, -, %s, minimum layers=%i] e%i --[%s, -, minimum \
-           layers=%i] s%i;"
+          "    s%i --[%s] e%i --[%s] s%i;"
           t
-          (edge_options ls)
-          Draw_style.back_tip
-          half
+          (join
+             ((edge_options ls :: "-" :: kind_arrow ls)
+              @ [ Draw_style.back_tip; Printf.sprintf "minimum layers=%i" half ]
+             ))
           k
-          (edge_options ls)
-          half
+          (join
+             ((edge_options ls :: "-" :: kind_arrow ls)
+              @ [ Printf.sprintf "minimum layers=%i" half ]))
           s
       ])
     else
       [ node
       ; Printf.sprintf
-          "    s%i ->[%s, -] e%i ->[%s] s%i;"
+          "    s%i ->[%s] e%i ->[%s] s%i;"
           s
-          (edge_options ls)
+          (join (edge_options ls :: "-" :: kind_arrow ls))
           k
-          (edge_options ls)
+          (join (edge_options ls :: kind_arrow ls))
           t
       ]
   in
@@ -353,7 +398,7 @@ let picture ?(labels : labels = On_edge) (d : t) : string =
     Printf.sprintf
       "  \\path (s%i) edge[%s, %s, %s] (s%i);"
       s
-      (edge_options ls)
+      (join (edge_options ls :: kind_arrow ls))
       Draw_style.(use Loop)
       (label_node ls)
       s

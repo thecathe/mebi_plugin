@@ -254,6 +254,18 @@ val set_draw_dir : string -> unit
     nothing. *)
 val set_draw_style : string -> string -> unit
 
+(** [set_draw_kind kind colour] sets the colour of the labels of kind [kind],
+    the first word of a label ({!Draw_style.kind}), and of their arrows; a
+    blank [colour] clears it. A [kind] that cannot be one ({!Draw_style.valid_kind}),
+    or a [colour] with unbalanced braces, is warned about and ignored. Shows
+    the change. Raises nothing. *)
+val set_draw_kind : string -> string -> unit
+
+(** [set_draw_kind_default colour] sets the colour of the labels, and their
+    arrows, whose kind has none of its own; a blank [colour] clears it. Silent
+    steps are not coloured by kind. Shows the change. Raises nothing. *)
+val set_draw_kind_default : string -> unit
+
 (** [set_draw_labels l] chooses where [MeBi Draw] puts an arrow's label
     ({!Draw.labels}), and shows the change. Raises nothing. *)
 val set_draw_labels : Draw.labels -> unit

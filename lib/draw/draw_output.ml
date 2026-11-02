@@ -168,7 +168,7 @@ let write
   =
   Utils.FileWriter.create_parent_dir (Filename.concat dir name);
   let files : (string * string) list =
-    [ name ^ ".tikz", Draw.picture ?labels d
+    [ name ^ ".tikz", Draw.picture ?labels ~style d
     ; name ^ ".style.tikz", Draw_style.tikzset ?direction style
     ; name ^ ".tex", Draw.wrapper ~name
     ]

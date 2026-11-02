@@ -1711,6 +1711,17 @@ Module Draw.
   MeBi Draw LTS 0 Using lts As "lts-right".
   MeBi Config Draw Direction Down.
 
+  (* colour by kind: a kind's colour, the colour of the rest, and clearing
+     them; a name that cannot be a kind and a colour whose braces do not close
+     are warned about *)
+  MeBi Config Draw Kind "Ca" "red".
+  MeBi Config Draw Kind Default "gray".
+  MeBi Draw LTS 0 Using lts As "lts-kinds".
+  MeBi Config Draw Kind "Ca" "".
+  MeBi Config Draw Kind Default "".
+  MeBi Config Draw Kind "not a kind" "red".
+  MeBi Config Draw Kind "Cb" "red!{".
+
   (* a style is set, and an empty one restores the default; an unknown
      component, and braces that do not close, are warned about *)
   MeBi Config Draw Style "State" "fill=yellow!20".

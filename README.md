@@ -234,6 +234,17 @@ MeBi Config Draw Style "Edge" "draw=blue, thick".
 MeBi Config Draw Style "State" "".                        (* back to the default *)
 ```
 
+Colour is by *kind* of label, the first word of it (the kind of `Insert ten` is `Insert`), and explicit: nothing is coloured unless you say so.
+
+```
+MeBi Config Draw Kind "Select" "green!50!black".          (* its arrows, its labels' text and a light frame round them *)
+MeBi Config Draw Kind "Insert" "blue!75!black".
+MeBi Config Draw Kind Default "black".                    (* every other kind, in the one colour *)
+MeBi Config Draw Kind "Insert" "".                        (* no colour of its own again *)
+```
+
+The colour is a colour name or an xcolor expression. An arrow whose labels are of several kinds is of none (it takes the default's colour, if set), and a silent step is not coloured by kind: it has its own styles, `SilentEdge` and `SilentLabel`.
+
 The parts are `Layout` (the `\graph` options, so spacing), `State`, `Initial`, `Terminal`, `Edge`, `Label`, `SilentEdge`, `SilentLabel`, `TwoWay`, `Loop` and `Caption`. To style a picture from LaTeX instead, leave `<name>.style.tikz` out and define the same names (`mebi state`, `mebi edge`, ...) in your document. `MeBi Help Config Draw` lists the defaults.
 
 ### Bisimilarity, merging, minimizing, saturating
@@ -322,6 +333,8 @@ MeBi Config Reset [Bounds|Weak|FailIf|Output|Draw|Notify].
 MeBi Config Draw Format TeX|PDF|PNG.               (* what MeBi Draw makes; default PDF *)
 MeBi Config Draw Labels OnEdge|Beside.             (* a label on its arrow, as a node of the layout (default; 2-4 times the layout time), or beside it *)
 MeBi Config Draw Direction Down|Right.             (* the way the layout grows; Right makes a wide (landscape) picture; default Down *)
+MeBi Config Draw Kind "<Kind>" "<colour>".         (* colour the arrows and labels whose label starts with <Kind>; nothing is coloured unless set *)
+MeBi Config Draw Kind Default "<colour>".          (* the colour of those whose kind has none of its own *)
 MeBi Config Draw Dir "<dir>".                      (* default ./_diagrams/ *)
 MeBi Config Draw Style "<Component>" "<TikZ options>".
 MeBi Config Notify After <s>.                         (* a notification, and a line saying the time and memory, when a command takes <s> seconds or more; off by default *)
