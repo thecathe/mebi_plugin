@@ -113,34 +113,103 @@ let balanced (opts : string) : bool =
   !ok && Int.equal !depth 0
 ;;
 
-(* See the [.mli]. At most one entry per component. *)
-type t = (component * string) list
+(* See the [.mli]. *)
+type kind =
+  | Named of string
+  | Default
+
+(* See the [.mli]. At most one entry per component, and per kind. *)
+type t =
+  { components : (component * string) list
+  ; kinds : (kind * string) list
+  }
 
 (* See the [.mli]. *)
-let empty : t = []
+let empty : t = { components = []; kinds = [] }
 
 (* See the [.mli]. *)
 let get (c : component) (s : t) : string =
-  Stdlib.Option.value (List.assoc_opt c s) ~default:""
+  Stdlib.Option.value (List.assoc_opt c s.components) ~default:""
 ;;
 
 (* See the [.mli]. *)
 let set (c : component) (opts : string) (s : t) : t =
-  let rest : t = List.filter (fun (c', _) -> c' <> c) s in
-  if String.equal (String.trim opts) "" then rest else (c, opts) :: rest
+  let rest : (component * string) list =
+    List.filter (fun (c', _) -> c' <> c) s.components
+  in
+  { s with
+    components =
+      (if String.equal (String.trim opts) "" then rest else (c, opts) :: rest)
+  }
 ;;
 
 (* See the [.mli]. *)
-let is_default (s : t) : bool = List.is_empty s
+let is_default (s : t) : bool =
+  List.is_empty s.components && List.is_empty s.kinds
+;;
+
+(* See the [.mli]. *)
+let valid_kind (k : string) : bool =
+  (not (String.equal k ""))
+  && String.for_all
+       (function
+         | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '-' | '.' -> true | _ -> false)
+       k
+;;
+
+(* See the [.mli]. *)
+let kind_name : kind -> string = function Named k -> k | Default -> "Default"
+
+(* See the [.mli]. *)
+let use_kind : kind -> string = function
+  | Named k -> "mebi kind " ^ k
+  | Default -> "mebi default kind"
+;;
+
+(* See the [.mli]. *)
+let use_kind_label (k : kind) : string = use_kind k ^ " label"
+
+(* See the [.mli]. *)
+let set_kind (k : kind) (colour : string) (s : t) : t =
+  let rest : (kind * string) list =
+    List.filter (fun (k', _) -> k' <> k) s.kinds
+  in
+  { s with
+    kinds =
+      (if String.equal (String.trim colour) ""
+       then rest
+       else (k, String.trim colour) :: rest)
+  }
+;;
+
+(* See the [.mli]. *)
+let kind_colour (k : kind) (s : t) : string option = List.assoc_opt k s.kinds
+
+(* See the [.mli]. The named kinds, by name, then the default. *)
+let kinds (s : t) : (kind * string) list =
+  let rank : kind -> int = function Named _ -> 0 | Default -> 1 in
+  List.sort
+    (fun (a, _) (b, _) ->
+      match Int.compare (rank a) (rank b) with
+      | 0 -> String.compare (kind_name a) (kind_name b)
+      | n -> n)
+    s.kinds
+;;
 
 (* See the [.mli]. In {!components}' order, whatever order they were set. *)
 let describe (s : t) : string =
-  match List.filter (fun c -> get c s <> "") components with
+  let components : string list =
+    List.filter (fun c -> get c s <> "") components
+    |> List.map (fun c -> Printf.sprintf "%s: %s" (name c) (get c s))
+  in
+  let kinds : string list =
+    List.map
+      (fun (k, c) -> Printf.sprintf "Kind %s: %s" (kind_name k) c)
+      (kinds s)
+  in
+  match components @ kinds with
   | [] -> "every component has its default style"
-  | set_ ->
-    String.concat
-      "; "
-      (List.map (fun c -> Printf.sprintf "%s: %s" (name c) (get c s)) set_)
+  | set_ -> String.concat "; " set_
 ;;
 
 (* See the [.mli]. *)
@@ -200,6 +269,26 @@ let key (c : component) : string =
   match c with Layout -> "graphs/" ^ use c | _ -> use c
 ;;
 
+(** [kind_definitions (k, colour)] are the two styles a coloured kind of label
+    is defined as: its arrow's colour, and its label's text and a light frame
+    in the same colour. A label quoted beside its arrow is drawn in the second
+    by the first; a label that is a node of the layout is given the second
+    directly. *)
+let kind_definitions ((k, colour) : kind * string) : string list =
+  [ Printf.sprintf
+      "  %s/.style={draw=%s, every edge quotes/.style={%s, %s}}"
+      (use_kind k)
+      colour
+      (use Label)
+      (use_kind_label k)
+  ; Printf.sprintf
+      "  %s/.style={text=%s, draw=%s!40, rounded corners=5pt}"
+      (use_kind_label k)
+      colour
+      colour
+  ]
+;;
+
 (* See the [.mli]. *)
 let tikzset ?(direction : direction = Down) (s : t) : string =
   String.concat
@@ -220,7 +309,7 @@ let tikzset ?(direction : direction = Down) (s : t) : string =
                 Printf.sprintf "  %s/.style={%s}" (key c) (body direction c s))
               components
             @ [ Printf.sprintf "  %s/.style={%s}" back_tip back_tip_definition ]
-           )
+            @ List.concat_map kind_definitions (kinds s))
        ; "}"
        ])
   ^ "\n"

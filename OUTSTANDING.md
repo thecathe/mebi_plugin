@@ -46,9 +46,9 @@ Decision 2 would change every checked-in proof bound if it went against
   standalone engine stays the default; Graphviz is an optional engine; the
   drawing side becomes a second plugin in the same package,
   `rocq-mebi.graph`), and its details are not: the hooks the core needs, the
-  Graphviz engine, and colour by kind of action (wanted for the talk, to be
-  built; labels as nodes, a back arrow's label half way and a landscape
-  layout are done, 2026-11-02). `doc/future-work.md`, "`MeBi Draw`".
+  Graphviz engine. (Labels as nodes, a back arrow's label half way, a
+  landscape layout and colour by kind of label are done, 2026-11-02.)
+  `doc/future-work.md`, "`MeBi Draw`".
 
 ## Next up (agreed, not started)
 
