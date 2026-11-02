@@ -86,17 +86,46 @@ let q (s : string) : string =
   Buffer.contents b
 ;;
 
-(** [text ls] is the labels [ls] as the text of one label, one to a line. A
-    line break inside a label is a space. *)
-let text (ls : Draw.label list) : string =
+(* See the [.mli]. *)
+let html (s : string) : string =
+  let b : Buffer.t = Buffer.create (String.length s + 8) in
+  String.iter
+    (function
+      | '&' -> Buffer.add_string b "&amp;"
+      | '<' -> Buffer.add_string b "&lt;"
+      | '>' -> Buffer.add_string b "&gt;"
+      | '"' -> Buffer.add_string b "&quot;"
+      | '\n' | '\r' | '\t' -> Buffer.add_char b ' '
+      | c -> Buffer.add_char b c)
+    s;
+  Buffer.contents b
+;;
+
+(** [label_value ls] is the value of the [label] attribute for the labels [ls],
+    one to a line. A silent step is a bold, italic tau (as TeX's [$\tau$] is,
+    in math italic), which a plain string cannot be: so when one is among them
+    the value is an HTML-like label, [<...>], with the lines apart by [<BR/>];
+    otherwise it is a plain quoted string. A line break inside a label is a
+    space. *)
+let label_value (ls : Draw.label list) : string =
   let clean (s : string) : string =
     String.map (function '\n' | '\r' | '\t' -> ' ' | c -> c) s
   in
-  String.concat
-    "\n"
-    (List.map
-       (function Draw.Silent -> "\u{03c4}" | Draw.Label s -> clean s)
-       ls)
+  if List.exists (fun l -> l = Draw.Silent) ls
+  then
+    "<"
+    ^ String.concat
+        "<BR/>"
+        (List.map
+           (function
+             | Draw.Silent -> "<B><I>\u{03c4}</I></B>" | Draw.Label s -> html s)
+           ls)
+    ^ ">"
+  else
+    q
+      (String.concat
+         "\n"
+         (List.map (function Draw.Silent -> "" | Draw.Label s -> clean s) ls))
 ;;
 
 (* See the [.mli]. *)
@@ -147,7 +176,7 @@ let dot
        rankdir);
   add
     "  node [shape=box, style=\"rounded,filled\", fillcolor=white, \
-     fontsize=11, margin=\"0.12,0.06\", height=0];";
+     fontsize=11, margin=\"0.12,0.06\", height=0, width=0];";
   add "  edge [fontsize=10, penwidth=1.4, arrowsize=0.8];";
   List.iter
     (fun (n : Draw.node) ->
@@ -180,7 +209,7 @@ let dot
              "  s%i -> s%i [label=%s%s];"
              s
              t
-             (q (text ls))
+             (label_value ls)
              (tail ea))
       else (
         incr k;
@@ -210,7 +239,7 @@ let dot
                     ; "fillcolor=white"
                     ; "penwidth=0"
                     ])
-                 @ [ "margin=\"0.05,0.03\""; "label=" ^ q (text ls) ]
+                 @ [ "margin=\"0.05,0.03\""; "label=" ^ label_value ls ]
                  @ (match colour_of ls with
                     | Some c -> [ "fontcolor=" ^ q c ]
                     | None -> [])
