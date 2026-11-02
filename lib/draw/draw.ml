@@ -150,6 +150,75 @@ let merge (edges : edge list) : (int * int * label list) list =
   |> List.sort (fun (s, d, _) (s', d', _) -> compare (s, d) (s', d'))
 ;;
 
+(* See the [.mli]. *)
+let back_arrows (d : t) : (int * int) list =
+  let arrows : (int * int * label list) list =
+    List.filter (fun (s, t, _) -> not (Int.equal s t)) (merge d.edges)
+  in
+  let succs : (int, int list) Hashtbl.t = Hashtbl.create 64 in
+  List.iter
+    (fun (s, t, _) ->
+      Hashtbl.replace
+        succs
+        s
+        (t :: Stdlib.Option.value ~default:[] (Hashtbl.find_opt succs s)))
+    (List.rev arrows);
+  let next (u : int) : int list =
+    Stdlib.Option.value ~default:[] (Hashtbl.find_opt succs u)
+  in
+  (* [true]: on the stack of the search; [false]: finished *)
+  let state : (int, bool) Hashtbl.t = Hashtbl.create 64 in
+  let back : (int * int) list ref = ref [] in
+  let rec visit (u : int) : unit =
+    Hashtbl.replace state u true;
+    List.iter
+      (fun v ->
+        match Hashtbl.find_opt state v with
+        | Some true -> back := (u, v) :: !back
+        | Some false -> ()
+        | None -> visit v)
+      (next u);
+    Hashtbl.replace state u false
+  in
+  let by_id : node list =
+    List.sort (fun a b -> Int.compare a.id b.id) d.nodes
+  in
+  List.iter
+    (fun (n : node) -> if not (Hashtbl.mem state n.id) then visit n.id)
+    (List.filter (fun (n : node) -> n.initial) by_id @ by_id);
+  List.sort compare !back
+;;
+
+(** [longest_path next ~target ~from] is the number of arrows on the longest
+    path from [from] to [target] along [next], which must have no cycle, or
+    [None] if there is none. *)
+let longest_path (next : int -> int list) ~(target : int) ~(from : int)
+  : int option
+  =
+  let memo : (int, int option) Hashtbl.t = Hashtbl.create 64 in
+  let rec go (v : int) : int option =
+    if Int.equal v target
+    then Some 0
+    else (
+      match Hashtbl.find_opt memo v with
+      | Some r -> r
+      | None ->
+        let r : int option =
+          List.fold_left
+            (fun best w ->
+              match go w, best with
+              | None, b -> b
+              | Some n, None -> Some (n + 1)
+              | Some n, Some b -> Some (Int.max b (n + 1)))
+            None
+            (next v)
+        in
+        Hashtbl.replace memo v r;
+        r)
+  in
+  go from
+;;
+
 (** [label_text l] is [l] as LaTeX text. *)
 let label_text : label -> string = function
   | Silent -> "$\\tau$"
@@ -219,24 +288,66 @@ let picture ?(labels : labels = On_edge) (d : t) : string =
       (label_node ls)
       t
   in
+  let back : (int * int) list = back_arrows d in
+  (* The arrows without the back ones are acyclic: [next u] are the states
+     they lead [u] on to. *)
+  let next (u : int) : int list =
+    List.filter_map
+      (fun (s, t, _) ->
+        if Int.equal s u && not (List.mem (s, t) back) then Some t else None)
+      arrows
+  in
   (* A label that is a node of the layout, [e<k>], on the arrow's way: the
-     layout then keeps room for it, and the arrow runs through it. *)
+     layout then keeps room for it, and the arrow runs through it.
+
+     An arrow back to a state it follows is laid out the other way round,
+     from that state to this one: the layout would otherwise put its label
+     next to the state the arrow leaves, as it only ever reverses the half
+     that closes the cycle. Its arrowhead is then not the layout's to know
+     (it would read it as the arrow's direction), so it is added to the first
+     half as a decoration. Both halves span as many layers as the longest
+     path the arrow closes has arrows, which is half of what that path
+     spans, so the label sits half way along it, when it can. *)
   let on_edge_lines (k : int) ((s, t, ls) : int * int * label list)
     : string list
     =
-    [ Printf.sprintf
+    let node : string =
+      Printf.sprintf
         "    e%i[as={%s}, %s];"
         k
         (String.concat "\\\\ " (List.map label_text ls))
         (label_style ls)
-    ; Printf.sprintf
-        "    s%i ->[%s, -] e%i ->[%s] s%i;"
-        s
-        (edge_options ls)
-        k
-        (edge_options ls)
-        t
-    ]
+    in
+    if List.mem (s, t) back
+    then (
+      let half : int =
+        Int.max
+          1
+          (Stdlib.Option.value ~default:1 (longest_path next ~target:s ~from:t))
+      in
+      [ node
+      ; Printf.sprintf
+          "    s%i --[%s, -, %s, minimum layers=%i] e%i --[%s, -, minimum \
+           layers=%i] s%i;"
+          t
+          (edge_options ls)
+          Draw_style.back_tip
+          half
+          k
+          (edge_options ls)
+          half
+          s
+      ])
+    else
+      [ node
+      ; Printf.sprintf
+          "    s%i ->[%s, -] e%i ->[%s] s%i;"
+          s
+          (edge_options ls)
+          k
+          (edge_options ls)
+          t
+      ]
   in
   let loop_line ((s, _, ls) : int * int * label list) : string =
     Printf.sprintf
@@ -302,7 +413,7 @@ let wrapper ~(name : string) : string =
     [ "% Compile with LuaLaTeX, in this directory."
     ; "\\documentclass{article}"
     ; "\\usepackage{tikz}"
-    ; "\\usetikzlibrary{graphs,graphdrawing,arrows.meta,quotes,automata}"
+    ; "\\usetikzlibrary{graphs,graphdrawing,arrows.meta,quotes,automata,decorations.markings}"
     ; "\\usegdlibrary{layered}"
     ; "\\pagestyle{empty}"
     ; "\\setlength{\\parindent}{0pt}"

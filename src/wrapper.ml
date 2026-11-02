@@ -849,6 +849,7 @@ module Make (Enc : Encoding.S) :
         try
           Draw_output.write
             ~labels:c.draw_labels
+            ~direction:c.draw_direction
             ~dir:c.draw_dir
             ~name
             ~style:c.draw_style

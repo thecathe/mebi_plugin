@@ -406,18 +406,26 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
   label is a node of the layout (`a -> e -> b`; `MeBi Config Draw Labels
   OnEdge`, the default), which keeps room for it and removes the overlaps,
   at 2.2 times the layout time at 31 states, 2.6 at 50, 3.5 at 75 and 4.1
-  at 100 (`Labels Beside` is the old placement). The other way, laying out and
-  routing first and putting the label on the middle of the finished curve,
-  is the author's rule and is simple once something routes the edge
-  (Graphviz does; LuaTeX's layered layout does not expose it). Left: (1) a
-  back edge's label sticks to one end of its chain; a first pass that
-  measures the ranks it spans, then the label node pinned half way with
-  `minimum layers`, is the standalone version of the rule that worked in
-  Graphviz, and costs a second LuaTeX run. (2) The picture is a column, as
-  tall as the longest path, and twice that with label nodes: `grow=right`
-  in `Layout` gives a landscape strip (tried in a scratch run, by editing
-  the style file; the level distance needs raising for the labels). (3) The
-  label's look in a colour per kind (below).
+  at 100 (`Labels Beside` is the old placement). The other way, laying out
+  and routing first and putting the label on the middle of the finished
+  curve, is the author's rule and is simple once something routes the edge
+  (Graphviz does; LuaTeX's layered layout does not expose it). Done the same
+  day: the picture's shape (`MeBi Config Draw Direction Right` grows the
+  layout to the right, a landscape picture for a slide) and a back arrow's
+  label half way. For the latter, the Graphviz rule needed a first pass to
+  read the ranks; in the standalone engine it does not, as the longest path
+  the arrow closes is computed from the diagram (`Draw.back_arrows`, then
+  half of that many layers on each side of the label node, `minimum
+  layers`). What made it work, and what did not: an arrow back is laid out
+  from its target to its source, which the layout reads as the direction of
+  the arrow, so the arrowhead cannot be a tip of those arrows (`<-` made the
+  layout put the label above the target, as the first attempt showed); it is
+  a decoration (`postaction` with `decorations.markings`,
+  `\arrowreversed`) of the first half, which the layout does not see.
+  `minimum layers` alone, on the arrow as it was, made it worse: only the
+  half that closes the cycle is reversed, so the label stays one layer from
+  the source. Left: the label's look in a colour per kind (below), and the
+  Graphviz engine.
 - **A Graphviz engine** (optional, see above). Written for Graphviz, the
   rule for a back edge (found by a depth-first search from the initial
   state) is: lay it out reversed, and pin its label half way with `minlen`
