@@ -154,6 +154,12 @@ turns the pin into a positive test.
   cannot hold LaTeX, the picture cannot be restyled from a document, `Style`,
   `Layout` and `TwoWay` do not apply to it, and its spacing and font are fixed.
   Only Graphviz 15.1.1 was tried; layouts differ between versions.
+- **`MeBi Draw` starts its programs (`lualatex`, `pdftocairo`, `gs`, `dot`)
+  through a POSIX `sh`** (*limit*; found 2026-11-02; the message is pinned by
+  `test/tests.ml`). On a system without one (native Windows, say) each is
+  reported as not started, with a warning that names `sh`, and the files made
+  so far are kept; never an error. The notifier starts `notify-send` itself,
+  with no `sh`.
 - **Under vsrocq, the `origin:` line comes from the saved file, so an unsaved
   edit makes it `(line unknown)`** (*limit*, by design; not pinned: it needs
   vsrocq, which `test/rocq/Test.v` does not run). vsrocq parses with no source

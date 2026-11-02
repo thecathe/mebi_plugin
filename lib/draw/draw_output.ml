@@ -152,7 +152,12 @@ let run ~(timeout : float) ~(dir : string) (argv : string list) : status =
         Array.of_list ("sh" :: "-c" :: "cd \"$0\" && exec \"$@\"" :: dir :: argv)
       in
       match Unix.create_process "sh" args devnull devnull devnull with
-      | exception Unix.Unix_error (e, _, _) -> Unrunnable (Unix.error_message e)
+      | exception Unix.Unix_error (e, _, _) ->
+        (* it is [sh] that could not be started, not the program *)
+        Unrunnable
+          (Printf.sprintf
+             "sh, which launches it, could not be started: %s"
+             (Unix.error_message e))
       | pid ->
         let deadline : float = Unix.gettimeofday () +. timeout in
         let rec wait () : status =
