@@ -27,6 +27,22 @@ val format_name : format -> string
     case, if there is one. Raises nothing. *)
 val format_of_string : string -> format option
 
+(** Which program lays a diagram out: [Luatex], the default, with TikZ's
+    layered layout in a LuaLaTeX document, or [Graphviz], which writes DOT and
+    has [dot] draw it. Nothing here needs either until a PDF or a PNG is
+    asked for. *)
+type engine =
+  | Luatex
+  | Graphviz
+
+(** [engine_name e] is [e] as [MeBi Config Draw Engine] spells it: [LuaTeX] or
+    [Graphviz]. Raises nothing. *)
+val engine_name : engine -> string
+
+(** [engine_of_string s] is the {!engine} {!engine_name} gives [s], ignoring
+    case, if there is one. Raises nothing. *)
+val engine_of_string : string -> engine option
+
 (** Why a file was not made. *)
 type problem =
   | Missing_tool of
@@ -94,6 +110,36 @@ val write
     the files it made and why it did not make the others. Raises
     nothing. *)
 val render
+  :  format:format
+  -> timeout:float
+  -> dir:string
+  -> name:string
+  -> string list * problem list
+
+(** [write_dot ?labels ?direction ~dir ~name ~style d] writes [d]'s DOT
+    ({!Draw_dot.dot}) as [<name>.dot] into [dir], which it makes if need be,
+    replacing a file of that name, and is its path, in a list. It is the
+    Graphviz engine's only file but the picture: with {!Tex}, the whole
+    diagram.
+
+    @raise Sys_error if the directory or the file cannot be made (propagated).
+*)
+val write_dot
+  :  ?labels:Draw.labels
+  -> ?direction:Draw_style.direction
+  -> dir:string
+  -> name:string
+  -> style:Draw_style.t
+  -> Draw.t
+  -> string list
+
+(** [render_dot ~format ~timeout ~dir ~name] makes what [format] asks for from
+    [<name>.dot] by Graphviz's [dot], killed at [timeout] seconds: a PDF for
+    {!Pdf}, a PDF and a PNG for {!Png}, nothing for {!Tex}. It is the files it
+    made and why it did not make the others: a missing [dot], one that fails
+    (its message is discarded, so the problem says how to see it) or one that
+    runs too long is a {!problem}, never raised. Raises nothing. *)
+val render_dot
   :  format:format
   -> timeout:float
   -> dir:string

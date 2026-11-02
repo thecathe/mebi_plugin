@@ -45,12 +45,10 @@ Decision 2 would change every checked-in proof bound if it went against
 - **`MeBi Draw`, a session of its own.** The direction is agreed (the
   standalone engine stays the default; Graphviz is an optional engine; the
   drawing side becomes a second plugin in the same package,
-  `rocq-mebi.graph`), and its details are not: the hooks the core needs, and
-  Graphviz inside the plugin (the author wants Graphviz's own splines, not a
-  re-drawing of them: `scripts/dump2dot.py` gives them from the dumps for now;
-  in the plugin it would write DOT and let `dot` draw). (Labels as nodes, a
-  back arrow's label half way, a landscape layout and colour by kind of label
-  are done, 2026-11-02.) `doc/future-work.md`, "`MeBi Draw`".
+  `rocq-mebi.graph`), and its details are not: the hooks the core needs.
+  (Labels as nodes, a back arrow's label half way, a landscape layout, colour
+  by kind of label and an opt-in Graphviz engine are done, 2026-11-02.)
+  `doc/future-work.md`, "`MeBi Draw`".
 
 ## Next up (agreed, not started)
 

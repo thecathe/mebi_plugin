@@ -238,6 +238,45 @@ let kind_of (labels : label list) : string option =
   | _ -> None
 ;;
 
+(* See the [.mli]. *)
+let back_spans (d : t) : ((int * int) * int) list =
+  let arrows : (int * int * label list) list =
+    List.filter (fun (s, t, _) -> not (Int.equal s t)) (merge d.edges)
+  in
+  let back : (int * int) list = back_arrows d in
+  (* The arrows without the back ones are acyclic: [next u] are the states
+     they lead [u] on to. *)
+  let next (u : int) : int list =
+    List.filter_map
+      (fun (s, t, _) ->
+        if Int.equal s u && not (List.mem (s, t) back) then Some t else None)
+      arrows
+  in
+  List.map
+    (fun (s, t) ->
+      ( (s, t)
+      , Stdlib.Int.max
+          1
+          (Stdlib.Option.value ~default:1 (longest_path next ~target:s ~from:t))
+      ))
+    back
+;;
+
+(* See the [.mli]. *)
+let coloured_kind (style : Draw_style.t) (ls : label list)
+  : Draw_style.kind option
+  =
+  if List.for_all (fun l -> l = Silent) ls
+  then None
+  else (
+    let has (k : Draw_style.kind) : bool =
+      Stdlib.Option.is_some (Draw_style.kind_colour k style)
+    in
+    match kind_of ls with
+    | Some k when has (Draw_style.Named k) -> Some (Draw_style.Named k)
+    | _ -> if has Draw_style.Default then Some Draw_style.Default else None)
+;;
+
 (** [label_text l] is [l] as LaTeX text. *)
 let label_text : label -> string = function
   | Silent -> "$\\tau$"
@@ -303,19 +342,7 @@ let picture
   let has_opposite (s : int) (t : int) : bool =
     List.exists (fun (s', t', _) -> Int.equal s' t && Int.equal t' s) arrows
   in
-  (* The kind of an arrow that has a colour: its own, or else the default
-     one, if there is one; a silent step has none. *)
-  let kind (ls : label list) : Draw_style.kind option =
-    if List.for_all (fun l -> l = Silent) ls
-    then None
-    else (
-      let has (k : Draw_style.kind) : bool =
-        Stdlib.Option.is_some (Draw_style.kind_colour k style)
-      in
-      match kind_of ls with
-      | Some k when has (Draw_style.Named k) -> Some (Draw_style.Named k)
-      | _ -> if has Draw_style.Default then Some Draw_style.Default else None)
-  in
+  let kind : label list -> Draw_style.kind option = coloured_kind style in
   let kind_arrow (ls : label list) : string list =
     match kind ls with Some k -> [ Draw_style.use_kind k ] | None -> []
   in
@@ -332,15 +359,7 @@ let picture
       (label_node ls)
       t
   in
-  let back : (int * int) list = back_arrows d in
-  (* The arrows without the back ones are acyclic: [next u] are the states
-     they lead [u] on to. *)
-  let next (u : int) : int list =
-    List.filter_map
-      (fun (s, t, _) ->
-        if Int.equal s u && not (List.mem (s, t) back) then Some t else None)
-      arrows
-  in
+  let spans : ((int * int) * int) list = back_spans d in
   (* A label that is a node of the layout, [e<k>], on the arrow's way: the
      layout then keeps room for it, and the arrow runs through it.
 
@@ -370,13 +389,8 @@ let picture
         (String.concat "\\\\ " (List.map label_text ls))
         (join (label_style ls :: kind_label ls))
     in
-    if List.mem (s, t) back
-    then (
-      let half : int =
-        Stdlib.Int.max
-          1
-          (Stdlib.Option.value ~default:1 (longest_path next ~target:s ~from:t))
-      in
+    match List.assoc_opt (s, t) spans with
+    | Some half ->
       [ node
       ; Printf.sprintf
           "    s%i --[%s] e%i --[%s] s%i;"
@@ -389,8 +403,8 @@ let picture
              ((edge_options ls :: "-" :: kind_arrow ls)
               @ (Draw_style.back_second :: pin half)))
           s
-      ])
-    else
+      ]
+    | None ->
       [ node
       ; Printf.sprintf
           "    s%i ->[%s] e%i ->[%s] s%i;"

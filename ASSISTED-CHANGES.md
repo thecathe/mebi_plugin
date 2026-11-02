@@ -10420,6 +10420,62 @@ Refactor 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-02 (cont.) — `MeBi Draw`: an opt-in Graphviz engine
+
+**New feature**, raised and agreed with Jonah before it was written (the
+plugin's rule for anything new), and **Docs**. On `feat/draw-graphviz`. Jonah
+asked for Graphviz in the plugin by the cheap route (write DOT, let `dot` draw),
+and said he is cautious about adding a feature like this and about users
+running into trouble when just trying to use the plugin. The design follows
+from that.
+
+- **What it is.** `MeBi Config Draw Engine LuaTeX | Graphviz`. With `Graphviz`,
+  `MeBi Draw` writes `<name>.dot` and, for `Format PDF` or `PNG`, has `dot`
+  draw it. `Draw_dot` (pure OCaml, no `rocq-runtime`) writes the DOT from the
+  `Draw.t`, following the same rules as the picture: it shares
+  `Draw.coloured_kind` and `Draw.back_spans`, split out of `picture` in their own
+  commit with the picture's tests unchanged. A label is a node on its arrow that
+  both halves meet at the middle of its sides; an arrow back is laid out target
+  to source with its head at the target and its label half way; `Beside` is
+  Graphviz's own edge labels. It reads `Direction`, `Labels`, `Kind`, `Kind
+  Default` and `Outline`, and converts an xcolor colour (`blue!75!black`, base
+  names, mixes, chains) to hex, so one set of `Kind` lines serves both engines.
+- **So that nobody who does not ask for it runs into it.** (1) The default is
+  LuaTeX and its output is unchanged. (2) Nothing is installed or required:
+  Graphviz is not bundled, there is no new opam or dune dependency, nothing runs
+  when the plugin loads. (3) `dot` runs only for a PDF or a PNG, as a child
+  process with no shell and the existing time limit; `Format TeX` writes the
+  `.dot` alone. (4) A missing, failing or slow `dot` is a warning and never an
+  error (the compile still exits 0, checked), and the `.dot` is kept, with the
+  warning saying how to see `dot`'s own message (a child's output is discarded).
+  (5) The tests and CI need no Graphviz: the three that run it skip without it.
+  (6) A worry I checked rather than assumed: that the words the grammar gains
+  (`Engine`, `Graphviz`, `LuaTeX`) become reserved and break a user's own
+  definitions of those names; a file defining `Engine`, `Graphviz`, `LuaTeX`,
+  `Kind`, `Right`, `Down`, `Default`, even `MeBi`, still compiles.
+- **Checked.** 24 new tests (the colour conversion; the DOT text in every case;
+  the files; a missing `dot`; and, with Graphviz, a real run to PDF and PNG, one
+  with every setting, and a `dot` that fails): 344/344 without Graphviz (one
+  skip) and 347/347 with it; a Rocq-level test (the `.dot` alone, so no Graphviz
+  is needed to run it); a full `dune build`; **a full `make -j$(nproc)` before
+  the merge** (exit 0, 66 s, no warnings from `lib/` or `src/`); and `Simple.v`
+  and the classic coffee machine through the plugin, down and right, coloured,
+  with `dot` (the same quality as `scripts/dump2dot.py`: arrows on their lines,
+  labels on their lines, the silent step's line as short as any) and without it.
+- **A slip, mine, caught by the build.** The script that moved the logic out of
+  `picture` matched the wrong copy of a comment and cut a long stretch out of
+  `draw.ml`; `dune build` failed at once and I restored the file from git and
+  redid the edit with anchors checked to occur once. Nothing reached a commit.
+- **Not done / not checked.** Graphviz's spacing and font are fixed; only
+  Graphviz 15.1.1 was tried; nothing under vsrocq; no other platform. The
+  problem message reads "Dot is needed ..." (the wrapper capitalises the tool's
+  name, as it does for "Lualatex"): cosmetic, left.
+
+**Session tally (2026-11-02, this entry):** New feature 1 · Refactor 1 · Docs 1 ·
+Bug fix 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

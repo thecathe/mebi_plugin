@@ -385,6 +385,9 @@ let text : string list -> string option = function
        label is a node of the layout on its arrow, so that the layout keeps \
        room for it (MeBi Help Config Draw says what that costs), and an LTS \
        that is incomplete says so under the picture.\n\n\
+       With MeBi Config Draw Engine Graphviz it writes <name>.dot instead, and \
+       has Graphviz's dot draw it (see MeBi Help Config Draw; Graphviz is \
+       optional and not bundled).\n\n\
        A system over the draw bound is refused: the layout's time grows \
        quickly with its size. For the bound, the formats and the look of each \
        part of the picture, see MeBi Help Config Draw."
@@ -394,6 +397,7 @@ let text : string list -> string option = function
       (Printf.sprintf
          "MeBi Config Draw Format TeX | PDF | PNG.\n\
           MeBi Config Draw Labels OnEdge | Beside.\n\
+          MeBi Config Draw Engine LuaTeX | Graphviz.\n\
           MeBi Config Draw Direction Down | Right.\n\
           MeBi Config Draw Kind \"<Kind>\" \"<colour>\".\n\
           MeBi Config Draw Kind Default \"<colour>\".\n\
@@ -438,6 +442,18 @@ let text : string list -> string option = function
           for another arrow's, and the two arrows between a pair of states in \
           opposite directions are then bent apart (the TwoWay style, which \
           OnEdge has no use for).\n\n\
+          Engine: LuaTeX, the default, lays the diagram out with TikZ's \
+          layered layout in a LuaLaTeX document. Graphviz is opt-in, and is \
+          not bundled: MeBi Draw then writes <name>.dot, and runs Graphviz's \
+          dot only when a PDF or a PNG is asked for (Format TeX writes the \
+          .dot alone), so a missing, failing or slow dot is a warning and the \
+          .dot is kept, to draw by hand with dot -Tpdf. It uses Direction, \
+          Labels, Kind, Kind Default and Outline (an xcolor colour such as \
+          blue!75!black is converted); Style, Layout and TwoWay are TikZ's, \
+          and apply to LuaTeX only. Graphviz routes the arrows as splines and \
+          keeps its layers apart from border to border, so the line between \
+          two states is as long for a narrow label as for a wide one; its text \
+          is in Graphviz's font, not the document's.\n\n\
           Direction: Down (the default) grows the layout downwards, a layer \
           below the one before; Right grows it to the right, which makes a \
           picture wider than it is tall (landscape), as a talk slide is. It \
