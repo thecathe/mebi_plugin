@@ -19,87 +19,103 @@ Inductive interface : Set :=
 | Output (d : drink)
 | ChipNPin.
 
-MeBi Config Weak As Option interface.
+MeBi Config Reset Weak. (* mode: strong *)
+
+MeBi Config Weak As Option interface. (* mode: weak *)
 
 Inductive mode : Set :=
 | Idle
 | Paid (n : nat) (d : drink)
 | Ready (d : drink).
 
-Inductive lts : mode -> option interface -> mode -> Prop :=
-| select  d : In d drinks -> lts Idle (Some (Select d)) (Paid 0 d)
-| output  d : In d drinks -> lts (Ready d) (Some (Output d)) Idle
-| prepare d n : In d drinks -> Nat.eqb n (price d) = true -> lts (Paid n d) None (Ready d)
-| payment d n c : In d drinks -> In c coins -> Nat.leb (n + value c) (price d) = true ->
-              lts (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
+Inductive lts_c : mode -> option interface -> mode -> Prop :=
+| c_select d : In d drinks ->
+    lts_c Idle (Some (Select d)) (Paid 0 d)
+| c_output d : In d drinks ->
+    lts_c (Ready d) (Some (Output d)) Idle
+| c_prepare d n : In d drinks ->
+    Nat.eqb n (price d) = true ->
+    lts_c (Paid n d) None (Ready d)
+| c_payment d n c : In d drinks -> In c coins ->
+    Nat.leb (n + value c) (price d) = true ->
+    lts_c (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
 
-Definition init : mode := Idle.
+Inductive lts_u : mode -> option interface -> mode -> Prop :=
+| u_select d : In d drinks ->
+    lts_u Idle (Some (Select d)) (Paid 0 d)
+| u_output d : In d drinks ->
+    lts_u (Ready d) (Some (Output d)) Idle
+| u_prepare d n : In d drinks ->
+    Nat.eqb n (price d) = true ->
+    lts_u (Paid n d) None (Ready d)
+| u_chip d : In d drinks ->
+    lts_u (Paid 0 d) (Some ChipNPin) (Paid (price d) d)
+| u_payment d n c : In d drinks -> In c coins ->
+    Nat.leb (n + value c) (price d) = true ->
+    lts_u (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
 
-(* MeBi Config Output "DumpResults" True. *)
-(* MeBi Config Output Format Text. *)
 
-MeBi Run LTS init Using lts.
+(* ANCHOR: extraction *)
+MeBi Config Output "DumpResults" True.
+MeBi Config Output "Info" True.
+MeBi Config Output Format JSON.
+MeBi Run LTS Idle Using lts_c.  (* classic *)
+MeBi Run LTS Idle Using lts_u.  (* upgrade *)
+(* ANCHOR_END: extraction *)
 
+(* ANCHOR: graphviz-setup *)
 (* Drawn by Graphviz, which needs `dot` on the PATH of the process running
    Rocq (the repository's nix dev shell provides it): without it only
    simple.dot is written, with a warning. *)
 MeBi Config Draw Engine Graphviz.
 MeBi Config Draw Format PNG.                    (* TeX | PDF | PNG *)
-MeBi Config Draw Direction Right.               (* Down | Right: Right is landscape *)
 
 (* Colour is by kind of label, the first word of it ("Insert" for "Insert ten"),
    and only where set. *)
 MeBi Config Draw Kind "Select" "green!50!black".
 MeBi Config Draw Kind "Insert" "blue!75!black".
 MeBi Config Draw Kind "Output" "orange!90!black".
-
-MeBi Draw LTS init Using lts As "0simple-right".
-
-MeBi Config Draw Direction Down.               (* Down | Right: Right is landscape *)
-MeBi Draw LTS init Using lts As "0simple-down".
-
-(*
-Definition drinks_upgrade : list drink := [coffee;tea].
-
-Inductive lts_upgrade : mode -> option interface -> mode -> Prop :=
-| select'  d : In d drinks_upgrade -> lts_upgrade Idle (Some (Select d)) (Paid 0 d)
-| output'  d : In d drinks_upgrade -> lts_upgrade (Ready d) (Some (Output d)) Idle
-| prepare' d n : In d drinks_upgrade -> Nat.eqb n (price d) = true -> lts_upgrade (Paid n d) None (Ready d)
-| payment' d n c : In d drinks_upgrade -> In c coins -> Nat.leb (n + value c) (price d) = true ->
-              lts_upgrade (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
-*)
-
-(* Inductive interface' : Set :=
-| uSelect (d : drink)
-| uInsert (c : coin)
-| uOutput (d : drink)
-| ChipNPin. *)
-
-(* MeBi Config Weak As Option interface'. *)
-
-Inductive lts' : mode -> option interface -> mode -> Prop :=
-| select'  d : In d drinks -> lts' Idle (Some (Select d)) (Paid 0 d)
-| output'  d : In d drinks -> lts' (Ready d) (Some (Output d)) Idle
-| prepare' d n : In d drinks -> Nat.eqb n (price d) = true -> lts' (Paid n d) None (Ready d)
-| chip d : In d drinks -> lts' (Paid 0 d) (Some ChipNPin) (Paid (price d) d)
-| payment' d n c : In d drinks -> In c coins -> Nat.leb (n + value c) (price d) = true ->
-              lts' (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
-
-
-(* MeBi Config Output "DumpResults" True.
-MeBi Config Output Format Text. *)
-
-
-
 MeBi Config Draw Kind "ChipNPin" "red!75!black".
+(* ANCHOR_END: graphviz-setup *)
 
-MeBi Run LTS init Using lts'.
-MeBi Config Draw Format PNG.                    (* TeX | PDF | PNG *)
+(* ANCHOR: graphviz-right *)
+MeBi Config Draw Direction Right.               (* Down | Right: Right is landscape *)
+
+MeBi Draw LTS Idle Using lts_c As "Exa-simple-CM-classic-r".
+MeBi Draw LTS Idle Using lts_u As "Exa-simple-CM-upgrade-r".
+(* ANCHOR_END: graphviz-right *)
+
+
+(* ANCHOR: graphviz-down *)
 MeBi Config Draw Direction Down.               (* Down | Right: Right is landscape *)
 
-MeBi Draw LTS init Using lts' As "0simple-upgrade-down".
+MeBi Draw LTS Idle Using lts_c As "Exa-simple-CM-classic-d".
+MeBi Draw LTS Idle Using lts_u As "Exa-simple-CM-upgrade-d".
+(* ANCHOR_END: graphviz-down *)
 
-MeBi Config Draw Direction Right.               (* Down | Right: Right is landscape *)
-MeBi Draw LTS init Using lts' As "0simple-upgrade-right".
+MeBi Config Output "Info" False.
+
+Example wsim_classic_upgrade :
+  weak_sim lts_c lts_u Idle Idle.
+Proof.
+  MeBi Sim Begin lts_c Idle And lts_u Idle.
+  MeBi Sim Step.
+  MeBi Sim Solve 57.
+  MeBi Sim Step.
+Qed.
+
+Example wsim_upgrade_classic :
+  weak_sim lts_u lts_c Idle Idle.
+Proof.
+  Fail MeBi Sim Begin lts_u Idle And lts_c Idle.
+Abort.
+
+(* ANCHOR: upgrade-failif *)
+MeBi Config FailIf NotBisimilar True. (* default: True *)
+Fail MeBi Run Sim Idle With lts_u And Idle With lts_c.
+(* ANCHOR_END: upgrade-failif *)
+
+
+
 
 
