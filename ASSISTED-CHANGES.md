@@ -10704,6 +10704,42 @@ New feature 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-03 (cont.) — `Simple.v`: the worn replica, mutually similar but not bisimilar
+
+**Docs** (an example; no plugin change). On `example/coffeemachine`. Jonah asked
+to sketch the "worn replica" of `CoffeeMachine.v`'s section 4 to show mutual
+similarity. I made it compile rather than leave it in a comment.
+
+- **The machine.** `lts_w` is the classic machine plus one silent rule,
+  `w_run_out`: from `Idle` it can move to a new `NoBeans` state. `Simple.v` offers
+  only coffee, so a machine without beans can do nothing: `NoBeans` is a dead
+  state. That differs from the `CoffeeMachine.v` sketch, whose worn machine still
+  takes coins and makes tea; with one drink there is nothing left to take them
+  for. That sketch is untouched, still a comment.
+- **Why it is mutually similar but not bisimilar.** The worn machine does every
+  classic move, so the classic machine is simulated by it; and the classic machine
+  follows the silent run-out by staying idle, so it simulates the worn one. But a
+  bisimulation must also answer the worn machine's run-out with a state that is
+  *like* `NoBeans`, and the only one the classic machine can reach is `Idle`,
+  which can `Select` where `NoBeans` cannot.
+- **Proved.** `wsim_classic_worn` (`Solve 59`, 60 steps), `wsim_worn_classic`
+  (`Solve 63`, 64 steps), and `msim_classic_worn` (`mutual_sim`) from the two
+  with no `Solve`. Both bounds are the least: one lower leaves the proof
+  incomplete. `weak_bisimilar` is not attempted: `Fail MeBi Run Bisim` is the
+  decided "no". Read without the `Fail`: "not weakly bisimilar" (9 classes over
+  both systems), while `MeBi Run Sim` says "Similar" in both directions.
+- **Slips, caught before they reached a commit.** My first `mutual_sim` proof used
+  `assumption`, which cannot see the two examples (they are global lemmas, not
+  hypotheses): now `exact`. And staging the commit before this one, I split the
+  diff by hunk and left out a line the proof needed; I now stage by content.
+- **Checked** by compiling the staged file against the dune build (exit 0). As
+  before, `Simple.v` is in no `_CoqProject`.
+
+**Session tally (2026-11-03, this entry):** Docs 1 · Refactor 0 · Bug fix 0 ·
+New feature 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.

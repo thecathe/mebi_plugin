@@ -27,7 +27,8 @@ Inductive mode : Set :=
 | Idle
 | Paid (n : nat) (d : drink)
 | Warm (d : drink) (* replica only *)
-| Ready (d : drink).
+| Ready (d : drink)
+| NoBeans (* worn replica only *).
 
 Inductive lts_c : mode -> option interface -> mode -> Prop :=
 | c_select d : In d drinks ->
@@ -69,6 +70,20 @@ Inductive lts_r : mode -> option interface -> mode -> Prop :=
     Nat.leb (n + value c) (price d) = true ->
     lts_r (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
 
+Inductive lts_w : mode -> option interface -> mode -> Prop :=
+| w_select d : In d drinks ->
+    lts_w Idle (Some (Select d)) (Paid 0 d)
+| w_output d : In d drinks ->
+    lts_w (Ready d) (Some (Output d)) Idle
+| w_prepare d n : In d drinks ->
+    Nat.eqb n (price d) = true ->
+    lts_w (Paid n d) None (Ready d)
+| w_payment d n c : In d drinks -> In c coins ->
+    Nat.leb (n + value c) (price d) = true ->
+    lts_w (Paid n d) (Some (Insert c)) (Paid (n + value c) d)
+| w_run_out :
+    lts_w Idle None NoBeans.
+
 
 (* ANCHOR: extraction *)
 MeBi Config Output "DumpResults" True.
@@ -77,6 +92,7 @@ MeBi Config Output Format JSON.
 MeBi Run LTS Idle Using lts_c.  (* classic *)
 MeBi Run LTS Idle Using lts_u.  (* upgrade *)
 MeBi Run LTS Idle Using lts_r.  (* replica *)
+MeBi Run LTS Idle Using lts_w.  (* worn replica *)
 (* ANCHOR_END: extraction *)
 
 (* ANCHOR: graphviz-setup *)
@@ -142,6 +158,32 @@ Qed.
 MeBi Config Reset Weak. (* mode: strong *)
 Fail MeBi Run Bisim Idle With lts_c And Idle With lts_r.
 (* ANCHOR_END: replica-strong *)
+
+(* ANCHOR: worn-mutual *)
+MeBi Config Weak As Option interface. (* mode: weak *)
+
+Example wsim_classic_worn :
+  weak_sim lts_c lts_w Idle Idle.
+Proof.
+  MeBi Sim Begin lts_c Idle And lts_w Idle.
+  MeBi Sim Solve 59.
+Qed.
+
+Example wsim_worn_classic :
+  weak_sim lts_w lts_c Idle Idle.
+Proof.
+  MeBi Sim Begin lts_w Idle And lts_c Idle.
+  MeBi Sim Solve 63.
+Qed.
+
+Example msim_classic_worn :
+  mutual_sim lts_c lts_w Idle Idle.
+Proof.
+  split; [exact wsim_classic_worn | exact wsim_worn_classic].
+Qed.
+
+Fail MeBi Run Bisim Idle With lts_c And Idle With lts_w.
+(* ANCHOR_END: worn-mutual *)
 
 
 
