@@ -26,6 +26,7 @@ MeBi Config Weak As Option interface. (* mode: weak *)
 Inductive mode : Set :=
 | Idle
 | Paid (n : nat) (d : drink)
+| Warm (d : drink) (* replica only *)
 | Ready (d : drink).
 
 Inductive lts_c : mode -> option interface -> mode -> Prop :=
@@ -54,6 +55,20 @@ Inductive lts_u : mode -> option interface -> mode -> Prop :=
     Nat.leb (n + value c) (price d) = true ->
     lts_u (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
 
+Inductive lts_r : mode -> option interface -> mode -> Prop :=
+| r_select d : In d drinks ->
+    lts_r Idle (Some (Select d)) (Paid 0 d)
+| r_output d : In d drinks ->
+    lts_r (Ready d) (Some (Output d)) Idle
+| r_heat d n : In d drinks ->
+    Nat.eqb n (price d) = true ->
+    lts_r (Paid n d) None (Warm d)
+| r_prepare d : In d drinks ->
+    lts_r (Warm d) None (Ready d)
+| r_payment d n c : In d drinks -> In c coins ->
+    Nat.leb (n + value c) (price d) = true ->
+    lts_r (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
+
 
 (* ANCHOR: extraction *)
 MeBi Config Output "DumpResults" True.
@@ -61,6 +76,7 @@ MeBi Config Output "Info" True.
 MeBi Config Output Format JSON.
 MeBi Run LTS Idle Using lts_c.  (* classic *)
 MeBi Run LTS Idle Using lts_u.  (* upgrade *)
+MeBi Run LTS Idle Using lts_r.  (* replica *)
 (* ANCHOR_END: extraction *)
 
 (* ANCHOR: graphviz-setup *)
@@ -114,6 +130,18 @@ Abort.
 MeBi Config FailIf NotBisimilar True. (* default: True *)
 Fail MeBi Run Sim Idle With lts_u And Idle With lts_c.
 (* ANCHOR_END: upgrade-failif *)
+
+Example wbis_classic_replica :
+  weak_bisimilar lts_c lts_r Idle Idle.
+Proof.
+  MeBi Sim Begin lts_c Idle And lts_r Idle.
+  MeBi Sim Solve 167.
+Qed.
+
+(* ANCHOR: replica-strong *)
+MeBi Config Reset Weak. (* mode: strong *)
+Fail MeBi Run Bisim Idle With lts_c And Idle With lts_r.
+(* ANCHOR_END: replica-strong *)
 
 
 

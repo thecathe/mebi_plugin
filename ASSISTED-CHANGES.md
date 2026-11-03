@@ -10674,6 +10674,36 @@ Docs 0 · Tooling 0 · Optimization 0.
 
 ---
 
+## 2026-11-03 — `Simple.v`: a replica, weakly but not strongly bisimilar to the classic machine
+
+**Docs** (an example; no plugin change). On `example/coffeemachine`. Jonah asked
+for the replica of `CoffeeMachine.v` in `examples/Simple.v`, in its style and as
+small as could be.
+
+- **The replica** is the classic machine with the one silent step split in two,
+  as in `CoffeeMachine.v`: `lts_r` has `r_heat` (`Paid` to a new `Warm d`) and
+  `r_prepare` (`Warm d` to `Ready d`) where `lts_c` has `c_prepare`. `Warm` is the
+  only new `mode` constructor; `lts_c` and `lts_u` never reach it. Their
+  extractions and drawings are unchanged (not diffed, only compiled).
+- **Weakly bisimilar**: `wbis_classic_replica`, `weak_bisimilar lts_c lts_r`,
+  `Solve 167` (168 steps under `Auto`; 166 leaves the proof incomplete).
+- **Not strongly bisimilar**: after `Reset Weak`, `Fail MeBi Run Bisim` on the
+  same pair. Read without the `Fail` and with `FailIf NotBisimilar False`: the
+  weak run says "weakly bisimilar", the strong one says "not", with 11 classes
+  over the 5 + 6 states, so every state is alone in its class, as it should be
+  (`Warm` cannot be matched by `Ready`, so the difference reaches `Idle`).
+- **Noticed, not fixed:** the not-bisimilar message in `src/wrapper.ml` always
+  says "weakly" and "weak bisimilarity", also in strong mode, so the strong
+  `Fail` above reads "not weakly bisimilar".
+- **Checked** by compiling a copy against the dune build (exit 0). The
+  `Unsolved after 58` of the existing `wsim_classic_upgrade` is there at `HEAD`
+  too. `Simple.v` is not in `_CoqProject`, so no `make` run covers it.
+
+**Session tally (2026-11-03, this entry):** Docs 1 · Refactor 0 · Bug fix 0 ·
+New feature 0 · Tooling 0 · Optimization 0.
+
+---
+
 ## Outstanding
 
 **Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
