@@ -19,9 +19,13 @@ Inductive interface : Set :=
 | Output (d : drink)
 | ChipNPin.
 
-MeBi Config Reset Weak. (* mode: strong *)
+(* ANCHOR: config-reset-weak *)
+MeBi Config Reset Weak.
+(* ANCHOR_END: config-reset-weak *)
 
-MeBi Config Weak As Option interface. (* mode: weak *)
+(* ANCHOR: config-weak *)
+MeBi Config Weak As Option interface.
+(* ANCHOR_END: config-weak *)
 
 Inductive mode : Set :=
 | Idle
