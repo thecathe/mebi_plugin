@@ -51,8 +51,7 @@ Inductive lts_u : mode -> option interface -> mode -> Prop :=
     lts_u Idle (Some (Select d)) (Paid 0 d)
 | u_output d : In d drinks ->
     lts_u (Ready d) (Some (Output d)) Idle
-| u_prepare d n : In d drinks ->
-    Nat.eqb n (price d) = true ->
+| u_prepare d n : In d drinks -> Nat.eqb n (price d) = true ->
     lts_u (Paid n d) None (Ready d)
 | u_chip d : In d drinks ->
     lts_u (Paid 0 d) (Some ChipNPin) (Paid (price d) d)
@@ -65,11 +64,9 @@ Inductive lts_r : mode -> option interface -> mode -> Prop :=
     lts_r Idle (Some (Select d)) (Paid 0 d)
 | r_output d : In d drinks ->
     lts_r (Ready d) (Some (Output d)) Idle
-| r_heat d n : In d drinks ->
-    Nat.eqb n (price d) = true ->
+| r_heat d n : In d drinks -> Nat.eqb n (price d) = true ->
     lts_r (Paid n d) None (Warm d)
-| r_prepare d : In d drinks ->
-    lts_r (Warm d) None (Ready d)
+| r_prepare d : In d drinks -> lts_r (Warm d) None (Ready d)
 | r_payment d n c : In d drinks -> In c coins ->
     Nat.leb (n + value c) (price d) = true ->
     lts_r (Paid n d) (Some (Insert c)) (Paid (n + value c) d).
@@ -79,25 +76,23 @@ Inductive lts_w : mode -> option interface -> mode -> Prop :=
     lts_w Idle (Some (Select d)) (Paid 0 d)
 | w_output d : In d drinks ->
     lts_w (Ready d) (Some (Output d)) Idle
-| w_prepare d n : In d drinks ->
-    Nat.eqb n (price d) = true ->
+| w_prepare d n : In d drinks -> Nat.eqb n (price d) = true ->
     lts_w (Paid n d) None (Ready d)
 | w_payment d n c : In d drinks -> In c coins ->
     Nat.leb (n + value c) (price d) = true ->
     lts_w (Paid n d) (Some (Insert c)) (Paid (n + value c) d)
-| w_run_out :
-    lts_w Idle None NoBeans.
+| w_run_out : lts_w Idle None NoBeans.
 
+MeBi Config Output "Info" True.
 
 (* ANCHOR: extraction *)
 MeBi Config Output "DumpResults" True.
-MeBi Config Output "Info" True.
 MeBi Config Output Format JSON.
 MeBi Run LTS Idle Using lts_c.  (* classic *)
 MeBi Run LTS Idle Using lts_u.  (* upgrade *)
+(* ANCHOR_END: extraction *)
 MeBi Run LTS Idle Using lts_r.  (* replica *)
 MeBi Run LTS Idle Using lts_w.  (* worn replica *)
-(* ANCHOR_END: extraction *)
 
 (* ANCHOR: graphviz-setup *)
 (* Drawn by Graphviz, which needs `dot` on the PATH of the process running
@@ -131,17 +126,15 @@ MeBi Draw LTS Idle Using lts_u As "Exa-simple-CM-upgrade-d".
 
 MeBi Config Output "Info" False.
 
-Example wsim_classic_upgrade :
-  weak_sim lts_c lts_u Idle Idle.
+Example wsim_classic_upgrade : weak_sim lts_c lts_u Idle Idle.
 Proof.
   MeBi Sim Begin lts_c Idle And lts_u Idle.
   MeBi Sim Step.
   MeBi Sim Solve 57.
-  MeBi Sim Step.
+  MeBi Sim Step. (* takes 59 *)
 Qed.
 
-Example wsim_upgrade_classic :
-  weak_sim lts_u lts_c Idle Idle.
+Example wsim_upgrade_classic : weak_sim lts_u lts_c Idle Idle.
 Proof.
   Fail MeBi Sim Begin lts_u Idle And lts_c Idle.
 Abort.
@@ -163,25 +156,22 @@ MeBi Config Reset Weak. (* mode: strong *)
 Fail MeBi Run Bisim Idle With lts_c And Idle With lts_r.
 (* ANCHOR_END: replica-strong *)
 
-(* ANCHOR: worn-mutual *)
 MeBi Config Weak As Option interface. (* mode: weak *)
 
-Example wsim_classic_worn :
-  weak_sim lts_c lts_w Idle Idle.
+(* ANCHOR: worn-mutual *)
+Example wsim_classic_worn : weak_sim lts_c lts_w Idle Idle.
 Proof.
   MeBi Sim Begin lts_c Idle And lts_w Idle.
   MeBi Sim Solve 59.
 Qed.
 
-Example wsim_worn_classic :
-  weak_sim lts_w lts_c Idle Idle.
+Example wsim_worn_classic : weak_sim lts_w lts_c Idle Idle.
 Proof.
   MeBi Sim Begin lts_w Idle And lts_c Idle.
   MeBi Sim Solve 63.
 Qed.
 
-Example msim_classic_worn :
-  mutual_sim lts_c lts_w Idle Idle.
+Example msim_classic_worn : mutual_sim lts_c lts_w Idle Idle.
 Proof.
   split; [exact wsim_classic_worn | exact wsim_worn_classic].
 Qed.
