@@ -10862,6 +10862,46 @@ similarity. I made it compile rather than leave it in a comment.
 **Session tally (2026-11-03, this entry):** Docs 1 · Refactor 0 · Bug fix 0 ·
 New feature 0 · Tooling 0 · Optimization 0.
 
+
+---
+
+## 2026-11-09 — `theories/loader.v` printed before the plugin was loaded
+
+On branch `fix/loader-printouts`. **Bug fix.** `example/coffeemachine` did not
+build, and neither did anything that requires `MEBI.loader` (`Test.v`, every
+example): Rocq stopped at `theories/loader.v` line 2 with "Syntax error: illegal
+begin of vernac".
+
+**Cause.** "cleanup loader.v" (`3a5e54f`) put `MeBi Divider "Loading MeBi
+Plugin"` on the second line, ahead of `Declare ML Module "rocq-mebi.mebi"`.
+Until the plugin is declared, `MeBi` is not a command. I found it while merging
+the previous entry's branch into `example/coffeemachine`: the branch tip from
+before that merge failed the same way, so the merge was not the cause.
+
+**Fix.** Declare the ML module first, then the dividers and the config line.
+`Set Debug "backtrace"` stays at the top, since it needs no plugin and helps if
+a `Require` fails. This also puts the "Loading MeBi Plugin" divider above the
+library requires, which was the wish. Two alternatives were weighed. Moving only
+the dividers below the declaration (Jonah's sketch) works, but "Loading" then
+prints after everything has loaded. `Goal True. idtac "...". Abort.` prints
+before the plugin loads at all, but is an odd thing to leave in a loader.
+
+**Load order.** The plugin now loads before the theories, not after. It looks
+up the `MEBI.*` library constants only inside commands (`proof_solver.ml`,
+`premise_search.ml`), never when it loads, and the builds below exercise it.
+
+**Verified.** `dune build` (exit 0, `Test.v` included); `dune exec
+test/tests.exe` 351/351; the full default `make` (exit 0) under a 6GB cap, with
+`examples/Simple.v` and `examples/ProofSolverDiagram.v`, which `_CoqProject` does
+not build, added for that run only (they compile). The proof suites' solver
+counts were not re-measured: nothing in `lib/` or `src/` changed.
+
+**How to revert:** `git revert -m 1 <merge-commit>` (find it with `git log
+--merges --oneline --grep fix/loader-printouts`), or one commit.
+
+**Session tally (2026-11-09, loader):** Bug fix 1 · Docs 0 · Refactor 0 ·
+Optimization 0 · Tooling 0 · New feature 0.
+
 ---
 
 ## Outstanding
