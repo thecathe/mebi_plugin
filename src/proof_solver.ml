@@ -499,8 +499,8 @@ module Init (Solver : S) = struct
     | _, _, _ -> ()
   ;;
 
-  (** [on_demand ()] is whether either FSM is saturated on demand
-      (notes/13). Raises nothing. *)
+  (** [on_demand ()] is whether either FSM is saturated on demand.
+      Raises nothing. *)
   let on_demand () : bool =
     Stdlib.Option.is_some (W.get_fsm_a ~saturated:true ()).fill
     || Stdlib.Option.is_some (W.get_fsm_b ~saturated:true ()).fill
@@ -757,7 +757,7 @@ let init
      [Model.Product.answer], as the solver always has, and builds nothing.
      Anything else is planned here, once ({!Init.plan_answers}). *)
   Solver.W.plan := None;
-  (* An FSM saturated on demand (notes/13) may be too large to walk the
+  (* An FSM saturated on demand may be too large to walk the
      whole game of up front: planning answers, the mutual cofix's pair set,
      or [Auto]'s estimate, saturate state after state as they walk
      ([Proc/Test4]: still running after 29 minutes). A setting the user made

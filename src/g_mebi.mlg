@@ -500,7 +500,7 @@ VERNAC COMMAND EXTEND MeBi_Config_FailIf_Oversaturated CLASSIFIED AS QUERY
   { Api.set_fail_flag_oversaturated false }
 END
 
-(* Config -- saturation: whole, or on demand (notes/13) *)
+(* Config -- saturation: whole, or on demand *)
 VERNAC COMMAND EXTEND MeBi_Config_Saturation_OnDemand CLASSIFIED AS QUERY
 | ["MeBi" "Config" "Saturation" "OnDemand" "True"] ->
   { Api.set_saturation_mode Api.Saturation_on_demand }
