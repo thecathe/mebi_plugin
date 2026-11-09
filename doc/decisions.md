@@ -14,7 +14,8 @@ and 50 (2026-08-17 to 2026-09-29) were pushed to it by mistake on
 2026-09-29, because an earlier session had set git up so that a push went
 to your repository instead of the fork. Jonah moved on rather than undo
 it. The other 401 landed on Jonah's fork, `thecathe/mebi_plugin`, as PRs
-#1–#73, and are not upstream yet. The core still does what it did:
+#1–#73, and reached your repository in one PR, #53 (opened 2026-10-15,
+merged by you on 2026-10-19). The core still does what it did:
 - it reads an inductive `step : term -> label -> term -> Prop`;
 - it builds the LTS and decides (weak) bisimilarity;
 - it proves the result with `MeBi Sim Begin`/`Solve`.
@@ -35,23 +36,14 @@ What changed is around it:
 | `ASSISTED-CHANGES.md` | the history of every change, its kind, and how to revert it |
 | `OUTSTANDING.md` | the index of everything still open, this file included |
 
-The decisions below are ordered by what blocks the upstream PR first.
+Decision 1 is settled; the others are open, in the order they were written.
 
 ## 1. How should the work reach your repository?
 
-**Question.** All 73 PRs are merged on the fork: 401 commits, 251 files,
-+29,310/−3,725 against your `main` (2026-10-15). The plan is one PR to
-`dcastrop/mebi_plugin` after you decide 2, because going against `Auto`
-changes what every checked-in proof bound means. (Jonah settled the
-answer policy, on 2026-10-15: see 4.)
-
-**Options.**
-1. **One PR of the whole fork (recommended).** You review the result
-   with `ASSISTED-CHANGES.md` as the guide, and back out anything you
-   reject by its revert command.
-2. **A series of smaller PRs,** by area (`lib/`, the solver, `theories/`,
-   `examples/`). This is easier to read, but the areas depend on each
-   other, so the order has to be worked out and each step rebuilt.
+**Settled.** As one PR of the whole fork, `dcastrop/mebi_plugin#53`
+(opened 2026-10-15, merged by you on 2026-10-19). Nothing is open here.
+The number stays so that decisions 2 to 4 keep theirs, which the rest of the
+repository refers to.
 
 ## 2. Should `MeBi Config Solver MutualCofix Auto` stay the default?
 
@@ -78,8 +70,8 @@ cheaper (`Model.Product.estimate`). `Auto` is the default today.
 
 **What it commits us to.** Every checked-in `MeBi Sim Solve N` bound was
 measured under `Auto` (and since 2026-10-15 under `Answers Auto`, see 4).
-Option 2 or 3 means re-measuring them all, which is best done before the
-upstream PR. If you keep `Auto`, two small follow-ups remain:
+Option 2 or 3 means re-measuring them all. The merged PR has `Auto` as
+the default. If you keep `Auto`, two small follow-ups remain:
 - `Proc/Test2`'s bounds are deliberately loose, so that the file still
   compiles nested; they can be tightened.
 - `Proc/Test3`'s explicit `MutualCofix True` can be dropped.

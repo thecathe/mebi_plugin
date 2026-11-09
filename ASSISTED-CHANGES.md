@@ -4,6 +4,10 @@ A running record of work done on this codebase with Claude (Claude Code), kept
 so that both the direction of travel and the *kind* of each change stay legible
 — to Jonah, and to anyone reviewing what was contributed and why.
 
+**Fork only.** This log belongs to the fork,
+`thecathe/mebi_plugin`, and is not for the upstream repository
+(`dcastrop/mebi_plugin`): leave it out of anything sent there.
+
 Entries are chronological, oldest first, so the log reads as a narrative.
 
 | tag | meaning |
@@ -10795,6 +10799,157 @@ corrected.
 
 **Session tally (2026-11-09):** Docs 1 · Refactor 0 · Bug fix 0 · Optimization 0
 · Tooling 0 · New feature 0.
+
+---
+
+## 2026-11-03 — `Simple.v`: a replica, weakly but not strongly bisimilar to the classic machine
+
+**Docs** (an example; no plugin change). On `example/coffeemachine`. Jonah asked
+for the replica of `CoffeeMachine.v` in `examples/Simple.v`, in its style and as
+small as could be.
+
+- **The replica** is the classic machine with the one silent step split in two,
+  as in `CoffeeMachine.v`: `lts_r` has `r_heat` (`Paid` to a new `Warm d`) and
+  `r_prepare` (`Warm d` to `Ready d`) where `lts_c` has `c_prepare`. `Warm` is the
+  only new `mode` constructor; `lts_c` and `lts_u` never reach it. Their
+  extractions and drawings are unchanged (not diffed, only compiled).
+- **Weakly bisimilar**: `wbis_classic_replica`, `weak_bisimilar lts_c lts_r`,
+  `Solve 167` (168 steps under `Auto`; 166 leaves the proof incomplete).
+- **Not strongly bisimilar**: after `Reset Weak`, `Fail MeBi Run Bisim` on the
+  same pair. Read without the `Fail` and with `FailIf NotBisimilar False`: the
+  weak run says "weakly bisimilar", the strong one says "not", with 11 classes
+  over the 5 + 6 states, so every state is alone in its class, as it should be
+  (`Warm` cannot be matched by `Ready`, so the difference reaches `Idle`).
+- **Noticed, not fixed:** the not-bisimilar message in `src/wrapper.ml` always
+  says "weakly" and "weak bisimilarity", also in strong mode, so the strong
+  `Fail` above reads "not weakly bisimilar".
+- **Checked** by compiling a copy against the dune build (exit 0). The
+  `Unsolved after 58` of the existing `wsim_classic_upgrade` is there at `HEAD`
+  too. `Simple.v` is not in `_CoqProject`, so no `make` run covers it.
+
+**Session tally (2026-11-03, this entry):** Docs 1 · Refactor 0 · Bug fix 0 ·
+New feature 0 · Tooling 0 · Optimization 0.
+
+---
+
+## 2026-11-03 (cont.) — `Simple.v`: the worn replica, mutually similar but not bisimilar
+
+**Docs** (an example; no plugin change). On `example/coffeemachine`. Jonah asked
+to sketch the "worn replica" of `CoffeeMachine.v`'s section 4 to show mutual
+similarity. I made it compile rather than leave it in a comment.
+
+- **The machine.** `lts_w` is the classic machine plus one silent rule,
+  `w_run_out`: from `Idle` it can move to a new `NoBeans` state. `Simple.v` offers
+  only coffee, so a machine without beans can do nothing: `NoBeans` is a dead
+  state. That differs from the `CoffeeMachine.v` sketch, whose worn machine still
+  takes coins and makes tea; with one drink there is nothing left to take them
+  for. That sketch is untouched, still a comment.
+- **Why it is mutually similar but not bisimilar.** The worn machine does every
+  classic move, so the classic machine is simulated by it; and the classic machine
+  follows the silent run-out by staying idle, so it simulates the worn one. But a
+  bisimulation must also answer the worn machine's run-out with a state that is
+  *like* `NoBeans`, and the only one the classic machine can reach is `Idle`,
+  which can `Select` where `NoBeans` cannot.
+- **Proved.** `wsim_classic_worn` (`Solve 59`, 60 steps), `wsim_worn_classic`
+  (`Solve 63`, 64 steps), and `msim_classic_worn` (`mutual_sim`) from the two
+  with no `Solve`. Both bounds are the least: one lower leaves the proof
+  incomplete. `weak_bisimilar` is not attempted: `Fail MeBi Run Bisim` is the
+  decided "no". Read without the `Fail`: "not weakly bisimilar" (9 classes over
+  both systems), while `MeBi Run Sim` says "Similar" in both directions.
+- **Slips, caught before they reached a commit.** My first `mutual_sim` proof used
+  `assumption`, which cannot see the two examples (they are global lemmas, not
+  hypotheses): now `exact`. And staging the commit before this one, I split the
+  diff by hunk and left out a line the proof needed; I now stage by content.
+- **Checked** by compiling the staged file against the dune build (exit 0). As
+  before, `Simple.v` is in no `_CoqProject`.
+
+**Session tally (2026-11-03, this entry):** Docs 1 · Refactor 0 · Bug fix 0 ·
+New feature 0 · Tooling 0 · Optimization 0.
+
+
+---
+
+## 2026-11-09 — `theories/loader.v` printed before the plugin was loaded
+
+On branch `fix/loader-printouts`. **Bug fix.** `example/coffeemachine` did not
+build, and neither did anything that requires `MEBI.loader` (`Test.v`, every
+example): Rocq stopped at `theories/loader.v` line 2 with "Syntax error: illegal
+begin of vernac".
+
+**Cause.** "cleanup loader.v" (`3a5e54f`) put `MeBi Divider "Loading MeBi
+Plugin"` on the second line, ahead of `Declare ML Module "rocq-mebi.mebi"`.
+Until the plugin is declared, `MeBi` is not a command. I found it while merging
+the previous entry's branch into `example/coffeemachine`: the branch tip from
+before that merge failed the same way, so the merge was not the cause.
+
+**Fix.** Declare the ML module first, then the dividers and the config line.
+`Set Debug "backtrace"` stays at the top, since it needs no plugin and helps if
+a `Require` fails. This also puts the "Loading MeBi Plugin" divider above the
+library requires, which was the wish. Two alternatives were weighed. Moving only
+the dividers below the declaration (Jonah's sketch) works, but "Loading" then
+prints after everything has loaded. `Goal True. idtac "...". Abort.` prints
+before the plugin loads at all, but is an odd thing to leave in a loader.
+
+**Load order.** The plugin now loads before the theories, not after. It looks
+up the `MEBI.*` library constants only inside commands (`proof_solver.ml`,
+`premise_search.ml`), never when it loads, and the builds below exercise it.
+
+**Verified.** `dune build` (exit 0, `Test.v` included); `dune exec
+test/tests.exe` 351/351; the full default `make` (exit 0) under a 6GB cap, with
+`examples/Simple.v` and `examples/ProofSolverDiagram.v`, which `_CoqProject` does
+not build, added for that run only (they compile). The proof suites' solver
+counts were not re-measured: nothing in `lib/` or `src/` changed.
+
+**How to revert:** `git revert -m 1 <merge-commit>` (find it with `git log
+--merges --oneline --grep fix/loader-printouts`), or one commit.
+
+**Session tally (2026-11-09, loader):** Bug fix 1 · Docs 0 · Refactor 0 ·
+Optimization 0 · Tooling 0 · New feature 0.
+
+
+---
+
+## 2026-11-09 — The upstream PR is done; the fork's own files are marked
+
+On branch `docs/fork-only-files`. **Docs** (no code), at Jonah's request.
+
+**The upstream PR.** `CLAUDE.md`, `OUTSTANDING.md`, `README.md` and
+`doc/decisions.md` still spoke of a PR to `dcastrop/mebi_plugin` as something to
+come ("it gets a single PR, when Jonah says"; decision 1, "one PR or a series";
+"so it comes before the upstream PR"; "until the fork's work is merged
+upstream"). It was done: `dcastrop/mebi_plugin#53`, opened 2026-10-15, merged by
+`dcastrop` on 2026-10-19 (dates read from GitHub, not from memory). One PR, so
+decision 1's recommended option. Resolved, so its line is out of
+`OUTSTANDING.md` (decisions 2 to 4 keep their numbers, which the repository
+refers to), and its brief in `doc/decisions.md` is now one settled paragraph.
+`CLAUDE.md` says the fork's work reached upstream once, and that more is
+Jonah's call. `README.md` says the fork's work up to October is upstream and
+later work is only on the fork. Decision 2's text no longer says the re-measuring
+is best done before the PR; it says the merged PR has `Auto` as the default.
+
+**Fork-only files.** Jonah asked for the treatment given to `CLAUDE.md` (a
+note to keep it out of anything sent upstream) to go to three more files too.
+`CLAUDE.md`'s bullet now names four: `CLAUDE.md`,
+`ASSISTED-CHANGES.md`, `OUTSTANDING.md` and `bench/`. The last three say so at
+their top. This is a note, not a mechanism: nothing stops a PR from carrying
+them. The paragraph that said this log is "shared with collaborators" now says it
+is open to them in the fork and not sent upstream.
+
+**Not changed, and for Jonah.** The files are still in the upstream copy; taking
+them out there is the upstream maintainer's repository, not ours. Decisions 2 to
+4 are still briefs addressed to `@dcastrop` and listed as waiting on him. With
+upstream going its own way they may no longer be his to make, but that is a
+different question and was not asked. Past entries in this log that speak of the
+upstream PR as future are history and stay.
+
+**Verified.** Documentation only. A search of the live docs for the old phrases
+("upstream PR", "single PR", "not upstream yet", "one PR or a series") finds none.
+
+**How to revert:** `git revert -m 1 <merge-commit>` (find it with `git log
+--merges --oneline --grep docs/fork-only-files`), or one commit.
+
+**Session tally (2026-11-09, docs):** Docs 1 · Bug fix 0 · Refactor 0 ·
+Optimization 0 · Tooling 0 · New feature 0.
 
 ---
 

@@ -17,10 +17,11 @@ labelled as such rather than silently blended into a refactor.
 After any substantive piece of work, add or extend an entry in
 `ASSISTED-CHANGES.md` (repo root). Tag each change **Refactor**, **Bug fix**,
 **Optimization**, **New feature**, **Tooling** or **Docs**, and keep a running
-per-session tally. This log is shared with collaborators (David Castro-Perez
-owns the upstream repo) as a transparency record of what Claude contributed
-and of what kind — be honest about mistakes and reversals there; that
-candour is the point of the log.
+per-session tally. This log is the fork's: a transparency record of what
+Claude contributed and of what kind, open to collaborators (David
+Castro-Perez owns the upstream repo) in the fork and not sent upstream. Be
+honest about mistakes and reversals there; that candour is the point of the
+log.
 
 ## Keep `OUTSTANDING.md` current
 
@@ -204,20 +205,24 @@ Recorded here on 2026-10-10, so that a fresh session has them.
   topic branch, so merge from a worktree on `main` (`git worktree add
   ../<name> main`) and remove it afterwards.
 - Push branches only to the fork (`thecathe/mebi_plugin`) and open PRs
-  there. Never push to the upstream repository (`dcastrop/mebi_plugin`):
-  it gets a single PR, when Jonah says. Remote names differ between
+  there. Never push to the upstream repository (`dcastrop/mebi_plugin`). The
+  fork's work reached it once, as one PR (#53, opened 2026-10-15, merged
+  2026-10-19); whether more ever goes is Jonah's call, and upstream is going
+  its own way. Remote names differ between
   clones: in some, `origin` is upstream and the fork is a second remote,
   `fork`; in others, `origin` is the fork and upstream is not configured
   at all. Go by the URL, not the name. (50 commits reached `origin/main`
   by mistake on 2026-09-29, from a session whose git setup sent the push
   there. Before any push, read `git remote -v` and `git branch -vv`, and
   name the remote explicitly.)
-- **Keep `CLAUDE.md` out of anything sent to the upstream repository.** It
-  records this fork's working practices (the log, the branch and merge
-  conventions, the verification procedure), which are of no use to
-  `@dcastrop`. When preparing a PR or any push upstream, leave it out. It
-  reached the upstream once, in the large PR merged in October, and should
-  not have.
+- **Keep the fork's working files out of anything sent to the upstream
+  repository:** `CLAUDE.md`, `ASSISTED-CHANGES.md`, `OUTSTANDING.md` and
+  `bench/`. They record this fork's practices (the branch and merge
+  conventions, the verification procedure, the log, the index of open items,
+  the benchmark scripts), which are of no use to `@dcastrop`. When preparing
+  a PR or any push upstream, leave them out. They reached the upstream once,
+  in the large PR (#53), and should not have. Each of the last three says so
+  at its top.
 - A new capability is flagged and agreed before code (see the top of this
   file).
 

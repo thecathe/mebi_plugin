@@ -5,6 +5,10 @@ between two builds. They are tooling only: nothing here is part of the
 plugin, and none of it changes the source tree. Run them with bash, from
 anywhere.
 
+**Fork only.** This directory belongs to the fork,
+`thecathe/mebi_plugin`, and is not for the upstream repository
+(`dcastrop/mebi_plugin`): leave it out of anything sent there.
+
 All of them compile against the repository's **dune build**, so run
 `dune build` first. Examples are compiled from a fresh copy for each run,
 because the source tree may carry stale `.vo` files from an old `make`
