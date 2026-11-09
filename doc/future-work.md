@@ -24,7 +24,7 @@ Work that is understood well enough to describe, but not under way.
 ## The solver's own per-step cost
 
 **Standing.** Measured, cause unknown. CPU timers around each solver
-step (2026-10-11; patch kept locally as `notes/tools/solver-profile.diff`)
+step (2026-10-11; a throwaway patch, not kept in the repository)
 separate the plugin *deciding* the next step (building its tactic) from
 Rocq *running* that tactic:
 
@@ -161,7 +161,7 @@ conclusion's head cannot match the source term's, before unifying (an
 index on head symbols), and prune a premise's branches the same way. It
 touches the proof solver's view of derivations, so it needs the full
 proof-suite runs. How much it would save is unmeasured. The measurement
-patch is kept locally (`notes/tools/extraction-profile.diff`).
+patch was a throwaway and is not kept in the repository.
 
 ## Re-running the large CADP proofs
 
@@ -324,8 +324,9 @@ together.
   reads the monad's context when it runs, now the same step; the terms are ground
   states, so it makes no difference.
 - With `Info` on (the default) the cost is paid, by design.
-- Measure with the solver-profile patch (`notes/tools/solver-profile.diff`,
-  per-step CPU time) on the CADP default-suite files. Wall time of
+- Measure with per-step CPU timers inside the solver (the throwaway patch
+  behind "The solver's own per-step cost" above, not kept in the repository)
+  on the CADP default-suite files. Wall time of
   `bench/proofs.sh -s default` cannot show 1-5%: the same suite varied by
   more than that between runs on 2026-10-19.
 
@@ -353,7 +354,7 @@ common-case tactics (`constructor`, `exists`/`split`, `mutual_cofix`, `unfold`,
 
 ## Smaller possible work
 
-**Evaluation** (detail in Jonah's local notes 10 and 12)
+**Evaluation**
 - **Compare with CADP and mCRL2**: verdicts and cost on the same models.
   Neither tool is installed; CADP needs a licence.
 - **Scale the evaluation levers further** (`bench/proofs.sh -s
@@ -600,11 +601,12 @@ reason in mind.
 
 - **Proving one state per silent SCC** (abandoned 2026-10-03): unsound
   inside a coinduction, counterexample `CircularTransfer`.
-- **`ReModel` unification instead of lookup** (A1): measured, cannot miss
+- **`ReModel` unification instead of lookup**: measured, cannot miss
   in current usage. Its value would be goals with an unknown state, closed
   as "give the witness by hand" (`limitations.md`, "Goal shapes").
-- **Inversion tie-break options B and C**: closed unbuilt; residual
-  sterile steps measured at zero after options A and D′.
+- **Further inversion tie-break variants**: closed unbuilt; sterile steps
+  were measured at zero after the hypothesis-order fix and the refutation
+  of dead steps (both 2026-10-02).
 - **Divergence-sensitive equivalences**: out of scope for the current
   definitions.
 - **Module lists** (`_CoqProject`, `.mlpack`, dune) are still maintained

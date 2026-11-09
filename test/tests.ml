@@ -287,7 +287,7 @@ let test_product_bisim () : unit =
 ;;
 
 (** [Product.respond] picks its answer in one pass over the state's weak
-    actions (2026-10-04, notes/15); before, it built the same choice as an
+    actions (2026-10-04); before, it built the same choice as an
     ordered set. [respond_reference] is that old pipeline, kept here
     verbatim, and the two must agree on every case: the same transition, or
     both no answer. Over generated saturated FSMs, every state, every
@@ -582,7 +582,7 @@ let test_minimize () : unit =
 
 (* ------------------------------------------------------------------ *)
 (* Product: the simulation game's response choice, and the relation it
-   generates. See [lib/model/algorithms/product.ml] and backlog item B2. *)
+   generates. See [lib/model/algorithms/product.ml]. *)
 
 (** Runs the bisimilarity check and hands back exactly what the proof solver
     reads: the UNSATURATED left-hand FSM (its transitions are the
@@ -959,7 +959,7 @@ let random_fsms (seed : int array) (count : int) : M.FSM.t list =
     fsm ~weak_labels:(M.Label.Set.singleton tau) 0 ts)
 ;;
 
-(* note 13: an FSM saturated on demand answers every state exactly as the
+(* An FSM saturated on demand answers every state exactly as the
    FSM saturated whole, whatever the budget and whatever order states are
    asked in; and the partition computed on the silent-SCC quotient is the
    one computed on the saturated FSM. *)
@@ -1281,7 +1281,7 @@ let test_conflicts () : unit =
 ;;
 
 (* ------------------------------------------------------------------ *)
-(* lib/terms: constructor trees and the encoding counter (backlog E(c)). *)
+(* lib/terms: constructor trees and the encoding counter. *)
 
 module Tree = Base.Tree
 module Trees = Base.Trees
@@ -1329,7 +1329,7 @@ let test_tree_order () : unit =
     are its constructor's premises, all required, so all of them are
     replayed, depth-first, left to right -- the order Rocq focuses premise
     goals in. It replaced [minimize], which kept only the shortest child
-    (backlog A6; [test/rocq/Test.v]'s [TwoPremises]). *)
+    ([test/rocq/Test.v]'s [TwoPremises]). *)
 let test_tree_preorder () : unit =
   print_endline "terms: Tree.preorder, Tree.size and Trees.min";
   let chain = Tree.N (node 1 0, [ Tree.N (node 2 1, [ leaf 3 2 ]) ]) in

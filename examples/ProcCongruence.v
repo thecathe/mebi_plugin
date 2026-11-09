@@ -1,5 +1,5 @@
-(* Structural congruence for [Proc.Layered], made explicit (notes/13,
-   2026-10-03).
+(* Structural congruence for [Proc.Layered], made explicit
+   (2026-10-03).
 
    [Layered.compLTS] builds structural congruence into the semantics as
    silent steps: [do_comm] and [do_assocl]/[do_assocr] reorder and rebracket

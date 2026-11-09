@@ -16,7 +16,7 @@ Require Import MEBI.Examples.CCS.
 
 (* Instances of the CCS laws that CTrees' CCS case study proves by hand
    (vellvm/ctrees, examples/CCS/Denotation.v, section Theory), as comparison
-   cases (note 10, A.4). The comparison is not like for like, in two ways:
+   cases. The comparison is not like for like, in two ways:
 
    - CTrees proves each law for all [p], [q], [r]; MeBi proves one closed
      instance per command.
@@ -30,7 +30,7 @@ Require Import MEBI.Examples.CCS.
    CTrees' last law, [unfold_bang' : !p ~ !p | p], is out of scope:
    replication makes the reachable state space infinite ([!a] grows a new
    [0] at each [a]), so there is no finite LTS to extract. It is a boundary,
-   not a test, like rocq-sims' codata counterexample (note 10, A.3).
+   not a test, like rocq-sims' codata counterexample.
 
    Beyond CTrees' list: Milner's tau-laws, which hold weakly but not
    strongly; an instance of the expansion law; and negative neighbours that

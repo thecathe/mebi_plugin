@@ -512,7 +512,7 @@ struct
       | exception Rocq_utils.Rocq_utils_HypIsNot_Atomic _ -> premise_grade x
       | ty, tys ->
         (* An equation is never a transition to invert: it comes from a
-           constructor's equation premise (backlog I2). The grading below
+           constructor's equation premise. The grading below
            assumes an LTS step's [term label goto] and would score [a = a] (both
            sides a local variable) 3, and inverting it changes nothing, so the
            solver picked it forever. Substitutable equations are handled by the
@@ -669,8 +669,7 @@ struct
         that is neither an LTS step nor one of the solver's own goals: a
         negation, a bounded universal, or a [Prop] headed by an inductive
         that is not [eq] (see {!is_eq}), not a MeBi theory constant, not one
-        of either FSM's LTSs, and not a [clos_*] relation (backlog I2, stage
-        1). Raises nothing. *)
+        of either FSM's LTSs, and not a [clos_*] relation. Raises nothing. *)
     let is_premise () : bool mm =
       let open Syntax in
       let* sigma = get_sigma in
@@ -718,7 +717,7 @@ struct
     ;;
 
     (** [is_eq ()] is whether the conclusion is an equation [_ = _]: an
-        equation premise of a constructor just applied (backlog I2). Raises
+        equation premise of a constructor just applied. Raises
         nothing. *)
     let is_eq () : bool mm =
       let open Syntax in
@@ -895,8 +894,8 @@ struct
         hypothesis it had already inverted and, on the CCS Alternating Bit
         Protocol, did so forever ([inversion H8], [inversion H80], ...).
         Ordering by introduction removed that loop and saved 4-10% of steps
-        on [Proc/Test3] and CADP, with no proof worse (backlog Step 0, note 7;
-        [ASSISTED-CHANGES.md], 2026-10-02). [Proofview.Goal.hyps] is newest
+        on [Proc/Test3] and CADP, with no proof worse
+        ([ASSISTED-CHANGES.md], 2026-10-02). [Proofview.Goal.hyps] is newest
         first, hence the reversal. Raises nothing. *)
     let get_non_cofixes () : Rocq_utils.hyp list =
       let cofix_names : Names.Id.Set.t = get_all_non_cofix_hyp_names () in
@@ -1002,8 +1001,7 @@ struct
       then Tacs.invert_premise x
       else
         (* An LTS step with no instance closes the goal by refutation: one
-           step instead of the inversions of every layer beneath it
-           (note 11, option D′). *)
+           step instead of the inversions of every layer beneath it. *)
         let* dead = Hyp.is_dead x in
         if dead then Tacs.refute_dead x else Hyp.invert x
     ;;
@@ -1260,7 +1258,8 @@ struct
       the branch that created it and its descendants, so a pair that repeats a
       *sibling* rather than an *ancestor* cannot be closed and its whole
       subtree is re-derived; the search then enumerates simple paths through
-      the product rather than its states. See backlog item B2.
+      the product rather than its states. See [ASSISTED-CHANGES.md],
+      2026-09-29.
 
       Taken under [MeBi Config Solver MutualCofix True], or when [Auto]
       chooses it ({!Proof_solver.init}).
@@ -1564,7 +1563,7 @@ struct
     in
     try Tacs.apply_constructor x args with
     | Tacs.GoalNotAnLTSStep ->
-      (* A premise the solver has no step for -- e.g. an [eq] (backlog I2)
+      (* A premise the solver has no step for -- e.g. an [eq]
          -- reached the focus before this constructor's goal. A user error,
          not an uncaught exception (which Rocq reports as its own anomaly). *)
       CErrors.user_err
@@ -1768,8 +1767,7 @@ struct
   (** [prove_premise ()] is the tactic proving the constructor premise in focus
       with the bounded search's proof ({!Premise_search.prove}): a proof term, a
       refutation of a negation, or a bounded universal by cases. Extraction kept
-      this constructor because the same search proved the premise (backlog I2,
-      stage 1).
+      this constructor because the same search proved the premise.
 
       @raise CErrors.UserError
         if the search does not prove it (raised here,
@@ -1854,7 +1852,7 @@ struct
       (* An equation premise has the focus. Extraction only keeps a
          constructor whose equation premises it decided hold, i.e. whose sides
          are convertible, so [reflexivity] closes it; the constructor list is
-         left as it is, for the goal that gets the focus next (backlog I2). *)
+         left as it is, for the goal that gets the focus next. *)
       Tacs.reflexivity ()
     else next_constructor args
   ;;

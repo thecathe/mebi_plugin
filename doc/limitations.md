@@ -39,7 +39,7 @@ turns the pin into a positive test.
   (*bug fix*, small; it changes what extraction explores first, so every
   suite would need re-running). Found 2026-10-19.
 - **Self-referential "collapsing" definitions** with a silent collapse
-  (B1) are infinite with no finite quotient, and are refused at the state
+  are infinite with no finite quotient, and are refused at the state
   bound (*limit*, pinned `Collapsing`). Guarded variants work.
 - **LTSs with parameters** are refused (`LTS_Has_Parameters`; *limit*,
   pinned `ParameterisedLTS`). This rules out an LTS generic in its label

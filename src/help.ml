@@ -1,4 +1,4 @@
-(** [MeBi Help] (backlog item F). Topics are paths, e.g.
+(** [MeBi Help]. Topics are paths, e.g.
     [["Config"; "Bounds"; "Saturation"]] for [MeBi Help Config Bounds Saturation]. The figures quoted are computed from the same constants the
     plugin's errors and notices use ({!Api.bytes_per_weak_action},
     {!Api.mb_per_extracted_state}, {!Api.default_saturation_bound}), so the

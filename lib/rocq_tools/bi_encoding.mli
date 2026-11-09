@@ -51,7 +51,7 @@ module type S = sig
   (** [classify_key x] is a count, as "evar=E univ=U var=V", of the three
       things that can make a syntactic key miss a term it should match:
       undefined evars, non-empty universe instances, and local-context
-      variables. A diagnostic for backlog item A1; see the implementation
+      variables. A diagnostic; see the implementation
       for what a zero does and does not prove. Raises nothing. *)
   val classify_key : EConstr.t -> string
 

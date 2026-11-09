@@ -294,8 +294,8 @@ val describe_draw : unit -> string
 
 (** How the bisimilarity check saturates each FSM: whole, on demand with
     the partition on the silent-SCC quotient, or ([Saturation_auto], the
-    default) on demand only above the saturation bound, with a warning. See
-    [notes/13]. Reset by [Reset Bounds]. *)
+    default) on demand only above the saturation bound, with a warning.
+    Reset by [Reset Bounds]. *)
 type saturation_mode =
   | Saturation_whole
   | Saturation_on_demand

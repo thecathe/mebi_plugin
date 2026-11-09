@@ -106,7 +106,7 @@ module Make
       ; remaining : W.Model.Annotation.t option
       ; step_goto : W.Model.State.t option
         (** the current strong step's target, bound into its first
-            constructor's arguments (backlog I2, stage 2) *)
+            constructor's arguments *)
       }
 
     include Json.Thing.Make (struct

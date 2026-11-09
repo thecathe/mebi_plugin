@@ -1,4 +1,4 @@
-(* KNOWN TECHNICAL LIMIT (backlog item B3, recorded 2026-10-01).
+(* KNOWN TECHNICAL LIMIT (recorded 2026-10-01).
 
    This file does not compile, and Test4 has no PluginProofs.v, on purpose:
    it is the example that marks where the plugin currently stops scaling.
@@ -30,7 +30,7 @@
    [Run Saturate] and [Run Minimize], below, still need the whole saturated
    FSM and are still refused. A direct proof under [compLTS] is out of reach
    (~525k steps; proving one state per silent SCC is unsound inside a
-   coinduction, notes/13). Test4 is proved instead through a normalised
+   coinduction). Test4 is proved instead through a normalised
    semantics, structural congruence made explicit: [ProcCongruence.v],
    [NormTermTests.v] (82 states), [NormProofs.v] ([weak_sim compLTS compLTS
    p q]). See ASSISTED-CHANGES.md, 2026-10-01 and 2026-10-03. *)

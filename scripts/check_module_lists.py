@@ -9,7 +9,7 @@ The OCaml sources under lib/ and src/ are listed three times, by hand:
 
 Nothing kept them in sync, and they have drifted more than once: a module
 registered in dune but not in the other two passes `dune build` and fails
-`make` (backlog item C3). This compares all three against the files actually
+`make`. This compares all three against the files actually
 on disk and exits non-zero, naming every mismatch, if they disagree.
 
 Only set membership is checked. Link order in the .mlpack still matters, but

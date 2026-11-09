@@ -492,7 +492,7 @@ let human_bytes (b : int) : string =
 ;;
 
 (** How the bisimilarity check ([Run Bisim], [Sim Begin]) saturates each
-    FSM (notes/13): whole, or one state at a time when asked about, with the
+    FSM: whole, or one state at a time when asked about, with the
     partition computed on the quotient by silent SCCs instead. [Auto] (the
     default) saturates on demand exactly the FSMs whose saturation would
     exceed [the_saturation_bound], and warns when it does; [Whole] refuses
@@ -524,8 +524,8 @@ let set_saturation_mode (x : saturation_mode) : unit =
     saturated on demand ([MeBi Config Bounds Game <n>]; unset by default).
     Such a walk -- [MutualCofix True]'s pair set, a planned answer policy,
     [Auto]'s estimate -- saturates states as it goes. Unset, the explicit
-    settings are refused on demand; set, the walk runs under the bound
-    (notes/13, 2026-10-03). Reset by [Reset Bounds]. *)
+    settings are refused on demand; set, the walk runs under the bound.
+    Reset by [Reset Bounds]. *)
 let the_game_bound : int option ref = ref None
 
 (* See the [.mli]. *)
@@ -547,7 +547,7 @@ let reset_bounds_args () : unit =
 ;;
 
 (** A tactic tried on premises the search leaves undecided
-    ([Premise_search.user_tactic]; backlog I2, stage 4). *)
+    ([Premise_search.user_tactic]). *)
 let set_premise_tactic (t : unit Proofview.tactic) : unit =
   Premise_search.user_tactic := Some t;
   Logger.show "(MeBi Config: Set Premise tactic.)"
@@ -562,7 +562,7 @@ let reset_premise () : unit =
 ;;
 
 (** How deep the bounded proof search for constructor premises may go
-    ([Premise_search]; backlog I2). Reset by [Reset Bounds]. *)
+    ([Premise_search]). Reset by [Reset Bounds]. *)
 let set_premise_depth (x : int) : unit =
   Premise_search.max_depth := x;
   Printf.sprintf "(MeBi Config: Set Premise search depth to: %i.)" x
@@ -705,7 +705,7 @@ let set_the_weak_arg2 (x : weak_arg) : unit =
     where that path is cheaper, and takes the mutual one where the nested walk
     would blow up. It says so, at [Notice], whenever it takes the mutual path,
     since that is the deviation from what the solver historically did. See
-    [ASSISTED-CHANGES.md], 2026-09-29, and backlog item B2. *)
+    [ASSISTED-CHANGES.md], 2026-09-29. *)
 type solver_strategy =
   | Nested
   | Mutual

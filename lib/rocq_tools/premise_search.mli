@@ -1,6 +1,6 @@
-(** Bounded proof search for constructor premises that are not over an LTS
-    (backlog item I2, stage 1). Shared by extraction, which needs the verdict,
-    and the proof solver, which uses the proof. *)
+(** Bounded proof search for constructor premises that are not over an LTS.
+    Shared by extraction, which needs the verdict, and the proof solver,
+    which uses the proof. *)
 
 (** How a premise was proved: a closed proof term, or -- for a negation
     [~ P] -- the refutation of [P], replayed by {!negation_tac}, or -- for a

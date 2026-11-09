@@ -36,7 +36,7 @@ MeBi Config Weak As Option label.
    the proof starts and takes the mutual path here on its own -- it says so
    at Notice. The setting below is left explicit so the file still works if
    someone changes that default, and as a record of what it depends on. See
-   ASSISTED-CHANGES.md, 2026-09-29, and backlog item B2. *)
+   ASSISTED-CHANGES.md, 2026-09-29. *)
 MeBi Config Solver MutualCofix True.
 
 Require Import Logic.

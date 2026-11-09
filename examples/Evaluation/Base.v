@@ -1,6 +1,6 @@
 (* A small calculus for the evaluation series ([Width.v], [Layers.v]): each
    series varies one lever while the others stay fixed, so its cost can be
-   measured on its own (note 12; [bench/]). Action prefix and parallel
+   measured on its own ([bench/]). Action prefix and parallel
    composition by interleaving, no communication; labels are [option act],
    as [weak_sim] and [weak_bisimilar] need, with no silent step.
 
