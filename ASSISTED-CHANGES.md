@@ -30,6 +30,51 @@ preceding 1139 commits are the project's own history; the last of them,
 2026-03-31, before the several-month pause. If any earlier assisted work exists
 it left no trailer and is not identifiable here.
 
+**Item labels.** Entries from 2026-09-27 to 2026-10-13 refer to items by short
+labels (`B2`, `Step 0`, ...). They name the things that were left open after a
+review of the codebase on 2026-09-27, and items raised after it. Most entries say
+what their item was where it first appears; this collects them.
+
+| Label | What it was | How it ended |
+| --- | --- | --- |
+| `A1` | `ReModel` resolves goal terms to model elements by a syntactic hashtable lookup; can it miss (undefined evars, universe instances, local context)? | Settled by measurement, 2026-09-28: it cannot miss in current use. Replacing it with unification would be a new capability (goals with an unknown state) and was not built. |
+| `A2` | A positive test for the "multiple actionpairs" branch of `ReModel.transition` | Closed 2026-10-01 (`MultipleDerivations` in `Test.v`) |
+| `A3` | Saturation took time exponential in the number of paths | Rewritten as a closure computation, 2026-09-28 |
+| `A4` | "Duplicate things to unfold" in `try_unfold_any` | Measured, 2026-10-01: it never occurs; no code change |
+| `A5` | Saturation dropped destinations when one action had more than one | Fixed 2026-09-27 |
+| `A6` | Constructors with two or more LTS premises could not be proved | Fixed 2026-10-01 (the derivation tree is replayed in pre-order) |
+| `B1` | "Collapsing" self-referential definitions: two commented-out modules in `Test.v` | Live tests and a pinned limit, 2026-10-10 |
+| `B2` | `Proc/Test3`'s `wsim_p3` could not be proved in useful time | Fixed 2026-09-29: one mutual cofix over the precomputed product |
+| `B3` | `Proc/Test4`: extraction ran over 14 minutes without finishing, and saturation (74.6M weak actions) exhausted memory | Extraction fixed (25 s), 2026-10-01; the rest is a documented limit |
+| `C1`, `C2`, `C3`, `C6`, `C7` | CI; the dead `lib/dune` stub; keeping the three module lists in step; stale files; the underscore-prefixed `.v` examples | Done 2026-09-27 to 2026-10-01 |
+| `C4`, `C5`, `C8` | The size of `paper/`; the LICENSE; `MutualCofix Auto` as the default | Decisions for the upstream maintainer, not for this log |
+| `D` | `ocamlformat` drift outside `lib/model` | Done 2026-09-27 |
+| `E(a)`-`E(d)` | Test coverage: regressions for the saturation guard and the unchecked premise; pinned extraction and saturation sizes; `lib/terms` unit tests; `.v`-only coverage of `lib/rocq_tools` and `src` | Done 2026-10-01 |
+| `F` | `MeBi Help`, and interface documentation | Done 2026-10-01 |
+| `G` | Items that would be new plugin capability, among them a weak-similarity algorithm and proving both directions of a bisimilarity in one go | Raised and agreed one at a time; those built are tagged **New feature** in their entries |
+| `H1`-`H3` | Telling the user when the tool is near a limit: `LTS_Incomplete` said "TODO..."; a size check before saturation; other limits that surfaced badly | Done 2026-10-01 |
+| `I1`, `I2` | On-demand saturation for `Test4`; constructor premises that are not LTS steps (equations, general premises, outputs, negation, a user tactic) | `I1` measured and not feasible for a proof then (on-demand saturation for deciding came later); `I2` built in stages 1, 2 and 4, 2026-10-01 to 2026-10-02 |
+| `3b` | Saturation's per-state deduplication was quadratic | Made linear, 2026-10-01 |
+
+**`Step 0`** was the solver's inversion tie-break. When it picks which
+hypothesis to invert and several tie, it took the later one; in a layered LTS
+that is often an outer transition whose inversion only reproduces a hypothesis
+already in context (a "sterile" step). The options, as the entries name them:
+**A** order candidates by creation, not by name (built 2026-10-02: the name sort
+broke the intended order past about ten hypotheses, and looped); **B** prefer the
+smaller hypothesis among ties (the original idea, tried and reverted 2026-09-29);
+**C** clear an inner hypothesis once inverted, keeping the top-level transition;
+**D** model-guided inversion, matching each branch against the derivation trees
+extracted into the model; **D′** refute an LTS step that has no instance outright
+instead of inverting it (built 2026-10-02; it made the Alternating Bit Protocol
+provable); **E** stop and document the protocol as a limitation. Step 0 closed on
+2026-10-02 with A and D′ built: B and C had nothing left to save.
+
+Two other uses of "option": in the 2026-10-02 `weak_bisimilar` entries, option C
+is the part that needs no change to `theories/` (the rooted verdict, the `=ε⇒`
+split, silent answers) and option A is making the Rocq statement itself a single
+bisimulation. `P1` and `R1`-`R3` are local to the entries that introduce them.
+
 ---
 
 ## 2026-08-16 — Rocq 9.2 port and reproducible toolchain
@@ -2572,7 +2617,7 @@ Optimization 0 · **Tooling 0.**
 
 ---
 
-## 2026-10-01 — Step 0, gated to the mutual path
+## 2026-10-01 — Step 0 (the inversion tie-break), gated to the mutual path
 
 Branch `main` (on `fork`). Optimization. The sterile re-inversions recorded
 on 2026-09-29, recovered where it is safe to do so.
@@ -2642,7 +2687,7 @@ Refactor 0 · **Tooling 0.**
 
 ---
 
-## 2026-10-01 — `Product.reachable` stops at reflexive pairs; Step 0 found to break forced-mutual CADP
+## 2026-10-01 — `Product.reachable` stops at reflexive pairs; Step 0 (the inversion tie-break) found to break forced-mutual CADP
 
 Branch `main` (on `fork`). The reflexive-pair fix, plus a regression found while
 verifying it.
@@ -2723,7 +2768,7 @@ Refactor 0 · **Tooling 0.**
 
 ---
 
-## 2026-10-01 — Step 0 reverted (code only), parked as a separate optimization
+## 2026-10-01 — Step 0 (the inversion tie-break) reverted (code only), parked as a separate optimization
 
 Branch `main` (on `fork`). Reverts the `src/proof_solver_step.ml` half of
 `53dd4c8` at the user's direction; its log entry above is kept as the
@@ -5068,7 +5113,8 @@ merge commit, `git revert -m 1 <merge-commit>` on `main` (find it with
 the known-wrong test `OutputPremises.open_c`. I labelled it a bug fix,
 not a new capability: the plugin already accepted this shape and gave an
 answer that depended on the order the constructors were declared in.
-Jonah agreed the approach (option B) after three small
+Jonah agreed the approach (option B: enumerate such a premise with the
+bounded premise search, below) after three small
 experiments.
 
 **The bug.** For `open_go q n a q' : base q a q' -> n <= 5 -> open_c n a
@@ -6965,8 +7011,8 @@ code changed, so no proof-suite run.
 
 ## 2026-10-10 — Clean refusals: parameterised LTSs, `Sim Begin` goals
 
-On branch `fix/clean-refusals`. Two limits found while sizing B1 and note
-14 item 2, each refused up front now instead of failing deep inside, and
+On branch `fix/clean-refusals`. Two limits found while sizing B1 and goals
+with an unknown state, each refused up front now instead of failing deep inside, and
 pinned in `Test.v` so a future pass can lift them.
 
 **Bug fix: an LTS with parameters.** `Using`/`With` take a reference, so
@@ -8138,7 +8184,7 @@ Optimization 0 · **New feature 1** (`theories/` only).
 
 ## 2026-10-13 — `doc/decide-vs-prove.md`: what a proof costs over its verdict
 
-On branch `docs/decide-vs-prove`, item A3 of the options listed for
+On branch `docs/decide-vs-prove`, one of the options offered to
 Jonah. Docs only, no code.
 
 **Docs (evaluation).** A table of deciding (`Run Bisim`) against proving
@@ -8170,8 +8216,8 @@ Optimization 0 · **New feature 1** (`theories/` only).
 
 ## 2026-10-13 — Extraction's time per state: not a bug, an unindexed search
 
-On the same branch, item A2 (`OUTSTANDING.md` §4, "Time per state in
-extraction"). Docs only: the measurement patch was not merged, and is
+On the same branch, the `OUTSTANDING.md` §4 item "Time per state in
+extraction". Docs only: the measurement patch was not merged, and is
 not kept in the repository.
 
 **Docs (evaluation).** On the ABP with a data domain of n values, the
@@ -10703,19 +10749,33 @@ figures, mistakes and corrections in the entries were not touched. Where an
 entry leaned on a note for something it did not say (the four-step plan in the
 A2 investigation, what options D and D′ were), the entry now says it.
 
-**Deliberately not changed.** Bare item labels in this log (`A1`, `B2`,
-`Step 0`, ...) stay, because the entries that introduce them also describe
-them; removing them would rewrite headings such as "B2 fixed: one mutual cofix
-over the precomputed product". The same labels in code comments defined nothing
-anywhere, so those were removed. The branch name `docs/outstanding-notes16` is
-a name, not a citation, and stays.
+**Labels.** The bare item labels in this log (`A1`, `B2`, `Step 0`, ...) stay:
+they are the log's own vocabulary, and removing them would rewrite headings such
+as "B2 fixed: one mutual cofix over the precomputed product". My first pass left
+them undefined, which still left a reader guessing what `Step 0` was. At Jonah's
+request they are now explained: an "Item labels" section near the top says what
+each was and how it ended (including the separate sets of "option A/B/C" used
+for the inversion tie-break, the `weak_bisimilar` design and a premise fix); the
+headings that used `Step 0` without saying what it is now say so; and a few
+stray labels from one-off lists were reworded. The same labels in code comments
+defined nothing anywhere, so those were removed. The branch name
+`docs/outstanding-notes16` is a name, not a citation, and stays.
+
+**`CLAUDE.md`.** Its expected `tests.exe` count was out of date (277/279 against
+351 now). I measured it under shadow `PATH`s that hide each optional tool: 351
+with `lualatex`, `pdftocairo`, `gs` and `dot` present, 349 without
+`pdftocairo`/`gs`, 348 without `dot`, 341 without `lualatex`, 338 with none, and
+the text now says so. It also now says to keep `CLAUDE.md` out of anything sent
+to the upstream repository: it records this fork's practices, and it reached the
+upstream once, in the large PR merged in October, where it should not have.
 
 **A miss of mine, caught on the way.** My first search, `git grep notes/`,
 found 85 lines. That undercounted: roughly another 150 lines cited the notes
 without the path ("note 13", "the backlog", `D′`, "option B of note 7"). I
 widened the search once I saw the labels, and Jonah chose to include all
-three kinds in the sweep (my reading of that for this log, which keeps the
-bare labels, is in the paragraph above).
+three kinds in the sweep. A second miss: one citation ("note" at the end of a
+line, "14 item 2" at the start of the next) cannot be found by a search that
+reads one line at a time; a whole-text search found it, and it was the only one.
 
 **Verified.** Comments only, checked by stripping comments from all 42 changed
 source and build files on both sides and comparing what is left: identical (the
@@ -10724,7 +10784,11 @@ build` and `dune build @fmt` clean; `dune exec test/tests.exe` 351/351; the
 `make` gate (`make -j src/mebi_plugin.cmxs test/rocq/Test.vo`, then `make
 dune`) exits 0 with no warning 50; `scripts/check_module_lists.py` agrees. The
 proof suites were not re-run: no text outside comments changed, so no solver
-count can move.
+count can move. The "Item labels" table was written from the original item
+list and checked against the entries; two figures in it were wrong on the first
+draft ("took 14 minutes" for `B3`, which the entry says was still running at 14
+minutes; `I2` in "stages 1 to 4", of which the log has 1, 2 and 4) and were
+corrected.
 
 **How to revert:** `git revert -m 1 <merge-commit>` (find it with `git log
 --merges --oneline --grep docs/drop-notes-references main`), or one commit.
@@ -10736,7 +10800,7 @@ count can move.
 
 ## Outstanding
 
-**Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
+**Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history; its labels (`C4`, `Step 0`, ...) are explained under "Item labels" at the top.
 
 - ~~Sharing the encoding table between command-time and proof-time (part of `5a6cf98`) should be backed out.~~ Done in `9e9b6b0`, 2026-08-18.
 - The term-equality problem in `ReModel` is unaddressed: goal terms are resolved to model elements by syntactic hashtable lookup, which can miss on evars, universe instances or local context. **Measured 2026-09-28 (see above) and found latent** — zero misses across all five cheap `PluginProofs.v` suites — so the unification rewrite is deliberately not done. Still unmeasured on the *failing* examples (`Proc/Test3`, `CADP/Size2/Glued`), which is where a miss would actually explain something.
