@@ -2,8 +2,13 @@
 
 The index of what is still open about `mebi_plugin`: one line per item,
 saying who it waits on and where its detail is.
+
 - **Detail** lives in `doc/` (or in the example's own files), never here.
 - **History** lives in `ASSISTED-CHANGES.md`.
+
+**Fork only.** This file belongs to the fork,
+`thecathe/mebi_plugin`, and is not for the upstream repository
+(`dcastrop/mebi_plugin`): leave it out of anything sent there.
 
 This file should **only shrink**. When an item is resolved, delete its
 line, and record the resolution in `ASSISTED-CHANGES.md`. When something
@@ -15,9 +20,9 @@ deleted 2026-10-10: `git show cbbdd39:TODO.md`.)
 
 ## Waiting on @dcastrop
 
-One brief each, in [`doc/decisions.md`](doc/decisions.md), in this
-order:
-1. How the fork's work reaches his repository: one PR or a series.
+One brief each, in [`doc/decisions.md`](doc/decisions.md), numbered as
+there (decision 1, how the fork's work reaches his repository, is settled:
+one PR, #53, merged 2026-10-19):
 2. Whether `MeBi Config Solver MutualCofix Auto` stays the default.
 3. Whether to build proofs split into separately checked lemmas.
 4. For review: choices made while he was away (the target notion,
@@ -25,7 +30,7 @@ order:
    `Answers Auto` as the default, the memory bound, the licence split).
 
 Decision 2 would change every checked-in proof bound if it went against
-`Auto`, so it comes before the upstream PR.
+`Auto`.
 
 ## Waiting on Jonah
 

@@ -53,7 +53,8 @@ opam switch create mebi ocaml-base-compiler.5.4.0   # skip if you have a suitabl
 opam pin add rocq-mebi "git+https://github.com/dcastrop/mebi_plugin#main"
 ```
 
-Until the fork's work is merged upstream, use
+The fork's work up to October 2026 is merged upstream
+(`dcastrop/mebi_plugin#53`); what came after is only on the fork, so for it use
 `git+https://github.com/thecathe/mebi_plugin#main`. A branch pin follows the
 branch: `opam update` fetches whatever is on `main` then, and `opam upgrade
 rocq-mebi` (or `opam update --upgrade`) rebuilds it. To stay on one version,

@@ -4,6 +4,10 @@ A running record of work done on this codebase with Claude (Claude Code), kept
 so that both the direction of travel and the *kind* of each change stay legible
 — to Jonah, and to anyone reviewing what was contributed and why.
 
+**Fork only.** This log belongs to the fork,
+`thecathe/mebi_plugin`, and is not for the upstream repository
+(`dcastrop/mebi_plugin`): leave it out of anything sent there.
+
 Entries are chronological, oldest first, so the log reads as a narrative.
 
 | tag | meaning |
@@ -10900,6 +10904,51 @@ counts were not re-measured: nothing in `lib/` or `src/` changed.
 --merges --oneline --grep fix/loader-printouts`), or one commit.
 
 **Session tally (2026-11-09, loader):** Bug fix 1 · Docs 0 · Refactor 0 ·
+Optimization 0 · Tooling 0 · New feature 0.
+
+
+---
+
+## 2026-11-09 — The upstream PR is done; the fork's own files are marked
+
+On branch `docs/fork-only-files`. **Docs** (no code), at Jonah's request.
+
+**The upstream PR.** `CLAUDE.md`, `OUTSTANDING.md`, `README.md` and
+`doc/decisions.md` still spoke of a PR to `dcastrop/mebi_plugin` as something to
+come ("it gets a single PR, when Jonah says"; decision 1, "one PR or a series";
+"so it comes before the upstream PR"; "until the fork's work is merged
+upstream"). It was done: `dcastrop/mebi_plugin#53`, opened 2026-10-15, merged by
+`dcastrop` on 2026-10-19 (dates read from GitHub, not from memory). One PR, so
+decision 1's recommended option. Resolved, so its line is out of
+`OUTSTANDING.md` (decisions 2 to 4 keep their numbers, which the repository
+refers to), and its brief in `doc/decisions.md` is now one settled paragraph.
+`CLAUDE.md` says the fork's work reached upstream once, and that more is
+Jonah's call. `README.md` says the fork's work up to October is upstream and
+later work is only on the fork. Decision 2's text no longer says the re-measuring
+is best done before the PR; it says the merged PR has `Auto` as the default.
+
+**Fork-only files.** Jonah asked for the treatment given to `CLAUDE.md` (a
+note to keep it out of anything sent upstream) to go to three more files too.
+`CLAUDE.md`'s bullet now names four: `CLAUDE.md`,
+`ASSISTED-CHANGES.md`, `OUTSTANDING.md` and `bench/`. The last three say so at
+their top. This is a note, not a mechanism: nothing stops a PR from carrying
+them. The paragraph that said this log is "shared with collaborators" now says it
+is open to them in the fork and not sent upstream.
+
+**Not changed, and for Jonah.** The files are still in the upstream copy; taking
+them out there is the upstream maintainer's repository, not ours. Decisions 2 to
+4 are still briefs addressed to `@dcastrop` and listed as waiting on him. With
+upstream going its own way they may no longer be his to make, but that is a
+different question and was not asked. Past entries in this log that speak of the
+upstream PR as future are history and stay.
+
+**Verified.** Documentation only. A search of the live docs for the old phrases
+("upstream PR", "single PR", "not upstream yet", "one PR or a series") finds none.
+
+**How to revert:** `git revert -m 1 <merge-commit>` (find it with `git log
+--merges --oneline --grep docs/fork-only-files`), or one commit.
+
+**Session tally (2026-11-09, docs):** Docs 1 · Bug fix 0 · Refactor 0 ·
 Optimization 0 · Tooling 0 · New feature 0.
 
 ---
