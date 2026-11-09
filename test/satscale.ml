@@ -133,7 +133,7 @@ let chain (k : int) : M.FSM.t =
   fsm ~weak_labels:(M.Label.Set.singleton tau) 0 !ts
 ;;
 
-(** [Proc/Test4]'s shape (backlog 3b): [k] silent cycles of [m] states,
+(** [Proc/Test4]'s shape: [k] silent cycles of [m] states,
     chained by silent edges, every state able to do [a] back to the head of
     its own cycle. Few paths per destination, but many weak actions per
     state -- [m^2 k(k+1)/2] in total -- which is what made per-state

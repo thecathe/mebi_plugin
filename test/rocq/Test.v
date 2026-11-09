@@ -460,7 +460,7 @@ End BisimDef. *)
 
 MeBi Divider "Theories.Test.Collapsing".
 Module Collapsing.
-  (* Backlog item B1: "collapsing" self-referential definitions. [do_fix]
+  (* "Collapsing" self-referential definitions. [do_fix]
      wraps its target in [tfix] again ([tfix t --a--> tfix t'], unlike
      [Test1]'s [tfix t --a--> t']), so every pass through [trec] can add a
      level, and [do_collapse] removes one. Unguarded, the state space is
@@ -517,7 +517,7 @@ Module Collapsing.
        [tfix X] silently, so (informally) the system is weakly bisimilar to
        [Guarded]'s [K = 1] below, a finite one. Extraction still enumerates
        the infinitely many terms and stops at the bound ([LTS_Incomplete],
-       checked as above). Worth revisiting if B1 is designed. *)
+       checked as above). Worth revisiting if collapsing is ever designed for. *)
     MeBi Config Weak As Collapse Of action.
     Fail MeBi Run Bisim (tfix X) With termLTS
                     And (tfix (tfix X)) With termLTS.
@@ -681,7 +681,7 @@ End Collapsing.
 (* Qed. *)
 
 (* Regression test for the "multiple actionpairs" branch of
-   [Proof_solver_step.ReModel.transition] (backlog item A2, fix f0cb45a).
+   [Proof_solver_step.ReModel.transition] (fix f0cb45a).
 
    [do_par1] and [do_par2] coincide when [a = b], so the step
    [tpar A A t -A-> tact A t] has two derivations. The unsaturated FSM keeps
@@ -730,8 +730,8 @@ Module MultipleDerivations.
     MeBi Sim Solve 1000. Qed.
 End MultipleDerivations.
 
-(* Regression tests for the size check before saturation (backlog item H2)
-   and for the premise extraction does not check (I2). A plugin [Warning]
+(* Regression tests for the size check before saturation
+   and for the premise extraction does not check. A plugin [Warning]
    cannot be asserted from a .v file, only an error, so these pin down the
    refusals and that each way out works. *)
 MeBi Divider "Theories.Test.SaturationGuard".
@@ -747,8 +747,8 @@ Module SaturationGuard.
   Fail MeBi Run Saturate p Using termLTS.
   Fail MeBi Run Minimize p Using termLTS.
 
-  (* The bisimilarity check saturates on demand instead (since 2026-10-03,
-     notes/13; it warns): each state when asked about, the partition on the
+  (* The bisimilarity check saturates on demand instead (since 2026-10-03;
+     it warns): each state when asked about, the partition on the
      silent-SCC quotient. The proof is the same proof, step for step: the
      count is pinned below the bound, saturated whole, and at bound 1. *)
   MeBi Run Bisim p With termLTS And q With termLTS Using termLTS.
@@ -835,8 +835,8 @@ End SaturationGuard.
 
 MeBi Divider "Theories.Test.DecidedPremise".
 Module DecidedPremise.
-  (* An equation premise over closed terms is decided during extraction
-     (backlog item I2): [go] fires from 0 ([0 = 0] holds) and not from 1
+  (* An equation premise over closed terms is decided during extraction:
+     [go] fires from 0 ([0 = 0] holds) and not from 1
      ([1 = 0] does not), so the LTS from 0 is the single transition
      [0 -true-> 1]: 2 states, 1 transition. (Until 2026-10-01 the premise
      was skipped and this was [0 -> 1 -> 2 -> ...], unbounded.) *)
@@ -853,7 +853,7 @@ End DecidedPremise.
 
 MeBi Divider "Theories.Test.UndecidedPremise".
 Module UndecidedPremise.
-  (* KNOWN WRONG (backlog item I2): an equation MeBi cannot decide -- here
+  (* KNOWN WRONG: an equation MeBi cannot decide -- here
      over an opaque [f], which does not reduce -- is skipped (with a
      warning), so [go] is applied from every state and the LTS hits the
      bound. If such premises become decidable (e.g. by proof search), this
@@ -866,7 +866,7 @@ Module UndecidedPremise.
   MeBi Config Reset Bounds.
 End UndecidedPremise.
 
-(* Pinned sizes (backlog item E(b)). No command reports an LTS's size, but
+(* Pinned sizes. No command reports an LTS's size, but
    the bounds can be used as assertions: "succeeds at n, fails at n - 1" pins
    the least bound at which extraction completes, a regression pin.
    [Bounds Saturation] pins the weak-action count exactly. The state and
@@ -878,7 +878,7 @@ End UndecidedPremise.
 
    [procLTS] recurses on itself ([p_parl]/[p_parr]); [sysLTS] has a premise
    over a {e different} LTS, the layered shape of [Proc] and [CADP] -- the
-   path that drops each state's matching evars, and the one I2's premise
+   path that drops each state's matching evars, and the one the premise
    check sits on. The [p1] figures are counted by hand:
    [ppar (A.B.0) (B.0)] has 8 states and 10 transitions (2 silent [p_tidy]),
    and saturates to 11 weak actions; [run p1] adds [done] and [s_stop]. *)
@@ -962,13 +962,13 @@ End ExtractionSizes.
 
 MeBi Divider "Theories.Test.TwoPremises".
 Module TwoPremises.
-  (* Constructors with more than one LTS premise (backlog item A6, fixed
+  (* Constructors with more than one LTS premise (fixed
      2026-10-01). No example in the repository has one. A derivation's
      children are its premises, all required; the solver used to keep only
      the shortest child ([Tree.minimize]), so it proved the first premise
      and was left with the second. It now replays the whole tree in
      pre-order. The shapes below are the ones that told the two apart in
-     the spike (notes/8): premises over different LTSs at different
+     the spike: premises over different LTSs at different
      constructor indices fail if replayed in the wrong order, so they also
      pin the order. *)
   Import ExtractionSizes.
@@ -1036,8 +1036,7 @@ Module TwoPremises.
            Using syncLTS leftLTS rightLTS thirdLTS.
     MeBi Sim Solve 100. Qed.
 
-  (* Equation premises, after or before the LTS one (backlog item I2,
-     2026-10-01): extraction decides them, the solver closes them by
+  (* Equation premises, after or before the LTS one (2026-10-01): extraction decides them, the solver closes them by
      [reflexivity] and no longer tries to invert them. Until then the first
      stalled (an [a = a] hypothesis was inverted forever) and the second was
      an Anomaly. *)
@@ -1080,8 +1079,7 @@ End TwoPremises.
 MeBi Divider "Theories.Test.GeneralPremises".
 Module GeneralPremises.
   (* Premises that are neither over an LTS nor equations are decided by a
-     bounded proof search over their inductive's constructors (backlog item
-     I2, stage 1; notes/9). Each counter steps from 0 while its guard holds,
+     bounded proof search over their inductive's constructors. Each counter steps from 0 while its guard holds,
      so the LTS size pins the guard's verdict for every n; the proofs check
      the solver closes true premises (by the proof found) and refutes false
      ones in hypotheses. Counts hand-checked: [n <= 2] holds for 0..2, so
@@ -1197,8 +1195,7 @@ End GeneralPremises.
 
 MeBi Divider "Theories.Test.OutputPremises".
 Module OutputPremises.
-  (* Premises that compute what the transition needs (backlog item I2,
-     stage 2; notes/9). An open premise is enumerated once the LTS premises
+  (* Premises that compute what the transition needs. An open premise is enumerated once the LTS premises
      are unified -- every solution its own transition -- and one that fixes an
      LTS premise's source is resolved before that premise is explored. In
      proofs the step's target is bound into the constructor, and premise
@@ -1277,7 +1274,7 @@ Module OutputPremises.
      Until 2026-10-03 it was explored from the open source, where the first
      constructor that matched fixed [q] for all the others, so only [b0] was
      found (2 states; [b0] and [b1] swapped gave a different 2), and a
-     recursive constructor was cut off the same way (note 9, option B). *)
+     recursive constructor was cut off the same way. *)
   Inductive open_c : nat -> option bool -> nat -> Prop :=
   | open_go q n a q' : base q a q' -> n <= 5 -> open_c n a q'.
   Inductive open_c' : nat -> option bool -> nat -> Prop :=
@@ -1471,7 +1468,7 @@ Module CheckerVerdicts.
   MeBi Config Reset Weak.
 End CheckerVerdicts.
 
-(* [MeBi Help]: every topic parses and prints (backlog item F). *)
+(* [MeBi Help]: every topic parses and prints. *)
 MeBi Divider "Theories.Test.ParameterisedLTS".
 Module ParameterisedLTS.
   (* KNOWN LIMIT: an LTS cannot have parameters. [Using]/[With] name an
@@ -2019,8 +2016,8 @@ Module ProductPremises.
   Fail MeBi Run LTS 0 Using impl.
 
   (* A bounded universal, [forall k, k < n -> P k] with [n] a numeral once
-     the source is known, is decided value by value (2026-10-04, notes/14
-     item 1; until then undecided, applied from every state, 0..5, and
+     the source is known, is decided value by value (2026-10-04; until then
+     undecided, applied from every state, 0..5, and
      pinned KNOWN WRONG here). [k <> 2] for all [k < n]: n = 0..2, so
      states 0..3; [n = 0] holds vacuously. [<=] and [>] the same way. *)
   Inductive univ : nat -> bool -> nat -> Prop :=
@@ -2095,8 +2092,9 @@ Module ComputedIndex.
 End ComputedIndex.
 
 
-(* Inversion shapes, for whoever tries backlog option C ("clear an inner
-   hypothesis once inverted, keep the top-level transition"; note 7). Each
+(* Inversion shapes, for whoever tries "clear an inner
+   hypothesis once inverted, keep the top-level transition" (call it option
+   C). Each
    proves today; the counts after each are the reference, measured after
    2026-10-02's hypothesis-order fix. C must keep every one proving, and
    should lower [Deep] (the shape it is for) without raising the others.
@@ -2111,12 +2109,12 @@ End ComputedIndex.
      branches impossible (the CCS/ABP pattern, in miniature).
    - [Computed] is a known-wrong pin, found while writing these.
    The earlier "remember inverted hypotheses" attempt also broke
-   [Proc/Test1] and [Proc/Test3] (note 7): run those too. *)
+   [Proc/Test1] and [Proc/Test3]: run those too. *)
 MeBi Divider "Theories.Test.InversionShapes".
 Module InversionShapes.
   Import Stdlib.Lists.List.
   (* sync_sim: 26 iterations; sync_bis: 81 (29 and 105 before dead LTS
-     steps were refuted instead of inverted, 2026-10-02, note 11 option D'). *)
+     steps were refuted instead of inverted, 2026-10-02). *)
   Module Sync.
     Inductive lab : Set := A | B.
     Inductive st : Set := s0 | s1 | s2 | t0 | t1.
@@ -2208,7 +2206,7 @@ Module InversionShapes.
   End Computed.
 End InversionShapes.
 
-(* Proofs up to silent steps (notes/13, option 4): the plugin proves one pair,
+(* Proofs up to silent steps: the plugin proves one pair,
    and [Bisimilarity.v]'s transfer lemmas give the other members of a silent
    cycle. [cyc]: 0 and 1 reach each other silently, and 1 does [a] to 2;
    [lin] does [a] from 0. Added 2026-10-03. *)
@@ -2218,7 +2216,7 @@ Module SilentTransfer.
   | c01 : cyc 0 None 1 | c10 : cyc 1 None 0 | c12 : cyc 1 (Some true) 2.
   (* [lin]'s states are numbered apart from [cyc]'s on purpose: when the
      two systems' state terms coincide, the bisimilarity check merges them
-     as one state (found 2026-10-03, open: notes/13). *)
+     as one state (found 2026-10-03, open). *)
   Inductive lin : nat -> option bool -> nat -> Prop :=
   | l01 : lin 10 (Some true) 11.
   MeBi Config Weak As Option bool.
@@ -2289,8 +2287,8 @@ Module OverlappingStates.
   MeBi Config Reset Weak.
 End OverlappingStates.
 
-(* Why proofs cannot be shortened to one state per silent SCC (notes/13,
-   stage 3, abandoned 2026-10-03). [r] and [m] reach each other silently,
+(* Why proofs cannot be shortened to one state per silent SCC
+   (abandoned 2026-10-03). [r] and [m] reach each other silently,
    [m] can do [b], [n] can do nothing: [n] does not simulate [r]. Inside a
    coinduction, answering [r]'s silent move to [m] by transfer from the pair
    being proved ([weak_sim_silent_l] applied to the cofix hypothesis) would

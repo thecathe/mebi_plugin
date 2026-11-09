@@ -1374,7 +1374,7 @@ module Make (Enc : Encoding.S) :
       if Bool.not is_eq || Array.length args <> 3
       then (
         (* Any other proposition: bounded proof search, once it is closed
-           ([Premise_search]; I2 stage 1). An open premise is [Unknown] and
+           ([Premise_search]). An open premise is [Unknown] and
            gets deferred like an open equation. *)
         match Premise_search.prove env sigma (EConstr.mkApp (name, args)) with
         | Premise_search.Proved _ -> Some true
