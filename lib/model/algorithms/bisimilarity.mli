@@ -79,7 +79,7 @@ module type S = sig
       @raise NoCachedResult if no check has run (raised here). *)
   val get_the_result : unit -> t
 
-  (** For FSMs too large to saturate whole (notes/13): which of the two to
+  (** For FSMs too large to saturate whole: which of the two to
       saturate on demand ([FSM.S.saturate_on_demand], at most [budget] weak
       actions held), and how to partition without saturating: on the
       silent-SCC quotient of the merged originals
@@ -113,7 +113,7 @@ module type S = sig
       is exact when both sides use the same relation (so the same term has
       the same moves) and wrong otherwise: two relations over [nat], both
       from [0], conflate their [0]s. Empty in every checked-in example.
-      Found 2026-10-03 (notes/13).
+      Found 2026-10-03.
 
       Raises nothing. *)
   val conflicts : fsm -> fsm -> states

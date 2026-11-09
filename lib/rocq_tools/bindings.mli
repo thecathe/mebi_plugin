@@ -92,7 +92,7 @@ module type S = sig
         [keep_var] is unset. Such a binding is redundant for the source
         (matching the goal fixes it) but not for the target, still open when
         the constructor is applied, which a premise may mention
-        ([succ_rel n m -> lts n a m]; backlog I2, stage 2).
+        ([succ_rel n m -> lts n a m]).
 
         @raise Rocq_bindings_CannotFindBindingName
           as

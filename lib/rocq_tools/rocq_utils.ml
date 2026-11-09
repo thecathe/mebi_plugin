@@ -391,8 +391,7 @@ end
    its search from the base name whenever the candidate is taken -- which it
    always was -- so each new name probed every name before it. With about 80
    evars per state, extracting [Proc/Test4]'s first 600 states took 34s, of
-   which ~33s was this. See ASSISTED-CHANGES.md, 2026-10-01 (backlog item
-   B3). *)
+   which ~33s was this. See ASSISTED-CHANGES.md, 2026-10-01. *)
 let the_counter : int ref = ref 0
 
 (* See the [.mli]. *)

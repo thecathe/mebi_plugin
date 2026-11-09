@@ -1350,7 +1350,7 @@ module Make (Enc : Encoding.S) :
 
     (** [decide_premise env sigma (name, args)] is whether the premise
         [name args], not over an LTS, holds: [Some b] when that can be
-        decided soundly (backlog item I2), [None] when not -- never a guess.
+        decided soundly, [None] when not -- never a guess.
         An equation [l = r] whose sides are closed once fully normalised (no
         evars: typically guards on the source state, which matching has
         already instantiated) is decided directly: convertible sides hold;
@@ -1416,7 +1416,7 @@ module Make (Enc : Encoding.S) :
     (** [warn_if_skipped_premise lts_enc (name, args)] warns, once per LTS
         and premise head, that a premise of a constructor of [lts_enc] was
         left undecided, so the constructor was applied as if it held and the
-        LTS may contain transitions that do not exist (backlog item I2), and
+        LTS may contain transitions that do not exist, and
         notes the approximation ({!Approximations}). A premise over the
         bounded-universal range ({!Premise_search.above_range}) gets its own
         message. Only for a proposition; a data binder ([xs : list nat]) is
@@ -1654,8 +1654,7 @@ module Make (Enc : Encoding.S) :
     (** [resolve_deferred env sigma deferred] is the evar maps in which a
         constructor's deferred premises hold, with the premises left
         undecided and those whose solutions may be incomplete. The premises
-        are decided left to right over every map reached so far (backlog
-        item I2, stage 2): a map is dropped where a premise is refuted,
+        are decided left to right over every map reached so far: a map is dropped where a premise is refuted,
         multiplied where an open premise has several solutions (each
         instantiating what it computes, a target say), and kept unchanged
         where a premise stays undecided (an over-approximation).
@@ -1707,7 +1706,7 @@ module Make (Enc : Encoding.S) :
           not be decided when the constructor was matched -- typically because
           they mention what its LTS premises will instantiate (a label, a
           target). They are decided once those are unified, in
-          [sandbox_unify_all] (backlog item I2). *)
+          [sandbox_unify_all]. *)
       type t =
         { sigma : Evd.evar_map
         ; to_unify : Problem.t list
@@ -2298,7 +2297,7 @@ module Make (Enc : Encoding.S) :
            cannot be trusted: the first match fixes it for all its siblings,
            so only the first constructor was ever found, and a recursive one
            could recurse without bound. The premise search is bounded and
-           knows when it is complete (note 9, option B). Until 2026-10-03
+           knows when it is complete. Until 2026-10-03
            this explored from the open source, with a warning. *)
         let explore_sources () =
           let$+ found env sigma =
@@ -2358,7 +2357,7 @@ module Make (Enc : Encoding.S) :
         else
           (* The premise's source is still open, and earlier premises may
              fix it ([In q l -> lts q a q']): resolve those first and explore
-             it once per way they hold (backlog item I2, stage 2). Exploring
+             it once per way they hold. Exploring
              from an open source finds only some of its steps. *)
           let$+ resolved env sigma = resolve_deferred env sigma deferred in
           let states, undecided, partial = resolved in

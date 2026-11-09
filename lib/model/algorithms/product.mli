@@ -177,7 +177,7 @@ module type S = sig
       proof step runs. The proof solver instead discovers it depth-first
       while building the proof term, which is why it re-derives pairs it has
       already proved whenever the product is not a tree. See
-      [ASSISTED-CHANGES.md], 2026-09-29, and backlog item B2.
+      [ASSISTED-CHANGES.md], 2026-09-29.
 
       @raise Game_too_large past {!val:with_cap}'s cap (raised by the walk). *)
   val reachable

@@ -7,8 +7,8 @@
    modules inside one functor body, rather than as ~17 separate files each
    its own functor. Nested modules see each other directly, so none of the
    type-sharing constraints that used to relate one component's functor
-   parameters to another's output are needed here -- see
-   notes/3-collapse-model-component-cluster.md for the motivation. *)
+   parameters to another's output are needed here, and the algorithm functors
+   take the one module instead of a dozen arguments. *)
 
 (* --- per-component signatures, one per component, each named after its
    original file. Each is a near-verbatim copy of that file's [module type S], renamed to avoid clashing with its neighbours in this single

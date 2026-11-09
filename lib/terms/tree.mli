@@ -41,7 +41,7 @@ module type S = sig
       order, focused on the first -- so this is exactly the order in which
       the proof solver's focused goal asks for constructors. (It replaced
       [minimize], which kept only a node's shortest child, as if children
-      were alternatives: backlog item A6.) Alternative derivations live in
+      were alternatives.) Alternative derivations live in
       {!Trees}, not within a tree. Raises nothing. *)
   val preorder : t -> Node.t list
 

@@ -17,7 +17,7 @@
     SCCs, recomputed once per visible label. This is negligible next to the
     extraction that produced the FSM: it reaches the size of the extracted
     LTS itself only past about a million SCCs. {i See [ASSISTED-CHANGES.md],
-    2026-10-01, backlog item H2.} *)
+    2026-10-01.} *)
 module type S = sig
   type fsm
 
@@ -53,7 +53,7 @@ module type S = sig
       [=eps=>] moves into blocks, and each block is expanded to its states.
       The memory is the number of SCC-level weak moves, not of saturated
       ones ([Proc/Test4]: 5,184 for 9720 states, against 74.6M). For FSMs
-      too large to saturate whole; see [notes/13].
+      too large to saturate whole.
 
       Raises nothing. *)
   val partition : fsm -> partition

@@ -54,8 +54,7 @@ module Make
   (* Closure-based saturation. It replaced (2026-09-28) a depth-first path
      enumeration, which cost time exponential in the path count rather than
      the state count -- 101 states took 437 seconds on a grid (see
-     [test/satscale.ml]). The specification it computes is unchanged, and is
-     derived in [notes/5-saturation-rewrite.md]:
+     [test/satscale.ml]). The specification it computes is unchanged:
 
      for each [from], each visible label [a], and each [goto] such that
      [from -tau*-> s -a-> t -tau*-> goto], emit one weak action labelled
@@ -167,8 +166,7 @@ module Make
   (** [closures_of ?cap old_edges] is a memoised lookup of silent closures
       over [old_edges] ({!silent_closure}, with lengths). A state's silent
       closure does not depend on where the weak step started, so each is
-      computed once rather than once per visible move into it (backlog item
-      3b). With [cap], the memo is emptied whenever it reaches [cap] states,
+      computed once rather than once per visible move into it. With [cap], the memo is emptied whenever it reaches [cap] states,
       bounding its memory for on-demand use.
 
       Raises nothing. *)
@@ -420,7 +418,7 @@ module Make
       Every state the search reaches from a label's sources is a weak
       target under that label, at its shortest distance, with the path
       that reached it first as its witness. It replaced [edge_closure]
-      (backlog item 3b, 2026-10-03; see git history), which proposed one
+      (2026-10-03; see git history), which proposed one
       witness per (s, visible step, state reachable from t): 2.3M-4.7M per
       state on [Proc/Test4], for 5,280-7,680 weak actions; 2.9s a state,
       now 35ms. Same targets and lengths as [edge_closure]; among witnesses
