@@ -183,11 +183,12 @@ per-Solve tables that `bench/compare.sh` diffs between two builds; see
    next `dune build`.
 
 For pure-OCaml model changes with no Rocq/proof-solver involvement,
-`dune exec test/tests.exe` (expect 277/277 with `lualatex` on `PATH` but no
-`pdftocairo` or `gs`, 279/279 with one; a host without `lualatex` prints more
-`skip` lines and a lower total) is a much faster first signal, but
-does not substitute for the proof-suite run above when the change touches
-anything the proof solver reads.
+`dune exec test/tests.exe` (expect 351/351 with `lualatex`, `pdftocairo`, `gs`
+and Graphviz's `dot` on `PATH`; a missing tool prints a `skip` line and lowers
+the total: 349/349 without `pdftocairo` and `gs`, 348/348 without `dot`,
+341/341 without `lualatex`, 338/338 with none of them; measured 2026-11-09) is
+a much faster first signal, but does not substitute for the proof-suite run
+above when the change touches anything the proof solver reads.
 
 ## Working conventions and gotchas
 
@@ -211,6 +212,12 @@ Recorded here on 2026-10-10, so that a fresh session has them.
   by mistake on 2026-09-29, from a session whose git setup sent the push
   there. Before any push, read `git remote -v` and `git branch -vv`, and
   name the remote explicitly.)
+- **Keep `CLAUDE.md` out of anything sent to the upstream repository.** It
+  records this fork's working practices (the log, the branch and merge
+  conventions, the verification procedure), which are of no use to
+  `@dcastrop`. When preparing a PR or any push upstream, leave it out. It
+  reached the upstream once, in the large PR merged in October, and should
+  not have.
 - A new capability is flagged and agreed before code (see the top of this
   file).
 
