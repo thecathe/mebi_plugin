@@ -25,8 +25,8 @@ Require Import MEBI.Examples.CCS.
 
    Until 2026-10-02 this did not terminate: the solver inverted, layer by
    layer through [var k] / [def k], transitions that do not exist (61% of
-   all its inversions). It now refutes such a step outright (note 11,
-   option D'; ASSISTED-CHANGES.md, 2026-10-02, third session).
+   all its inversions). It now refutes such a step outright
+   (ASSISTED-CHANGES.md, 2026-10-02, third session).
 
    The bound is the least that closes the proof: [MeBi Sim Solve N] permits
    N + 1 steps, and the proof reports 6494. *)

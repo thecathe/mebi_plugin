@@ -1,5 +1,5 @@
 (* Evaluation series: nesting depth. The calculus of [Test.v]'s
-   [Collapsing] (backlog B1), with labels as [option action] so proofs can
+   [Collapsing], with labels as [option action] so proofs can
    be stated, and [Collapse] as the silent [None]. [do_fix] wraps its
    target in [tfix] again, so each pass through [trec] adds a level;
    [Guarded] allows it only while the body is shallower than [K], so
