@@ -1,5 +1,4 @@
-(** Bounded proof search for constructor premises that are not over an LTS
-    (backlog item I2, stage 1 of [notes/9-general-premise-support.md]).
+(** Bounded proof search for constructor premises that are not over an LTS.
 
     Shared by extraction (which only needs the verdict) and the proof solver
     (which [exact]s the proof found). Three outcomes, never a guess:

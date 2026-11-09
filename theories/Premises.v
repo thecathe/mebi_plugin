@@ -4,7 +4,7 @@
    Bounded universals ([forall k, k < n -> P k], [forall k, k <= n -> P k],
    with [n] a numeral once normalized): the search decides each [P i] in
    turn, and the proof of the universal is built from those proofs, one
-   lemma application per value of [k]. Added 2026-10-04 (notes/14, item 1).
+   lemma application per value of [k]. Added 2026-10-04.
 
    [k < n] is [S k <= n] by definition, so both forms are over Peano's [le];
    the [_lt_] lemmas peel the [S] off [n] once and hand over to the [_le_]

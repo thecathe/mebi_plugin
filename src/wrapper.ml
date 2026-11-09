@@ -536,7 +536,7 @@ module Make (Enc : Encoding.S) :
   ;;
 
   (** [on_demand_for name x] is whether the bisimilarity check saturates [x]
-      on demand ({!Api.the_saturation_mode}; notes/13): under [Auto], when
+      on demand ({!Api.the_saturation_mode}): under [Auto], when
       saturating it whole would pass the saturation bound -- which used to be
       an error -- and then it warns; under [On_demand], always; under
       [Whole], never, with {!check_saturation_size}'s guard instead.

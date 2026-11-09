@@ -21,7 +21,7 @@ module type S = sig
 
   (** Counts undefined evars, non-empty universe instances and local-context
       variables in a term -- the three things that can make a syntactic key
-      miss. A diagnostic for backlog item A1. *)
+      miss. A diagnostic. *)
   val classify_key : EConstr.t -> string
 
   exception EncodingNotFound of EConstr.t
@@ -139,7 +139,8 @@ module Make (Enc : Encoding.S) : S with type enc = Enc.t = struct
     !(get_the_maps ()).bck
   ;;
 
-  (** Diagnostic for backlog item A1. The [F] keys are hashed and compared
+  (** A diagnostic for whether a lookup keyed on a term can miss a term it
+      should match. The [F] keys are hashed and compared
       syntactically, so a lookup misses whenever a term that {e means} the
       right thing carries an undefined evar, a non-empty universe instance, or
       a local-context variable the command-time encoding never saw. This

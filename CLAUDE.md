@@ -35,8 +35,7 @@ it short. Detail goes in a scoped `doc/` file, never in the index:
 The index should only shrink. When an item is resolved, delete its line
 (and its detail), and record the resolution in `ASSISTED-CHANGES.md`.
 When something new is found, add one line to the index and the detail to
-the right `doc/` file. Don't grow open-item lists elsewhere (`notes/` is
-local). `TODO.md` was folded into it on 2026-10-10 (`git show
+the right `doc/` file. Don't grow open-item lists elsewhere. `TODO.md` was folded into it on 2026-10-10 (`git show
 cbbdd39:TODO.md`); the index replaced a 438-line version on 2026-10-13
 (`git show 6b9b38f:OUTSTANDING.md`).
 
@@ -61,11 +60,11 @@ per-Solve tables that `bench/compare.sh` diffs between two builds; see
    together are under a minute. (CADP's other proof files are not in it:
    `examples/README.md`, "CADP"; its `*Large.v` need a memory cap.) (`Test4` has no `PluginProofs.v`: its LTS has
    9720 states, which now *extract* in ~25s, but saturating them exhausted
-   memory — backlog item B3. Since 2026-10-03 `Run Bisim`/`Sim Begin`
+   memory. Since 2026-10-03 `Run Bisim`/`Sim Begin`
    saturate such FSMs on demand and decide on the silent-SCC quotient (~45s;
-   `MeBi Config Saturation OnDemand`, notes/13); `Run Saturate` still refuses
+   `MeBi Config Saturation OnDemand`); `Run Saturate` still refuses
    with `Saturation_Too_Large`. A direct proof is out of reach (proving one
-   state per silent SCC is unsound inside a coinduction: notes/13, `Test.v`
+   state per silent SCC is unsound inside a coinduction: `Test.v`
    `CircularTransfer`), but `Test4` **is** proved via a normalised semantics
    with structural congruence made explicit (`examples/ProcCongruence.v`,
    `Test4/NormProofs.v`: 6,115 steps, ~30s, ~0.7GB (48,821, ~7 min, ~3.8GB
@@ -184,16 +183,16 @@ per-Solve tables that `bench/compare.sh` diffs between two builds; see
    next `dune build`.
 
 For pure-OCaml model changes with no Rocq/proof-solver involvement,
-`dune exec test/tests.exe` (expect 277/277 with `lualatex` on `PATH` but no
-`pdftocairo` or `gs`, 279/279 with one; a host without `lualatex` prints more
-`skip` lines and a lower total) is a much faster first signal, but
-does not substitute for the proof-suite run above when the change touches
-anything the proof solver reads.
+`dune exec test/tests.exe` (expect 351/351 with `lualatex`, `pdftocairo`, `gs`
+and Graphviz's `dot` on `PATH`; a missing tool prints a `skip` line and lowers
+the total: 349/349 without `pdftocairo` and `gs`, 348/348 without `dot`,
+341/341 without `lualatex`, 338/338 with none of them; measured 2026-11-09) is
+a much faster first signal, but does not substitute for the proof-suite run
+above when the change touches anything the proof solver reads.
 
 ## Working conventions and gotchas
 
-Moved here from the local planning notes on 2026-10-10, so that a fresh
-session has them.
+Recorded here on 2026-10-10, so that a fresh session has them.
 
 **Conventions**
 - Commit per completed step. Run `dune fmt` before committing.
@@ -213,6 +212,12 @@ session has them.
   by mistake on 2026-09-29, from a session whose git setup sent the push
   there. Before any push, read `git remote -v` and `git branch -vv`, and
   name the remote explicitly.)
+- **Keep `CLAUDE.md` out of anything sent to the upstream repository.** It
+  records this fork's working practices (the log, the branch and merge
+  conventions, the verification procedure), which are of no use to
+  `@dcastrop`. When preparing a PR or any push upstream, leave it out. It
+  reached the upstream once, in the large PR merged in October, and should
+  not have.
 - A new capability is flagged and agreed before code (see the top of this
   file).
 
@@ -256,7 +261,7 @@ session has them.
   `bench/proofs.sh` does.
 - `perf` is blocked on Jonah's machine (`perf_event_paranoid` = 4).
   Time the solver from inside the plugin instead: CPU timers around each
-  step, kept locally as `notes/tools/solver-profile.diff` (results in
+  step (a throwaway patch, not kept in the repository; results in
   `doc/future-work.md`, "The solver's own per-step cost").
 
 **Shell**
@@ -274,9 +279,6 @@ session has them.
   directory. Keep them off for timing runs (on `Test4` they cost ~20s and
   ~1GB a command) and delete large dumps afterwards. `_dumps/` is no longer
   refreshed by every run, so don't rely on an old one being current.
-- `notes/` holds local planning notes and is excluded via
-  `.git/info/exclude` (not `.gitignore`) — it will not appear in a fresh
-  clone's `git status` as untracked, but is not shared upstream either.
 - Adding, renaming or deleting an OCaml module means updating **three**
   lists by hand: `_CoqProject`, `src/mebi_plugin.mlpack` and the relevant
   dune `(modules ...)`. `python3 scripts/check_module_lists.py` checks all

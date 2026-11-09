@@ -245,7 +245,7 @@ struct
       [shortest_annotation]), which keeps the first of the shortest in the
       set's order -- the least action, as here, since two distinct actions
       never compare equal. Building that set was ~85% of ~165ms per answer
-      on [Proc/Test4] saturated on demand (notes/15).
+      on [Proc/Test4] saturated on demand.
 
       Raises nothing. *)
   let best_response
@@ -444,7 +444,7 @@ struct
 
   exception Game_too_large of int
 
-  (** The cap on game walks, set by {!with_cap} (notes/13, 2026-10-03). *)
+  (** The cap on game walks, set by {!with_cap}. *)
   let walk_cap : int option ref = ref None
 
   (* See the [.mli]. The previous cap is restored even if [f] raises. *)
@@ -1553,7 +1553,7 @@ struct
       {!estimate}. [step] is memoised ({!memo_step}): the walk steps every
       pair three or more times (to reach it, to count its moves, and in the
       simulated nested walk), and a step can be costly on an FSM saturated
-      on demand (notes/15).
+      on demand.
 
       @raise Game_too_large
         past the {!with_cap} cap (propagated from

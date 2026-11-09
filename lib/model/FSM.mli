@@ -76,7 +76,7 @@ module type S = sig
       (default 1,000,000), the oldest states dropped first and recomputed if
       asked about again. [terminals] stays [x]'s: states that only become
       terminal by saturating are not found without saturating them. For FSMs
-      too large to saturate whole; see [notes/13]. Raises nothing. *)
+      too large to saturate whole. Raises nothing. *)
   val saturate_on_demand : ?budget:int -> t -> t
 
   (** [rename f x] is [x] with every state [s] replaced by [f s]: states,

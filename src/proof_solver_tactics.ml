@@ -13,7 +13,7 @@ module type S = sig
   val inversion : Rocq_utils.hyp -> tactic mm
 
   (** [refute_premise h]: close the goal from [h], a premise hypothesis
-      known to be false ({!Premise_search.refute_hyp_tac}; backlog I2). *)
+      known to be false ({!Premise_search.refute_hyp_tac}). *)
   val refute_premise : Rocq_utils.hyp -> tactic mm
 
   (** [refute_dead h]: close the goal from [h], an LTS step that
@@ -37,7 +37,7 @@ module type S = sig
 
   (** [invert_premise h]: [simpl in h; inversion h; clear h; subst], for a
       premise hypothesis that mentions variables it determines (an output, such
-      as a target [m] in [succ_rel n m]; backlog I2, stage 2). *)
+      as a target [m] in [succ_rel n m]). *)
   val invert_premise : Rocq_utils.hyp -> tactic mm
 
   (** [prove_negation ()] proves a goal [~ P] whose [P] is refutable. *)
@@ -632,7 +632,7 @@ module Make
      [wk_trans] and [wk_sim]), where a constant in both would be unfolded
      twice. Measured 2026-10-01 over the whole proof suite (27 [Solve]s, 829
      calls): the two never share an unfoldable constant (14 calls find 6
-     distinct, the rest none), so no dedup is done. Backlog item A4. *)
+     distinct, the rest none), so no dedup is done. *)
   let try_unfold_any ?(in_hyp : Rocq_utils.hyp option) (x : EConstr.t)
     : Tactic.t option mm
     =
@@ -755,7 +755,7 @@ module Make
       group's order. The derivation tree replays only LTS premises, in
       order, so this leaves its replay unchanged; a premise that computes
       what an LTS premise needs ([In q l -> lts q a q']) then arrives with
-      [q] already fixed by that premise's constructor (backlog I2, stage 2).
+      [q] already fixed by that premise's constructor.
       With no such premises (every existing example) it moves nothing. *)
   let move_premises_last : unit Proofview.tactic =
     let open Proofview.Notations in
@@ -897,7 +897,7 @@ module Make
     Logger.thing ~__FUNCTION__ Debug "bindings" bindings Strfy.econstr_bindings;
     (* [econstructor], not [constructor]: a binder that appears only in a
        premise ([q] in [In q l -> lts q a q' -> sys l a q']) has no binding to
-       come from, and is left for unification to fill (backlog I2, stage 2).
+       come from, and is left for unification to fill.
        When every binder is bound the two are the same. *)
     Tactic.create
       ~msg

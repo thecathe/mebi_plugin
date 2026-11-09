@@ -126,7 +126,7 @@ Hint Resolve weak_sim_trans : rel_db.
    being proved: that is circular and unsound (a state's silent move to a
    member of its own SCC would be "answered" by the pair itself), and Rocq's
    guard check rejects it (Test.v, [CircularTransfer]). They were meant to
-   let the plugin prove one state per silent SCC (notes/13, stage 3); that
+   let the plugin prove one state per silent SCC; that
    plan was abandoned for this reason. *)
 
 (* A silent prefix extends a weak move. *)
@@ -303,7 +303,7 @@ Qed.
    reach each other silently. One way is not enough: [m] must also answer
    the other side's moves as [r] did, which it can only do by first reaching
    [r] ([tau.a + b] reaches [a], but [a] cannot answer a [b]). Added
-   2026-10-03 (notes/13). *)
+   2026-10-03. *)
 Lemma weak_bisimilar_silent_l {M N A} {ltsM : LTS M A} {ltsN : LTS N A} :
   forall r m n, silent ltsM r m -> silent ltsM m r ->
                 weak_bisimilar ltsM ltsN r n -> weak_bisimilar ltsM ltsN m n.

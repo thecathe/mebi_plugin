@@ -30,6 +30,51 @@ preceding 1139 commits are the project's own history; the last of them,
 2026-03-31, before the several-month pause. If any earlier assisted work exists
 it left no trailer and is not identifiable here.
 
+**Item labels.** Entries from 2026-09-27 to 2026-10-13 refer to items by short
+labels (`B2`, `Step 0`, ...). They name the things that were left open after a
+review of the codebase on 2026-09-27, and items raised after it. Most entries say
+what their item was where it first appears; this collects them.
+
+| Label | What it was | How it ended |
+| --- | --- | --- |
+| `A1` | `ReModel` resolves goal terms to model elements by a syntactic hashtable lookup; can it miss (undefined evars, universe instances, local context)? | Settled by measurement, 2026-09-28: it cannot miss in current use. Replacing it with unification would be a new capability (goals with an unknown state) and was not built. |
+| `A2` | A positive test for the "multiple actionpairs" branch of `ReModel.transition` | Closed 2026-10-01 (`MultipleDerivations` in `Test.v`) |
+| `A3` | Saturation took time exponential in the number of paths | Rewritten as a closure computation, 2026-09-28 |
+| `A4` | "Duplicate things to unfold" in `try_unfold_any` | Measured, 2026-10-01: it never occurs; no code change |
+| `A5` | Saturation dropped destinations when one action had more than one | Fixed 2026-09-27 |
+| `A6` | Constructors with two or more LTS premises could not be proved | Fixed 2026-10-01 (the derivation tree is replayed in pre-order) |
+| `B1` | "Collapsing" self-referential definitions: two commented-out modules in `Test.v` | Live tests and a pinned limit, 2026-10-10 |
+| `B2` | `Proc/Test3`'s `wsim_p3` could not be proved in useful time | Fixed 2026-09-29: one mutual cofix over the precomputed product |
+| `B3` | `Proc/Test4`: extraction ran over 14 minutes without finishing, and saturation (74.6M weak actions) exhausted memory | Extraction fixed (25 s), 2026-10-01; the rest is a documented limit |
+| `C1`, `C2`, `C3`, `C6`, `C7` | CI; the dead `lib/dune` stub; keeping the three module lists in step; stale files; the underscore-prefixed `.v` examples | Done 2026-09-27 to 2026-10-01 |
+| `C4`, `C5`, `C8` | The size of `paper/`; the LICENSE; `MutualCofix Auto` as the default | Decisions for the upstream maintainer, not for this log |
+| `D` | `ocamlformat` drift outside `lib/model` | Done 2026-09-27 |
+| `E(a)`-`E(d)` | Test coverage: regressions for the saturation guard and the unchecked premise; pinned extraction and saturation sizes; `lib/terms` unit tests; `.v`-only coverage of `lib/rocq_tools` and `src` | Done 2026-10-01 |
+| `F` | `MeBi Help`, and interface documentation | Done 2026-10-01 |
+| `G` | Items that would be new plugin capability, among them a weak-similarity algorithm and proving both directions of a bisimilarity in one go | Raised and agreed one at a time; those built are tagged **New feature** in their entries |
+| `H1`-`H3` | Telling the user when the tool is near a limit: `LTS_Incomplete` said "TODO..."; a size check before saturation; other limits that surfaced badly | Done 2026-10-01 |
+| `I1`, `I2` | On-demand saturation for `Test4`; constructor premises that are not LTS steps (equations, general premises, outputs, negation, a user tactic) | `I1` measured and not feasible for a proof then (on-demand saturation for deciding came later); `I2` built in stages 1, 2 and 4, 2026-10-01 to 2026-10-02 |
+| `3b` | Saturation's per-state deduplication was quadratic | Made linear, 2026-10-01 |
+
+**`Step 0`** was the solver's inversion tie-break. When it picks which
+hypothesis to invert and several tie, it took the later one; in a layered LTS
+that is often an outer transition whose inversion only reproduces a hypothesis
+already in context (a "sterile" step). The options, as the entries name them:
+**A** order candidates by creation, not by name (built 2026-10-02: the name sort
+broke the intended order past about ten hypotheses, and looped); **B** prefer the
+smaller hypothesis among ties (the original idea, tried and reverted 2026-09-29);
+**C** clear an inner hypothesis once inverted, keeping the top-level transition;
+**D** model-guided inversion, matching each branch against the derivation trees
+extracted into the model; **D′** refute an LTS step that has no instance outright
+instead of inverting it (built 2026-10-02; it made the Alternating Bit Protocol
+provable); **E** stop and document the protocol as a limitation. Step 0 closed on
+2026-10-02 with A and D′ built: B and C had nothing left to save.
+
+Two other uses of "option": in the 2026-10-02 `weak_bisimilar` entries, option C
+is the part that needs no change to `theories/` (the rooted verdict, the `=ε⇒`
+split, silent answers) and option A is making the Rocq statement itself a single
+bisimulation. `P1` and `R1`-`R3` are local to the entries that introduce them.
+
 ---
 
 ## 2026-08-16 — Rocq 9.2 port and reproducible toolchain
@@ -118,8 +163,8 @@ Branch `refactor/functor-layer`, one commit (`9e9b6b0`) on top of `8aa14b8`.
 Net: **7 files changed, +86 / −56**.
 
 Context: backing out the encoding-table sharing from `5a6cf98`, the first item
-under "Outstanding" below. Working note in `notes/1-revert-shared-encoding-table.md`.
-Tracing it before implementing turned one item into three: the note's fix as
+under "Outstanding" below.
+Tracing it before implementing turned one item into three: the planned fix as
 written would have left the hazard it was aimed at, and reintroduced a worse one
 that predates the branch. All three are in the one commit because they are the
 same design tension — one table with a moving context, versus two tables sharing
@@ -181,7 +226,7 @@ abstractions — was syntactically broken (an incomplete signature in
 `state/set_.ml`) and would have produced a second, colliding `State` module
 alongside the existing one. It was stashed aside rather than committed or
 deleted, then superseded entirely by the work below, which targets the
-actual diagnosed bottleneck (`notes/3-collapse-model-component-cluster.md`)
+actual diagnosed bottleneck
 rather than a wholesale port of the other project's abstractions.
 
 - `6cd7e72` — **Docs.** Added `CLAUDE.md`, making the "refactoring only"
@@ -191,8 +236,8 @@ rather than a wholesale port of the other project's abstractions.
 - `c43e8b8` — **Refactor.** Collapsed all 17 model components (`State`,
   `Label`, `Action`, `Edge`, ...) from 17 separate files, each its own
   functor, into nested modules inside one `Components.Make` functor
-  (`lib/model/components.ml`) — exactly the change `notes/3` had already
-  sized and designed. Nested modules see each other directly, so the
+  (`lib/model/components.ml`) — a change that had been sized and designed
+  beforehand. Nested modules see each other directly, so the
   sharing constraints that used to relate one component's functor
   parameters to another's output are gone: `model.mli` needed on the order
   of ten, not eighty. Every algorithm functor (`LTS`, `FSM`, `Saturation`,
@@ -550,9 +595,9 @@ Optimization 0 · **New feature 0.**
 
 ---
 
-## 2026-09-27 — CI, and closing out the rest of backlog item C6
+## 2026-09-27 — CI, and closing out the rest of the stale-file cleanup (C6)
 
-Continuing down `notes/4-post-review-backlog.md`'s suggested order (C1, then
+Continuing the post-review cleanup in order (C1, then
 C6) after Jonah returned to the project wanting it back to a usable state.
 
 - **Tooling.** Added `.github/workflows/ci.yml`: `nix develop` to provide
@@ -593,7 +638,7 @@ Optimization 0 · **New feature 0.**
 
 ## 2026-09-27 — C7: checked the three underscore-prefixed `.v` examples
 
-Backlog item C7 explicitly withheld a verdict on
+The post-review cleanup (C7) had explicitly withheld a verdict on
 `examples/**/_mutual_exclusion.v`, `_no_starvation.v`, `_nat_streams.v` —
 they resemble the underscore-prefixed OCaml dead files removed earlier this
 week (`a5ec62c`), but each needed its own check rather than a batch delete.
@@ -638,7 +683,7 @@ Optimization 0 · **New feature 0.**
 
 ## 2026-09-27 — Formatting debt outside `lib/model`, non-`proof_solver*` half
 
-Backlog item D. The `proof_solver*` half is deliberately left alone here —
+Item D (formatting debt). The `proof_solver*` half is deliberately left alone here —
 formatting those files would need the full five-file `PluginProofs.v`
 baseline re-run, budgeted separately.
 
@@ -646,7 +691,7 @@ baseline re-run, budgeted separately.
   @test/fmt --auto-promote`: `lib/rocq_tools/rocq_monad.mli`,
   `lib/showable/thing.ml`, `test/tests.ml`. Purely whitespace/line-wrapping,
   no AST change. `rocq_monad_utils.ml` and `theories.ml`, both listed as
-  drifted in the 2026-09-27 review that produced this backlog, turned out
+  drifted in the 2026-09-27 review that produced this list, turned out
   already clean on re-check — nothing here changed them since.
 
 **Verification:** `dune build @lib/rocq_tools/fmt @lib/showable/fmt
@@ -662,7 +707,7 @@ Optimization 0 · **New feature 0.**
 
 ## 2026-09-27 — Formatting debt outside `lib/model`, `proof_solver*` half
 
-Closes the rest of backlog item D, deliberately deferred in the previous
+Closes the rest of item D, deliberately deferred in the previous
 entry because it touches files the proof solver reads and needs the full
 baseline re-run to verify, not just `dune build`/`tests.exe`.
 
@@ -696,7 +741,7 @@ All 18 counts match the baseline exactly — no regression, expected for a
 pure-whitespace change. `_CoqProject` restored and `make dune` run
 afterward; `dune build` and `dune exec test/tests.exe` (9/9) both pass.
 
-This closes backlog item D in full.
+This closes item D in full.
 
 **Session tally:** Tooling 1 · Bug fix 0 · Docs 0 · Refactor 0 ·
 Optimization 0 · **New feature 0.**
@@ -705,7 +750,7 @@ Optimization 0 · **New feature 0.**
 
 ## 2026-09-27 — A2 investigation: two saturation findings, no working positive test yet
 
-Attempted backlog item A2: build a minimal hand-written LTS that positively
+Attempted A2: build a minimal hand-written LTS that positively
 exercises `Proof_solver_step.ReModel.transition`'s multiple-actionpairs
 fold (`f0cb45a`'s fix — picks the shortest-annotation candidate instead of
 raising when more than one `Action.t` matches the same `(from, label,
@@ -884,8 +929,11 @@ than continue building throwaway examples in this one.
   needed asymmetry: `MeBi Config`'s state-count bound (settable via `MeBi
   Config Bounds As Num States <n>`, `src/g_mebi.mlg:214`) truncating one
   FSM's BFS before it fully explores a shared state's descendants while
-  the other's doesn't. Full write-up, including a concrete 4-step plan for
-  a fresh session to try, in `notes/4-post-review-backlog.md`'s A2 section.
+  the other's doesn't. The plan for a fresh session was four steps: set a small state bound;
+  design `p` and `q` to share one reachable state; confirm in a result dump
+  that the two FSMs differ there; then build the positive test around that
+  discrepancy. (It was not followed: A2 was closed another way, 2026-10-01,
+  below.)
 
 Entirely unverified — a hypothesis from reading `ActionMap.merge`, not a
 confirmed mechanism.
@@ -903,10 +951,10 @@ request, so upstream integration can later be a single PR from `fork/main`
 to `origin/main` that references these milestones. `origin/main` is
 deliberately untouched.
 
-`notes/2-unify-instead-of-lookup.md` (backlog item **A1**) proposes
+A design (item **A1**) proposed
 replacing `ReModel.state`/`ReModel.label`'s syntactic hashtable lookup with
 real unification, because the lookup can miss on evars, universe instances
-or local-context differences. The note ends by suggesting the work be sized
+or local-context differences. The design ended by suggesting the work be sized
 first: instrument the miss path, count misses across the five cheap
 `PluginProofs.v` suites, and if the count is zero treat the failure mode as
 latent rather than active. That sizing pass was done before writing any of
@@ -946,7 +994,7 @@ the refactor.
 What this measurement does **not** cover, and the natural follow-up: the
 five files probed are exactly the ones that already succeed. The examples
 that *fail* — `Proc/Test3`'s `wsim_p3` (unfinished at 500000, crashed at
-1000000, backlog item B2) and `CADP/Size2/Glued` (marked `### FAIL`) —
+1000000, item B2) and `CADP/Size2/Glued` (marked `### FAIL`) —
 were not probed, and a lookup miss there is a live candidate cause. Running
 the same probe against a failing example is a cheaper and better-targeted
 next step than implementing A1 blind.
@@ -1105,7 +1153,7 @@ Branch `investigate/saturation-path-explosion`, off `main` (`e2c1d17`).
 multi-layered examples") has been an unquantified hunch since it was
 written. It now has a mechanism, a location and a number.
 
-**How B2 was framed, and why that was wrong.** The backlog said
+**How B2 was framed, and why that was wrong.** The earlier framing said
 `Proc/Test3`'s trouble is "specifically `MeBi Sim`'s proof *search*", with
 extraction already succeeding. Two phase-isolation runs say otherwise:
 
@@ -1187,8 +1235,8 @@ Refactor 0 · **New feature 0.**
 
 ## 2026-09-28 — Differential harness for the saturation rewrite
 
-Branch `investigate/saturation-path-explosion`. Step 1 of the plan in
-`notes/5-saturation-rewrite.md`, agreed with Jonah: build the safety net
+Branch `investigate/saturation-path-explosion`. Step 1 of the saturation-rewrite plan,
+agreed with Jonah: build the safety net
 before touching the algorithm.
 
 - **Tooling.** `test/satdiff.ml` plus `test/satdiff.expected` and a
@@ -1234,8 +1282,7 @@ Refactor 0 · **New feature 0.**
 
 ## 2026-09-28 — Saturation rewritten: closure instead of path enumeration
 
-Branch `investigate/saturation-path-explosion`. Step 2 of the plan in
-`notes/5-saturation-rewrite.md`. Closes `TODO.md`'s long-standing A3
+Branch `investigate/saturation-path-explosion`. Step 2 of the saturation-rewrite plan. Closes `TODO.md`'s long-standing A3
 ("optimize saturation -- takes a long time on larger/multi-layered
 examples").
 
@@ -1322,8 +1369,8 @@ existed only to service the depth-first traversal is now dead.
   `model.mli`) already constrained only `state`, `states`, `labels` and
   `edgemap` and called only `edges`, so none of them needed touching.
 
-  This is what made backlog item **A** moot rather than solved, as predicted
-  in `notes/5-saturation-rewrite.md`: the trace memo whose soundness was
+  This is what made item **A** (is the trace memo firing?) moot rather than
+  solved, as the rewrite's plan predicted: the trace memo whose soundness was
   going to be investigated no longer exists.
 
 Verification: `test/satdiff.exe` output **byte-identical** to the golden
@@ -1364,15 +1411,13 @@ its full budget and reports `(Stopped) Unsolved after 100001 iterations`
 (the documented `N + 1`), so `Qed` fails and `make` exits 2. Of the 166
 seconds, 0.65 is extraction and the remaining ~165 is proof search.
 
-So B2 is now, for the first time, genuinely what the backlog always claimed
-it was. The original entry said the trouble was "specifically `MeBi Sim`'s
+So B2 is now, for the first time, genuinely what the earlier framing always claimed
+it was. The original framing said the trouble was "specifically `MeBi Sim`'s
 proof *search*" with extraction already succeeding. That was **wrong when
 written** — extraction never completed, so proof search was not even being
 reached, which is what the 2026-09-28 phase isolation established. After the
 saturation fix the description becomes accurate: extraction is now trivial
-and the remaining problem really is search. The backlog entry has been
-corrected to record both the error and the fact that its conclusion now
-holds for a different reason.
+and the remaining problem really is search.
 
 Worth noting that the saturation fix *added* 73 weak transitions in testing,
 which enlarges the search space rather than shrinking it — so `Test3`
@@ -1538,7 +1583,7 @@ Refactor 0 · **New feature 0.**
 ## 2026-09-29 — CI was broken from the day it was added
 
 Branch `main` (on `fork`). Jonah reported the GitHub run failing; the CI
-workflow added 2026-09-27 (backlog item C1) had never actually passed.
+workflow added 2026-09-27 (item C1) had never actually passed.
 
 ```
 mebi: no local opam switch in ./_opam (or it is incomplete).
@@ -2246,7 +2291,7 @@ byte-identical** — `21 22 63 81 105 106 109 114 182 194 268 268 278 299 396
 *Incidental:* the new module had to be registered in **three** places —
 `lib/model/algorithms/dune`, `_CoqProject` and `src/mebi_plugin.mlpack`. The
 dune build passed while the make build failed twice, once per list missed.
-That is backlog item C3 happening, not a hypothetical.
+That is item C3 (the module lists drifting) happening, not a hypothetical.
 
 ### Step 2 — `Product.successors` / `Product.reachable` (New feature, infrastructure)
 
@@ -2322,7 +2367,7 @@ Optimization 0 · **Tooling 0.**
 ## 2026-09-29 — B2 fixed: one mutual cofix over the precomputed product
 
 Branch `main` (on `fork`). Three commits: the two preliminaries, an
-ocamlformat pass, and the fix. This closes backlog item **B2**.
+ocamlformat pass, and the fix. This closes item **B2**.
 
 ### Falsification first
 
@@ -2553,7 +2598,7 @@ the same thing, but the setting is left as a record of what the file depends
 on, and so it still works if the default changes. Its comment says so.
 
 **Raised with @dcastrop**, in `TODO.md` alongside the `paper/` and LICENSE
-items, and as **C8** in the backlog note. Three sub-decisions, none of them
+items, and as **C8**. Three sub-decisions, none of them
 Claude's to make: whether `Auto` is the right default for a released tool
 given it can silently change a proof's iteration count; whether `Test2`'s
 loose bounds should be tightened; and whether `Test3` should keep its
@@ -2572,7 +2617,7 @@ Optimization 0 · **Tooling 0.**
 
 ---
 
-## 2026-10-01 — Step 0, gated to the mutual path
+## 2026-10-01 — Step 0 (the inversion tie-break), gated to the mutual path
 
 Branch `main` (on `fork`). Optimization. The sterile re-inversions recorded
 on 2026-09-29, recovered where it is safe to do so.
@@ -2642,9 +2687,9 @@ Refactor 0 · **Tooling 0.**
 
 ---
 
-## 2026-10-01 — `Product.reachable` stops at reflexive pairs; Step 0 found to break forced-mutual CADP
+## 2026-10-01 — `Product.reachable` stops at reflexive pairs; Step 0 (the inversion tie-break) found to break forced-mutual CADP
 
-Branch `main` (on `fork`). Backlog item 12, plus a regression found while
+Branch `main` (on `fork`). The reflexive-pair fix, plus a regression found while
 verifying it.
 
 ### The over-prediction, diagnosed and fixed — Bug fix
@@ -2707,9 +2752,9 @@ mutual path. It went unnoticed because Step 0 was verified only under
 `Auto`, which keeps CADP nested; the default path is genuinely unaffected,
 and all 27 default counts hold. It does mean a user-facing configuration
 that worked (`MeBi Config Solver MutualCofix True` on CADP) now hangs, and
-it undercuts the backlog's "fall back to the mutual block when the nested
+it undercuts the planned "fall back to the mutual block when the nested
 one stalls" idea for Step 0's remaining half. Left in place pending a
-decision (revert, or narrow the gate); see the backlog.
+decision (revert, or narrow the gate).
 
 **Verification.** Six proof suites under `Auto`, 27 of 27 `Solved` with the
 counts above. Forced mutual: `Test1`, `Test2`, `Test3`,
@@ -2723,15 +2768,15 @@ Refactor 0 · **Tooling 0.**
 
 ---
 
-## 2026-10-01 — Step 0 reverted (code only), parked as a separate optimization
+## 2026-10-01 — Step 0 (the inversion tie-break) reverted (code only), parked as a separate optimization
 
 Branch `main` (on `fork`). Reverts the `src/proof_solver_step.ml` half of
 `53dd4c8` at the user's direction; its log entry above is kept as the
 record. The tie-break comment now says the gated retry was tried and
 reverted, and that heuristic changes need the strategy forced both ways.
-The idea is written up for a future session in the local note
-`notes/7-inversion-tie-break.md` (history, the bisect, an unconfirmed
-hypothesis for why it fails, candidate directions).
+The idea was written up for a future session (history, the bisect, an
+unconfirmed hypothesis for why it fails, candidate directions); the
+2026-10-02 entries below carry what was found.
 
 **Result.** Under `Auto`, 27 of 27 `Solved`:
 
@@ -2760,7 +2805,7 @@ Optimization 0 (one reverted) · Docs 2 · New feature 0 · **Tooling 0.**
 
 ## 2026-10-01 — B3: extraction was quadratic in evar names; `Test4` now extracts in 25s
 
-Branch `main` (on `fork`). Optimization. Backlog item B3 (`Proc/Test4`).
+Branch `main` (on `fork`). Optimization. Item B3 (`Proc/Test4`).
 
 ### Sizing first
 
@@ -2831,7 +2876,7 @@ the out-of-memory was inevitable for *explicit* saturation and is not a
 saturation bug. Getting `Test4` through would mean saturating over the
 silent-SCC quotient (81 nodes) rather than over states — a redesign of what
 saturation hands to everything downstream, which all reads concrete states.
-Recorded as design work in the backlog, not started.
+Recorded as design work, not started.
 
 **Decision (user, 2026-10-01): `Test4` stays a documented technical limit**,
 to be revisited once every other outstanding item is resolved. Documented
@@ -2851,7 +2896,7 @@ identical. `dune exec test/tests.exe` 34/34, `make dune` and `dune build
 
 ## 2026-10-01 — A2 closed: a positive test for the "multiple actionpairs" branch
 
-Branch `main` (on `fork`). Tooling (a regression test). Closes backlog
+Branch `main` (on `fork`). Tooling (a regression test). Closes
 item A2 and its `TODO.md` entry.
 
 **The earlier investigations were looking in the wrong place.** The
@@ -2894,7 +2939,7 @@ dune` afterwards. No plugin code changed.
 
 ---
 
-## 2026-10-01 — `LTS_Incomplete` explains itself; limit diagnostics recorded as a backlog item
+## 2026-10-01 — `LTS_Incomplete` explains itself; limit diagnostics recorded as a proposal
 
 Branch `main` (on `fork`). Prompted by the user asking whether the tool can
 passively warn when a term/LTS will exceed its limits, as `Test4` did.
@@ -2913,7 +2958,7 @@ which is where `Test4` actually died. A pre-saturation estimate is cheap
 and exact once the LTS is known (silent-SCC quotient plus reachability over
 the SCC DAG — 81 SCCs for `Test4`), but it is a new check with a likely new
 config knob, i.e. a new capability, so per `CLAUDE.md` it is written up as
-backlog item H2 (with H3: other limits that surface badly, such as
+proposal H2 (with H3: other limits that surface badly, such as
 `PairNotInProduct` escaping as an `Anomaly`) rather than built. Estimating
 from the term *before* extraction is not possible in general — the LTS is
 an arbitrary inductive relation — and the extraction bound is already the
@@ -2970,7 +3015,7 @@ message checked as above.
 
 ## 2026-10-01 — C3: a CI check that the three module lists agree
 
-Branch `main` (on `fork`). Tooling. Backlog item C3.
+Branch `main` (on `fork`). Tooling. Item C3.
 
 The OCaml sources are listed by hand three times — `_CoqProject` (for
 `make`), `src/mebi_plugin.mlpack` (for linking under `make`) and each dune
@@ -3003,7 +3048,7 @@ src/mebi_plugin.cmxs` and `dune build` clean.
 
 ## 2026-10-01 — C2: `lib/dune` deleted
 
-Branch `main` (on `fork`). Refactor (dead-file removal). Backlog item C2.
+Branch `main` (on `fork`). Refactor (dead-file removal). Item C2.
 
 `lib/dune` was 9 commented-out lines declaring an umbrella library
 `rocq-mebi.mebi_lib` that re-exported the four `lib/` libraries. Its history
@@ -3024,7 +3069,7 @@ theories/Test.vo`, then `make dune` — all clean.
 
 ## 2026-10-01 — H2: a size check before every saturation; H3's remaining messages
 
-Branch `main` (on `fork`). Backlog items H2 and the rest of H3. **New
+Branch `main` (on `fork`). Items H2 and the rest of H3. **New
 feature** (H2: a new check and two new config commands), raised with the
 user before any code was written. They chose: **refuse by default**, mirroring
 `FailIf Incomplete`; a **configurable bound** documented with example values
@@ -3060,9 +3105,8 @@ likely cause is that `Saturation.edge_closure` recomputes each target's
 silent closure per visible move. That is noted as a possible optimization,
 not done here.
 
-**A correction.** The backlog and `Test4`'s header said its saturation is
-"~112M weak transitions", from the throwaway Python model
-(`notes/tools/test4_saturation_estimate.py`). The plugin's own figure is
+**A correction.** The earlier estimate and `Test4`'s header said its saturation is
+"~112M weak transitions", from a throwaway Python model. The plugin's own figure is
 **74,649,600** (7680 per state, against Python's 11,520). The estimator is
 verified against real saturation, so the plugin's number is what it would
 build. The gap most likely lies in how the Python model distinguishes
@@ -3096,7 +3140,7 @@ has" line) · Refactor 0 · Optimization 0 · Tooling 0.
 ## 2026-10-01 — 3b: saturation's per-state dedup made linear; closures memoised
 
 Branch `main` (on `fork`). **Optimization**, plus **Tooling** (a new
-`test/satscale.ml` shape). A new backlog item that H2's measurement turned up.
+`test/satscale.ml` shape). A new item that H2's measurement turned up.
 
 **The cost.** `Saturation.edge_closure` collected every witness `from -tau*->
 s -a-> t -tau*-> goto` for a state, then deduplicated them with
@@ -3144,7 +3188,7 @@ Bug fix 2 · Optimization 1 · Tooling 1 · Docs 1 · Refactor 0.
 
 ## 2026-10-01 — A4: the "duplicate things to unfold" TODO, measured and closed
 
-Branch `main` (on `fork`). **Docs** (a comment). Backlog item A4. No code
+Branch `main` (on `fork`). **Docs** (a comment). Item A4. No code
 change.
 
 `try_unfold_any` carried `TODO: make sure you remove duplicate things to
@@ -3168,7 +3212,7 @@ Bug fix 2 · Optimization 1 · Tooling 1 · Docs 2 · Refactor 0.
 ## 2026-10-01 — Extraction stops keeping matching evars; my per-state memory figure was wrong
 
 Branch `main` (on `fork`). **Optimization** (`src/graph_builder.ml`) and a
-**Bug fix** to figures I introduced earlier the same day. Backlog item
+**Bug fix** to figures I introduced earlier the same day. The item
 "per-state extraction memory".
 
 **Where the memory went.** Temporary probes in the graph builder (since
@@ -3223,7 +3267,7 @@ Docs 2 · Refactor 0.
 ## 2026-10-01 — I2: extraction now says when it skips a premise
 
 Branch `main` (on `fork`). **Bug fix** (a warning; no change to what is
-extracted). Backlog item I2, raised by the user as a wider survey of
+extracted). Item I2, raised by the user as a wider survey of
 unsupported constructor shapes, which is still to do.
 
 **The problem, confirmed by test.** `check_updated_ctx` walks every binder of
@@ -3260,7 +3304,7 @@ Bug fix 4 · Optimization 2 · Tooling 1 · Docs 2 · Refactor 0.
 
 ## 2026-10-01 — E(a): regression tests for the saturation guard and the unchecked premise
 
-Branch `main` (on `fork`). **Tooling** (tests only). Backlog item E,
+Branch `main` (on `fork`). **Tooling** (tests only). Item E,
 option (a).
 
 Two modules appended to `theories/Test.v`, so they run in every `dune build`:
@@ -3286,7 +3330,7 @@ Bug fix 4 · Optimization 2 · Tooling 2 · Docs 2 · Refactor 0.
 
 ## 2026-10-01 — E(b): pinned extraction and saturation sizes
 
-Branch `main` (on `fork`). **Tooling** (tests only). Backlog item E,
+Branch `main` (on `fork`). **Tooling** (tests only). Item E,
 option (b).
 
 No command reports an LTS's size, but the bounds can be used as
@@ -3312,7 +3356,7 @@ Bug fix 4 · Optimization 2 · Tooling 3 · Docs 2 · Refactor 0.
 
 ## 2026-10-01 — E(c): `lib/terms` unit tests; a two-premise constructor cannot be proved
 
-Branch `main` (on `fork`). **Tooling** (tests only). Backlog item E,
+Branch `main` (on `fork`). **Tooling** (tests only). Item E,
 options (c) and (d). The finding below is not fixed.
 
 **`lib/terms` tests** (`tests.exe` 41 → 58). Covered: tree
@@ -3337,7 +3381,7 @@ solver proves the first premise, is left with the second (`stepLTS … (Some
 A) ?q'`) and tries `rt1n_refl` on it. This is now `TwoPremises` in
 `theories/Test.v`, a documented known-wrong `Fail` (checked to fail with
 that unification error). Fixing it means the solver walking the derivation
-tree instead of a flat list: a proof-solver change, logged as backlog item
+tree instead of a flat list: a proof-solver change, logged as item
 A6, not started.
 
 (d) — `lib/rocq_tools` and `src` can only be tested through `.v` files;
@@ -3350,7 +3394,7 @@ Bug fix 4 · Optimization 2 · Tooling 5 · Docs 2 · Refactor 0.
 ## 2026-10-01 — A6: constructors with several LTS premises can now be proved
 
 Branch `main` (on `fork`). **Bug fix** (proof solver, `lib/terms`).
-Backlog item A6; design and spike in `notes/8-two-premise-constructors.md`.
+Item A6.
 
 **The bug.** The solver replays a transition's derivation tree as a flat
 list of constructors, one `constructor i` per step on the focused goal. The
@@ -3374,7 +3418,7 @@ nested two-premise node all pass with `preorder` and fail with
 `reversed`, so the tests are order-sensitive and the order is right.
 
 **Verified after building**, including three checks the spike could not
-make, written down beforehand as a checklist in note 8 (R1–R3):
+make, written down beforehand as a checklist (R1–R3):
 
 - R1, R2: temporary instrumentation in `Trees.min`, through which every
   tree choice passes (the solver, `Product.respond`,
@@ -3453,7 +3497,7 @@ Bug fix 7 · Optimization 2 · Tooling 5 · Docs 2 · Refactor 1.
 ## 2026-10-01 — I2: equation premises are decided, and proved
 
 Branch `main` (on `fork`). **New feature** (flagged before writing; the user
-asked for it). Backlog item I2, step (1) of the ideas recorded there, plus
+asked for it). Item I2, step (1) of the ideas recorded for it, plus
 the deferral that step turned out to need. General proof search over
 arbitrary premises, idea (3), is **not** built.
 
@@ -3515,7 +3559,7 @@ Bug fix 7 · Optimization 2 · Tooling 5 · Docs 2 · Refactor 1.
 
 Branch `main` (on `fork`). Measurement only; no code committed (a
 temporary print of `Product.estimate` for every proof, since reverted).
-Backlog item I1 (the user's idea: saturate on demand, one state at a time,
+Item I1 (the user's idea: saturate on demand, one state at a time,
 so that `Test4` fits in memory).
 
 On-demand saturation suits the proof solver, which only asks for one
@@ -3548,7 +3592,7 @@ user's earlier decision.
 
 Branch `main` (on `fork`). **New feature** (flagged before writing; asked
 for by the user, who also asked that `MeBi Help Config Bounds Saturation`
-carry the memory guidance). Backlog item F.
+carry the memory guidance). Item F.
 
 `MeBi Help` was a commented-out placeholder; the older implementation was
 deleted on 2026-09-27 as it no longer matched the command syntax. New
@@ -3607,8 +3651,8 @@ Bug fix 7 · Optimization 3 · Tooling 5 · Docs 3 · Refactor 1.
 ## 2026-10-01 — Step 0 diagnosed; three more fixes tried; parked
 
 Branch `main` (on `fork`). Investigation only; no code committed (a
-reverted spike with environment-variable switches). Backlog item Step 0,
-`notes/7-inversion-tie-break.md`, which now has the full record.
+reverted spike with environment-variable switches). Step 0, the inversion tie-break;
+this entry is the full record.
 
 **Why the smaller-first inversion tie-break diverges**, confirmed by an
 inversion trace on CADP `wsim_lts_bigstep`. `inversion H` keeps `H`;
@@ -3663,7 +3707,7 @@ Bug fix 8 · Optimization 3 · Tooling 5 · Docs 3 · Refactor 1.
 
 Branch `main` (on `fork`). **New feature** (flagged in the sketch, built on
 the user's go-ahead), plus a **Bug fix** to yesterday's Anomaly guard.
-Design: `notes/9-general-premise-support.md`, stage 1.
+Stage 1 of the general-premise design.
 
 **Engine** (`lib/rocq_tools/premise_search.ml`, new module). `prove env
 sigma goal` → `Proved p` (with a closed proof term), `Refuted`, or `Unknown`,
@@ -3730,7 +3774,7 @@ injection inside the step logic.
 
 **Not in stage 1:** premises that compute outputs (a premise producing what
 an LTS premise needs, `In q l -> lts q a q'`), negation, the user tactic
-hook. See note 9, stages 2 and 4.
+hook. Stages 2 and 4 follow in the entries below.
 
 **Session tally (2026-10-02):** New feature 1 · Bug fix 1 · Optimization 0 ·
 Tooling 0 · Docs 0 · Refactor 0.
@@ -3752,7 +3796,7 @@ Optimization 0 · Tooling 0 · Docs 0.
 ## 2026-10-02 — I2 stage 4 and negation: user premise tactic, `~ P`
 
 Branch `main` (on `fork`). **New feature** (negation support and the user
-tactic hook, both in note 9; the user said continue after stage 1), plus a
+tactic hook, stages 2 and 4 of the plan; the user said continue after stage 1), plus a
 **Bug fix** to the Anomaly guard.
 
 **Negation.** `Premise_search.prove` recognises `P -> False` (so `~ P`
@@ -3811,7 +3855,7 @@ Optimization 0 · Tooling 0 · Docs 0.
 
 ## 2026-10-02 — I2 stage 2: premises that compute what the transition needs
 
-Branch `main` (on `fork`). **New feature** (note 9, stage 2; the user said
+Branch `main` (on `fork`). **New feature** (stage 2; the user said
 continue). Plus a **Docs** correction to a claim of mine from 2026-10-01.
 
 **Before, measured on five cases.** A constructor whose target is computed
@@ -4133,7 +4177,7 @@ own `weak`/`silent`.
   therefore proves mutual similarity, while the checker now decides `≈`.
   This is sound, since `≈` implies mutual similarity. Closing the gap means
   a single coinductive bisimulation in `theories/` and a solver that proves
-  both directions in one proof (backlog G).
+  both directions in one proof (item G).
 - `MeBi Sim Begin` refuses a valid `weak_sim` goal between states that are
   similar but not bisimilar. Checked: `a.b ≤ a.(b+c)` stops with
   `Not_Bisimilar` before any step, and the solver also steers by the
@@ -4341,7 +4385,7 @@ later branch that uses `mutual_sim` first: the `PluginProofs.v` split
 ## 2026-10-02 (second session) — `MeBi Sim Begin` accepts `weak_sim` goals between similar, non-bisimilar states
 
 **New feature** (flagged to Jonah before writing: it needed the weak
-simulation preorder, backlog G's similarity algorithm) and **Bug fix**. On
+simulation preorder, item G's similarity algorithm) and **Bug fix**. On
 branch `solver/weak-sim-preorder`. Jonah: "it doesn't sound correct for
 `Sim Begin` to refuse similar states that aren't bisimilar."
 
@@ -4485,7 +4529,7 @@ moves left unanswered (0 in every case below).
 
 **How it was measured.** A temporary block in `Proof_solver.init`
 (not committed) printed each policy's measure at every `Sim Begin`, across
-all 41 proofs under `Auto`. Raw output is kept locally in `notes/`. To turn
+all 41 proofs under `Auto`. The raw output was not kept. To turn
 the measures into iterations, I fitted a linear model to the `Default` rows,
 where the real counts are known. On the 23 proofs that use the mutual cofix
 (Test3, and every `weak_bisimilar` proof):
@@ -4729,12 +4773,12 @@ terminate one way.**
   variable gives a goal in which the solver re-inverts the same kept
   `step (def 8) a q'` forever: each round spawns a branch that is refuted
   and one that keeps the hypothesis.
-- *Diagnosis:* this is backlog **Step 0** (note 7: inversion keeps the
+- *Diagnosis:* this is **Step 0** (inversion keeps the
   hypothesis and the tie-break re-picks it), which on `Proc`/`CADP` costs
   7–14% and here never ends.
 - *Status:* the earlier attempts to fix Step 0 were rejected because they
   broke other proofs, so this needs design, not a patch. It is recorded in
-  the CCS examples and in the backlog.
+  the CCS examples.
 
 **Verification:** all 41 counts identical under `Auto` and forced `True`;
 forced `False` matches its documented baseline. `Test.v` builds (with
@@ -4770,7 +4814,7 @@ each pair:
 - **Alternating Bit Protocol vs. a one-place buffer:** `MeBi Run Bisim`
   decides them weakly bisimilar (the textbook result), and `spec ≤ ABP`
   proves (148). `ABP ≤ spec` is left out with an explanation: it does not
-  terminate (backlog Step 0; see the previous entry).
+  terminate (Step 0; see the previous entry).
 
 Every refusal was checked for its reason (each run once without its
 `Fail`). The files build by default and in CI: the whole `make` takes
@@ -4783,12 +4827,12 @@ merge commit, `git revert -m 1 <merge-commit>` on `main` (find it with
 ## 2026-10-02 (second session) — Step 0, option A: hypotheses in creation order
 
 **Bug fix** · **Tooling** (tests for option C). On branch
-`fix/hyp-creation-order`. Jonah chose option A of note 7's 2026-10-02
-re-evaluation; the other options (B–E) are written up there for a later
+`fix/hyp-creation-order`. Jonah chose option A from the 2026-10-02
+re-evaluation of the tie-break; the other options (B–E) were left for a later
 session.
 
 **The bug.** `try_invert_any` breaks ties toward the *later* candidate,
-meant as the newest hypothesis: note 7 recorded that "the old later-first
+meant as the newest hypothesis: the earlier analysis recorded that "the old later-first
 order works only because each newly added hypothesis sorts last". But
 `Hyps.get_non_cofixes` sorted by `Names.Id.compare`, a **string** order
 (`H79 < H8 < H80`), and Rocq reuses freed names. Past about ten
@@ -4810,8 +4854,8 @@ only chooses among equivalent coinduction hypotheses.
 - *ABP:* `abp ≤ spec` no longer loops. In a capped run the open goals fall
   steadily (107 → 97 → 85 at 500 / 1500 / 3000 steps), but at about 200
   steps per goal it would still need some 17,000 more. That remaining cost
-  is blind inversion through deep single-relation terms: option D in
-  note 7. So `abp ≤ spec` stays out of the CCS example for now.
+  is blind inversion through deep single-relation terms: option D
+  (matching inversion branches against the extracted constructor trees). So `abp ≤ spec` stays out of the CCS example for now.
 - `CLAUDE.md`'s baseline is updated, with the old figures kept alongside.
   The checked-in bounds are upper limits, so they still hold.
 
@@ -4841,9 +4885,9 @@ New feature 5 · Refactor 1 · Tooling 9 · Docs 5 · Optimization 0.
 ## 2026-10-02 (third session) — Step 0, option D′: refute a dead LTS step instead of inverting it
 
 **Optimization.** On branch `perf/refute-dead-hyps`. Jonah agreed option
-D′ of `notes/11-dead-hypothesis-refutation.md`, which replaces note 7's
-option D (matching inversion branches against the extracted constructor
-trees) with something simpler that does the same job.
+D′ (refute an LTS step that has no instance outright), which replaces option D
+(matching inversion branches against the extracted constructor trees) with
+something simpler that does the same job.
 
 **What was measured first.** A log-only spike on a capped `abp ≤ spec`
 run: 85% of steps were LTS inversions, ~50 per answered move, and **61% of
@@ -4910,7 +4954,7 @@ merge commit, `git revert -m 1 <merge-commit>` on `main` (find it with
 ## 2026-10-02 (third session) — The Alternating Bit Protocol, proved both ways
 
 **Tooling** (examples). On branch `examples/abp-proofs`. This is step 2 of
-note 11's order. With dead steps refuted (previous entry), the proofs the
+the plan for refuting dead steps. With dead steps refuted (previous entry), the proofs the
 CCS example had to leave out now go through:
 
 | proof | before | now |
@@ -4983,8 +5027,8 @@ Tooling 1 · Bug fix 1.
 
 ## 2026-10-02 (third session) — Step 0 closed: no sterile re-inversions remain
 
-**Docs** (a measurement; no code committed). This is step 4 of note 11's
-order. Its result decides whether options B (smaller-first tie-break) and
+**Docs** (a measurement; no code committed). This is step 4 of the plan for
+refuting dead steps. Its result decides whether options B (smaller-first tie-break) and
 C (clear a hypothesis once inverted) are worth building: both target
 *sterile* steps, where the goal is unchanged and the only new hypothesis is
 an exact duplicate.
@@ -5005,17 +5049,17 @@ equal option A's saving *exactly*, proof by proof. For example, Test3
 - 0 of 6494 on the ABP.
 
 Option A removed all of them. So B and C have nothing to save and are
-closed unbuilt. D′ stage 2 is unneeded (the ABP closes), and so is note 7's
-tree-path D. **Step 0 is closed.**
+closed unbuilt. D′ stage 2 is unneeded (the ABP closes), and so is the earlier
+tree-path option D. **Step 0 is closed.**
 
 **A discrepancy, recorded rather than chased:** with the old order, this
 detector gives Test3 8.4% and CADP 4.4% overall, and Test1/2 0%. That is
-lower than note 7's 12% / 14.1% / 2.6–4.3% (measured 2026-09-29, before
+lower than the earlier 12% / 14.1% / 2.6–4.3% (measured 2026-09-29, before
 B2, on earlier code). The exact match with option A's savings is the
 evidence that the detector is right for the current code.
 
-The detector and the forced-strategy override are kept as patches in the
-local `notes/tools/`.
+The detector and the forced-strategy override were throwaway patches and are
+not in the repository.
 
 **Session tally (2026-10-02, third session), final:** Optimization 1 ·
 Tooling 1 · Bug fix 1 · Docs 1 (PRs #14–#16 and this entry).
@@ -5065,12 +5109,13 @@ merge commit, `git revert -m 1 <merge-commit>` on `main` (find it with
 ## 2026-10-03 — An LTS premise whose source nothing determines
 
 **Bug fix** (two) · **Docs** (a correction). On branch
-`fix/open-source-premise`. This closes the gap note 9 left open, pinned by
+`fix/open-source-premise`. This closes the gap the premise work left open, pinned by
 the known-wrong test `OutputPremises.open_c`. I labelled it a bug fix,
 not a new capability: the plugin already accepted this shape and gave an
 answer that depended on the order the constructors were declared in.
-Jonah agreed the approach (note 9, option B) after three small
-experiments, recorded there.
+Jonah agreed the approach (option B: enumerate such a premise with the
+bounded premise search, below) after three small
+experiments.
 
 **The bug.** For `open_go q n a q' : base q a q' -> n <= 5 -> open_c n a
 q'`, nothing fixes `q`, so `base` was explored from an open source `?q`.
@@ -5109,7 +5154,7 @@ states). Known limits, each warned: `open_u` (both ways), `open_u2`,
 its reason. **A new known-wrong pin:** `w_open_rec`, the guarded recursive
 case, stops on an internal `Not_found` in the solver. It is not from this
 change: the same LTS with its source fixed by `In q [0; 1; 2; 3]` fails the
-same way on `main`, while `rb` alone proves. Left open (note 9).
+same way on `main`, while `rb` alone proves. Left open.
 
 **A mistake of mine, corrected here.** PR #17's `CLAUDE.md` text and log
 entry said forced `MutualCofix False` stops `LawProofs.v` at `paraC`. It
@@ -5262,7 +5307,7 @@ merge commit, `git revert -m 1 <merge-commit>` on `main` (find it with
 
 **New feature** (a config option and a new code path for large FSMs) ·
 **Refactor** · **Tooling** (tests). On branch `feature/on-demand-saturation`.
-Stage 1 of note 13, agreed with Jonah after measuring: `Proc/Test4`'s
+Stage 1 of the plan for large FSMs, agreed with Jonah after measuring: `Proc/Test4`'s
 saturation (74.6M weak actions, 34-67GB) was refused outright; the
 plan is to decide it (this entry) and, separately, to prove it up to
 silent steps (stages 2-3).
@@ -5337,7 +5382,7 @@ New feature 1 · Refactor 1.
 ## 2026-10-03 — Proofs up to silent steps: transfer lemmas
 
 **New feature** (theory; additive). On branch
-`theories/silent-transfer-lemmas`. Stage 2 of note 13. Nothing existing in
+`theories/silent-transfer-lemmas`. Stage 2 of that plan. Nothing existing in
 `theories/Bisimilarity.v` is changed, and the plugin does not use the new
 lemmas yet (stage 3).
 
@@ -5368,8 +5413,8 @@ called `lin` (does `a`) and `other` (does `b`) **bisimilar**. Renumbered
 apart, both are right. Proofs stay sound (`Qed`), but a `Run Bisim`
 verdict can be wrong. The checked-in examples compare distinct terms, or
 structurally identical copies where the merge happens to be harmless. The
-tests number the second system apart, with a comment. Fix to be agreed:
-note 13. **Corrected in the next entry:** that claim about the examples was
+tests number the second system apart, with a comment. Fix to be agreed.
+**Corrected in the next entry:** that claim about the examples was
 wrong; CADP `Glued` was affected.
 
 **A slip of mine:** my first commit on the branch did not build. I tested
@@ -5457,7 +5502,7 @@ against `n` with no moves, "proves" `n` simulates `r`. Rocq's guard check
 rejects the circular term, so no false proof could have resulted -- the
 stage would just never have closed a proof. A sound version must answer
 every member's moves (>= 87,480 for `Test4`), so my estimate of "81
-representatives x ~9 moves, ABP-sized" (note 13, (b)) was wrong.
+representatives x ~9 moves, ABP-sized" (the plan's estimate) was wrong.
 
 **Is earlier work now redundant?** Reviewed with Jonah:
 - stage 1 (PR #22, saturation on demand and the quotient partition): no;
@@ -5669,8 +5714,8 @@ request, with the outcome reported for a keep/revert decision.
 **Measured first, and a wrong guess of mine.** I estimated that on
 `Proc/Test4` a state's saturation examined only ~2.5x its output, so the
 planned linear rewrite would gain little. A probe loading `Test4`'s dumped
-FSM into the pure-OCaml model (kept out of the repo:
-`notes/tools/satprobe.ml`) showed otherwise: **2.9s per state**, with
+FSM into the pure-OCaml model (a throwaway, kept out of the repo)
+showed otherwise: **2.9s per state**, with
 **2.3M-4.7M candidate witnesses** for 5,280-7,680 weak actions. My estimate
 assumed silent closures stay within an SCC; they do not (`do_fix` and
 `do_seq_end` are silent steps that change a component's local state).
@@ -5718,7 +5763,7 @@ New feature 4 · Refactor 1 · Optimization 3.
 ## 2026-10-04 — Bounded universal premises decided, and proved by cases
 
 **New feature.** On branch `feature/bounded-universals`. Item 1 of the
-new-capability agenda (notes/14), agreed with Jonah before any code, with
+new-capability agenda, agreed with Jonah before any code, with
 items 3, 4 (as "design B": `Run Bisim` opening the proof itself, no
 cache) and 8 to follow; item 5 closed as covered by `weak_bisimilar`; 2, 6
 and 7 deferred.
@@ -5829,8 +5874,8 @@ Range` setting) · Refactor 1 (review) · Docs 1.
 **Tooling.** On branch `tooling/bench`. Item 3 of the agenda, agreed as
 tooling, not a plugin command.
 
-The measurements of the last sessions ran on throwaway scripts in the local
-`notes/tools/` (hardcoded scratch paths, and a patch to `api.ml` to force
+The measurements of the last sessions ran on throwaway local scripts
+(hardcoded scratch paths, and a patch to `api.ml` to force
 the solver strategy that had to be reverted by hand each time). `bench/` now
 holds tracked versions:
 - `proofs.sh` runs the `default` suite (the six `### Success` files, CCS's
@@ -5907,7 +5952,7 @@ Docs: README (`MeBi Sim` section), `MeBi Help Run`.
 ## 2026-10-04 — One game step, ~10x cheaper on large on-demand FSMs
 
 **Optimization.** On branch `perf/respond-scan`. Jonah held PR #35 until a
-slow case found while measuring it was explored (notes/15). The
+slow case found while measuring it was explored. The
 exploration first corrected my own misreading (logged on the PR #35
 branch): the slow case is not a bisimilarity check, it is one *game step*,
 `Product.answer` -> `respond`, at ~165ms per visible answer on `Test4`-sized
@@ -5949,8 +5994,8 @@ Refactor 1 (review) · Docs 1 · Tooling 1 · Optimization 1.
 ## 2026-10-04 — Result dumps off by default
 
 **Bug fix** (a default that should not have shipped). On branch
-`fix/dumps-off-by-default`. Found while accounting for the probe case of
-notes/15: `DumpResults` was on by default (since `977b923`, March, "wip:
+`fix/dumps-off-by-default`. Found while accounting for that slow probe case:
+`DumpResults` was on by default (since `977b923`, March, "wip:
 file dumps for inspecting"), so every `Run Bisim` / `Sim Begin` wrote JSON
 dumps of its FSMs into `./_dumps/`. Jonah: it was only ever meant to be on
 during active development, and disk writes are opt-in.
@@ -6173,7 +6218,7 @@ so none is fixed here.
   closures left inside `handle_app` depend on most of its scope, so by the
   rule they stay, with header comments.
 
-**Mistakes on the way.** My comment-replacing helper (local, in `notes/`)
+**Mistakes on the way.** My comment-replacing helper (a local throwaway)
 measured a definition's indentation wrongly, so in `rocq_monad_utils.ml`
 it first stacked new comments on old ones; caught by the diff having no
 deletions, then fixed and re-run. Of the files committed before, none was
@@ -6301,7 +6346,7 @@ signatures had no callers, among them `Action.Pair.try_update` and
 
 **odoc references** (`5b1b7e4`): pointers and mentions in the new
 comments became `{!...}` references, at Jonah's request (2026-10-05); a
-backlog item covers the earlier libraries.
+follow-up covers the earlier libraries.
 
 **Splits**, one commit each: `with_trees_of` (from `Action.Map.update`),
 `action_of_transition` (from `EdgeMap.of_transitions`),
@@ -6438,8 +6483,8 @@ dead-code removals) · Tooling 1.
 **Comments** (`17f6779`, `4c37d76`; comments only): contracts in the
 `.mli`, the state machine's description moved there from the `.ml`, the
 history kept where it is the "how" (A4's measurement in `try_unfold_any`,
-why `invert_premise` uses `inversion; clear; subst`). A small helper,
-`notes/tools/reflow.py`, rewraps comments past 80 columns (`ocamlformat`
+why `invert_premise` uses `inversion; clear; subst`). A small helper
+(`reflow.py`, local), rewraps comments past 80 columns (`ocamlformat`
 leaves long ones alone when they hold code spans).
 
 **Dead code** (`7c7a265`): `simplify_all`, `intro_as`,
@@ -6532,7 +6577,7 @@ on for the whole codebase, and `3bcef0d` puts the tags back, accepting the
 warning; the remaining prose sentences on `main` get a branch of their
 own. A reflow had also merged `init`'s closing paragraph into its last
 list item (fixed in `3bcef0d`). And
-`notes/tools/reflow.py` split `[code spans]` that `ocamlformat` then
+`reflow.py` split `[code spans]` that `ocamlformat` then
 joined back past the margin; the tool now keeps a span whole.
 
 **How to revert:** `git revert -m 1 <merge-commit>` (find it with `git log
@@ -6540,7 +6585,7 @@ joined back past the margin; the tool now keeps a span whole.
 
 **Session tally (2026-10-09):** Docs 6 · Refactor 10 (9 splits, 1
 dead-code removal) · Tooling 1 (`reflow.py` keeps code spans whole; local,
-in `notes/tools`).
+not in the repository).
 
 ---
 
@@ -6690,7 +6735,7 @@ clean. With this, every library has had the pass
 
 **Session tally (2026-10-09), cont.:** Docs 21 · Refactor 15 (11 splits, 4
 dead-code removals) · Bug fix 5 · Tooling 1 (`reflow.py` keeps code spans
-whole; local, in `notes/tools`).
+whole; local, not in the repository).
 
 ---
 
@@ -6779,9 +6824,9 @@ about 100 changed lines (references on changed lines: 78 before, 99 after), so i
 - **Ambiguous names** get a kind (`{!val-fsm}`, `{!field-sigma}`,
   `{!type-measure}`).
 - **New references.** About 35 spans, proposed by a throwaway script
-  (`notes/tools/to_ref.py`, local) that only suggests names declared in
+  (`to_ref.py`, local, not in the repository) that only suggests names declared in
   the repo. The doc build then decided: anything `odoc` could not resolve
-  was put back (`notes/tools/revert_refs.py`).
+  was put back (by `revert_refs.py`, likewise local).
 
 **Mistakes caught on review.** Resolving is not the same as being right.
 The first B1 run linked `[Set]` (meaning the stdlib's) and `[Result]`
@@ -6915,7 +6960,7 @@ says 110/110, measured on `main` (`bb3213e`). Earlier entries that report
 
 ## 2026-10-10 — B1's collapsing definitions as live tests
 
-On branch `test/collapsing-fix`. Backlog item B1 ("collapsing"
+On branch `test/collapsing-fix`. Item B1 ("collapsing"
 self-referential definitions) was two commented-out modules in `Test.v`,
 `Test3` and `Test4`, with a note that the plugin could not handle them.
 Jonah chose B1 as the first deferred new-capability item to size. A probe
@@ -6966,8 +7011,8 @@ code changed, so no proof-suite run.
 
 ## 2026-10-10 — Clean refusals: parameterised LTSs, `Sim Begin` goals
 
-On branch `fix/clean-refusals`. Two limits found while sizing B1 and note
-14 item 2, each refused up front now instead of failing deep inside, and
+On branch `fix/clean-refusals`. Two limits found while sizing B1 and goals
+with an unknown state, each refused up front now instead of failing deep inside, and
 pinned in `Test.v` so a future pass can lift them.
 
 **Bug fix: an LTS with parameters.** `Using`/`With` take a reference, so
@@ -7082,7 +7127,7 @@ application reads the goal the previous one left.
 ## 2026-10-10 — Benchmarking: per-proof timings, scaled levers, OCaml bench
 
 Third session of the day, on branch `bench/evaluation`. Jonah asked to
-continue down `notes/README.md`: the OCaml benchmarking and OCaml examples
+continue down the open list: the OCaml benchmarking and OCaml examples
 from `TODO.md`, and an `eval` suite for the levers, scaled up. None of it
 changes the plugin. The OCaml bench's design ("fixtures dumped from the
 examples, plus generated families") was put to Jonah and agreed before any
@@ -7183,8 +7228,7 @@ has grown too large to track remaining issues in. It is meant to only
 shrink.
 
 **Docs.** `OUTSTANDING.md` gathers the open items from `CLAUDE.md`,
-`TODO.md`, this file's "Outstanding" section and Jonah's local notes
-(notes 4, 12 and 14). Its sections:
+`TODO.md` and this file's "Outstanding" section. Its sections:
 1. a concise outline of @dcastrop's decisions (licence, `paper/`,
    upstreaming, the `Auto` defaults, the semantics questions, provenance);
 2. CADP "no starvation", moved from "the authors' call" to a fresh
@@ -7244,13 +7288,13 @@ On branch `docs/outstanding`, at Jonah's request.
 
 **Docs.**
 - `TODO.md` is deleted (see the entry above).
-- `CLAUDE.md` gains "Working conventions and gotchas", moved from the
-  "Practical gotchas" in Jonah's local notes. It covers the publishing
+- `CLAUDE.md` gains "Working conventions and gotchas". It covers the publishing
   conventions, Rocq's reuse of hypothesis names, steps focused on the first
   goal, encodings renumbered per command, `Reset Bounds` also resetting
   `Saturation OnDemand` and `Premise Depth`, `make`'s packed build, stale
   example copies, attributing time, and two shell traps. A fresh session
-  reads `CLAUDE.md` automatically, and these were only in `notes/`.
+  reads `CLAUDE.md` automatically, and these had been written down nowhere
+  it would see.
 
 **Session tally (2026-10-10, third session), final:** Tooling 3 · Docs 4.
 
@@ -7552,9 +7596,8 @@ feature 1 · Docs 7.
 ## 2026-10-11 — CADP's role and the reusable theory, into `OUTSTANDING.md`
 
 On branch `docs/outstanding-notes16`, a later session the same day. It
-records the end-of-session discussion with Jonah (his local notes,
-note 16), which had deliberately been kept out of `OUTSTANDING.md` until
-agreed.
+records the end-of-session discussion with Jonah, which had deliberately
+been kept out of `OUTSTANDING.md` until agreed.
 
 **Docs.**
 - `OUTSTANDING.md` §2: the "layered semantics" item now says plainly that
@@ -7658,8 +7701,8 @@ suites:
 Replaying a derivation tree in one step would still make each decision,
 so it could save at most part of the tactic share. The decision's cost on
 CADP, ~10× that on `Proc` per step, looks the larger lever. Added as an
-unprobed item; the `perf`-or-timers item is deleted. The patch is kept
-locally (`notes/tools/solver-profile.diff`).
+unprobed item; the `perf`-or-timers item is deleted. The patch is a
+throwaway and is not kept in the repository.
 
 **Session tally (2026-10-11, later session), cont.:** Bug fix 1 · Docs 4.
 
@@ -7690,7 +7733,7 @@ deleted; it now points at the timer patch and §5.1.
 ## 2026-10-11 — `theories/Transfer.v`: the normalised-semantics transfer, made generic
 
 On branch `refactor/theories-transfer`. Closes the `OUTSTANDING.md` §4
-item "The normalised-semantics transfer" (agreed with Jonah, notes/16).
+item "The normalised-semantics transfer" (agreed with Jonah).
 No plugin change.
 
 **Refactor** (plus new `theories/` content, not a plugin capability).
@@ -7744,7 +7787,7 @@ fix 1 · Docs 5.
 ## 2026-10-11 — `theories/Hiding.v`, and CADP's hidden queue label as a theorem
 
 On branch `feat/theories-hiding`. Closes the `OUTSTANDING.md` §4 item
-"Hiding (relabelling)" (agreed with Jonah, notes/16). No plugin change.
+"Hiding (relabelling)" (agreed with Jonah). No plugin change.
 
 **New feature, of `theories/` only** (no plugin capability).
 `theories/Hiding.v`: `relabelled h lts lts'` (the steps of `lts'` are
@@ -7770,7 +7813,7 @@ existing ones: `wbis_hidden`, plus a plugin proof that `spec_fifo_hidden
 under forced `False`, measured alone, since those files stop at
 `wbis_norm` under `False`). The bounds are the `Auto` counts minus one.
 
-**A correction to notes/16.** It said hiding would "also give `Size3`
+**A correction to what was agreed on 2026-10-11.** It said hiding would "also give `Size3`
 mutual exclusion for `bigstep`". It does not. At three processes the FIFO
 bisimilarity is only decided, not proved (its proof ran out of memory),
 so there is nothing to hide from. Hiding makes the *step* from FIFO to
@@ -7796,7 +7839,7 @@ Revert: `git revert -m 1 <merge commit>`. Additive in `theories/`.
 
 ## 2026-10-12 — CADP `Size2` glued ≈ layered: attempted, out of memory
 
-On branch `feat/cadp-size2-glued-layered`, from the handoff in notes/17.
+On branch `feat/cadp-size2-glued-layered`, from the previous session's handoff.
 Addresses the `OUTSTANDING.md` §2 item "The layered semantics". It does
 not close it. No plugin change.
 
@@ -7864,7 +7907,7 @@ Optimization 0 · **New feature 0**.
 
 ## 2026-10-13 — `examples/CADP` restructured around its claims; the Size1 transfer corollary
 
-On branch `refactor/cadp-layout`, from notes/18 (items 3 and 1). Jonah
+On branch `refactor/cadp-layout`, from the previous session's list of next steps (items 3 and 1). Jonah
 chose the narrative layout from `OUTSTANDING.md` §2.
 
 **Refactor.** CADP was spread over five files at the top of `examples/`
@@ -8071,7 +8114,7 @@ Docs 0 · Bug fix 0 · Optimization 0 · **New feature 0**.
 
 ## 2026-10-13 — `theories/Traces.v`: what a proved relation says about behaviour
 
-On branch `feat/theories-traces`, notes/18 item 2 (`OUTSTANDING.md` §4,
+On branch `feat/theories-traces`, item 2 of the previous session's next steps (`OUTSTANDING.md` §4,
 "Preservation of trace properties"). Jonah chose it from the options.
 
 **New feature (`theories/`, not the plugin).** `theories/Traces.v`
@@ -8141,7 +8184,7 @@ Optimization 0 · **New feature 1** (`theories/` only).
 
 ## 2026-10-13 — `doc/decide-vs-prove.md`: what a proof costs over its verdict
 
-On branch `docs/decide-vs-prove`, item A3 of the options listed for
+On branch `docs/decide-vs-prove`, one of the options offered to
 Jonah. Docs only, no code.
 
 **Docs (evaluation).** A table of deciding (`Run Bisim`) against proving
@@ -8173,9 +8216,9 @@ Optimization 0 · **New feature 1** (`theories/` only).
 
 ## 2026-10-13 — Extraction's time per state: not a bug, an unindexed search
 
-On the same branch, item A2 (`OUTSTANDING.md` §4, "Time per state in
-extraction"). Docs only: the measurement patch was not merged, and is
-kept locally as `notes/tools/extraction-profile.diff`.
+On the same branch, the `OUTSTANDING.md` §4 item "Time per state in
+extraction". Docs only: the measurement patch was not merged, and is
+not kept in the repository.
 
 **Docs (evaluation).** On the ABP with a data domain of n values, the
 time per state grows with n: 26 to 77ms for n = 1..5. The open question
@@ -9179,8 +9222,8 @@ at a time, to read the error it hides; each is the intended one:
 - `PremiseSources` C: "cannot prove the constructor premise (pick ?x ?y)".
 
 **Owed from 2026-10-19: the #87 timings.** Run one at a time, before and after
-the fix (`bench/proofs.sh`, `Auto`); the tables and logs are in
-`notes/timing-87-2026-10-19/` (local). Every Solve count is identical: 61 on
+the fix (`bench/proofs.sh`, `Auto`); the tables and logs were kept
+locally, not in the repository. Every Solve count is identical: 61 on
 the default suite, 14 on `eval`, 2 on `Test4`, and the 2 ABP proofs (6494,
 9914). Nothing in them is cut. Wall times are within noise, which was large:
 another session was loading the machine (the default suite's `CCS/PluginProofs`
@@ -10672,6 +10715,87 @@ arrow to itself is often very squished and elliptical, and should be rounder.
 **Session tally (2026-11-02, this entry):** Bug fix 1 · Refactor 0 · New feature 0 ·
 Docs 0 · Tooling 0 · Optimization 0.
 
+
+---
+
+## 2026-11-09 — Citations of unpublished planning notes removed
+
+On branch `docs/drop-notes-references`. **Docs** (comments, prose and this log;
+no code changed), at Jonah's request.
+
+Files in this repository cited a `notes/` directory of local planning notes. It
+was never tracked (it is excluded through `.git/info/exclude`), so no clone has
+it. They also used backlog-item labels (`A6`, `I2`, `B2`, ...) and phrases such
+as "note 13" or "Jonah's local notes" that pointed at the same place. A reader
+could not follow any of them. The notes are kept outside this repository now,
+and nothing in it cites them.
+
+**What was done**, in about 120 places across `lib/`, `src/`, `theories/`,
+`examples/`, `test/`, `scripts/`, the `_CoqProject` annotations, `CLAUDE.md` and
+`doc/`:
+- where the comment already said what the citation was for, the citation was
+  deleted (most of them);
+- where it stood in for a reason (`lib/model/dune` and `components.ml`, on why
+  the model components are nested in one functor), the reason is now in the text;
+- where it pointed at the history of a decision, it cites the dated entry in
+  this log instead;
+- patches described as "kept locally" (the solver and extraction profiling
+  patches) are now said to be throwaway and not in the repository;
+- the `CLAUDE.md` bullet describing `notes/` is gone, since it described a
+  directory a clone cannot have.
+
+**In this log** only the citations were reworded (about 110 places). Facts,
+figures, mistakes and corrections in the entries were not touched. Where an
+entry leaned on a note for something it did not say (the four-step plan in the
+A2 investigation, what options D and D′ were), the entry now says it.
+
+**Labels.** The bare item labels in this log (`A1`, `B2`, `Step 0`, ...) stay:
+they are the log's own vocabulary, and removing them would rewrite headings such
+as "B2 fixed: one mutual cofix over the precomputed product". My first pass left
+them undefined, which still left a reader guessing what `Step 0` was. At Jonah's
+request they are now explained: an "Item labels" section near the top says what
+each was and how it ended (including the separate sets of "option A/B/C" used
+for the inversion tie-break, the `weak_bisimilar` design and a premise fix); the
+headings that used `Step 0` without saying what it is now say so; and a few
+stray labels from one-off lists were reworded. The same labels in code comments
+defined nothing anywhere, so those were removed. The branch name
+`docs/outstanding-notes16` is a name, not a citation, and stays.
+
+**`CLAUDE.md`.** Its expected `tests.exe` count was out of date (277/279 against
+351 now). I measured it under shadow `PATH`s that hide each optional tool: 351
+with `lualatex`, `pdftocairo`, `gs` and `dot` present, 349 without
+`pdftocairo`/`gs`, 348 without `dot`, 341 without `lualatex`, 338 with none, and
+the text now says so. It also now says to keep `CLAUDE.md` out of anything sent
+to the upstream repository: it records this fork's practices, and it reached the
+upstream once, in the large PR merged in October, where it should not have.
+
+**A miss of mine, caught on the way.** My first search, `git grep notes/`,
+found 85 lines. That undercounted: roughly another 150 lines cited the notes
+without the path ("note 13", "the backlog", `D′`, "option B of note 7"). I
+widened the search once I saw the labels, and Jonah chose to include all
+three kinds in the sweep. A second miss: one citation ("note" at the end of a
+line, "14 item 2" at the start of the next) cannot be found by a search that
+reads one line at a time; a whole-text search found it, and it was the only one.
+
+**Verified.** Comments only, checked by stripping comments from all 42 changed
+source and build files on both sides and comparing what is left: identical (the
+one Python file differs inside a module docstring, a wording change). `dune
+build` and `dune build @fmt` clean; `dune exec test/tests.exe` 351/351; the
+`make` gate (`make -j src/mebi_plugin.cmxs test/rocq/Test.vo`, then `make
+dune`) exits 0 with no warning 50; `scripts/check_module_lists.py` agrees. The
+proof suites were not re-run: no text outside comments changed, so no solver
+count can move. The "Item labels" table was written from the original item
+list and checked against the entries; two figures in it were wrong on the first
+draft ("took 14 minutes" for `B3`, which the entry says was still running at 14
+minutes; `I2` in "stages 1 to 4", of which the log has 1, 2 and 4) and were
+corrected.
+
+**How to revert:** `git revert -m 1 <merge-commit>` (find it with `git log
+--merges --oneline --grep docs/drop-notes-references main`), or one commit.
+
+**Session tally (2026-11-09):** Docs 1 · Refactor 0 · Bug fix 0 · Optimization 0
+· Tooling 0 · New feature 0.
+
 ---
 
 ## 2026-11-03 — `Simple.v`: a replica, weakly but not strongly bisimilar to the classic machine
@@ -10742,7 +10866,7 @@ New feature 0 · Tooling 0 · Optimization 0.
 
 ## Outstanding
 
-**Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history.
+**Superseded 2026-10-10 by [`OUTSTANDING.md`](OUTSTANDING.md)**, which tracks every open item. The list below is kept as history; its labels (`C4`, `Step 0`, ...) are explained under "Item labels" at the top.
 
 - ~~Sharing the encoding table between command-time and proof-time (part of `5a6cf98`) should be backed out.~~ Done in `9e9b6b0`, 2026-08-18.
 - The term-equality problem in `ReModel` is unaddressed: goal terms are resolved to model elements by syntactic hashtable lookup, which can miss on evars, universe instances or local context. **Measured 2026-09-28 (see above) and found latent** — zero misses across all five cheap `PluginProofs.v` suites — so the unification rewrite is deliberately not done. Still unmeasured on the *failing* examples (`Proc/Test3`, `CADP/Size2/Glued`), which is where a miss would actually explain something.
@@ -10754,13 +10878,12 @@ New feature 0 · Tooling 0 · Optimization 0.
 - ~~`@fmt` drift outside `lib/model`~~ — fully resolved, 2026-09-27 (see below, two entries): non-`proof_solver*` half (`rocq_monad.mli`, `thing.ml`, `tests.ml`) and `proof_solver*` half (`graph_extract_lts.ml`, `proof_solver_wrapper.ml`, `proof_solver_step.ml`, baseline-reverified). `rocq_monad_utils.ml`/`theories.ml`/`proof_solver.ml`/`graph_type.ml`, all listed as drifted in the original review, turned out already clean on re-check.
 - ~~No CI job — the Rocq 9.2 port broke the build for months without anyone noticing.~~ Added, 2026-09-27 (see below): `.github/workflows/ci.yml`.
 - ~~`.gitignore` lists `src/commandOLDunify.ml`, which no longer exists.~~ Removed, 2026-09-27 (see below). The rest of `TODO.md`'s C6 "stale detritus" item turned out to already be resolved or not actually a problem — see below for what was checked.
-- ~~`Saturation.edge_action_destinations` silently dropped all but the last-visited destination when a single action had more than one — a real correctness bug (found 2026-09-27 during the A2 investigation).~~ Fixed, 2026-09-27 (see below), with a regression test. `notes/2-unify-instead-of-lookup.md`'s A2 (multiple-actionpairs positive test case) remained separately open; ~~it~~ done 2026-10-01 (`theories/Test.v`, `MultipleDerivations`).
+- ~~`Saturation.edge_action_destinations` silently dropped all but the last-visited destination when a single action had more than one — a real correctness bug (found 2026-09-27 during the A2 investigation).~~ Fixed, 2026-09-27 (see below), with a regression test. A2 (the multiple-actionpairs positive test case) remained separately open; ~~it~~ done 2026-10-01 (`theories/Test.v`, `MultipleDerivations`).
 - **Open as of 2026-10-02** (the chronological entries above have the detail): an LTS premise whose source nothing determines is explored from an unknown term and finds only some of its steps (warned; known-wrong test `OutputPremises.open_c`); Step 0, the inversion tie-break (closed in the third 2026-10-02 session: options A and D′ built, residual sterile steps measured at zero); saturation is still cubic in witnesses on `Test4`'s shape (going linear changes which equal-length witnesses survive); `Proc/Test4` remains a documented limit (saturation refused at 74.6M weak actions; a proof would need ≥ ~700k solver iterations); C4/C5/C8 and the CADP no-starvation property are for the upstream authors. Found in the second 2026-10-02 session and fixed on branch `fix/weak-bisim-silent-closure`: the solver could not answer a silent step by moving silently, and the bisimilarity verdict was neither rooted nor split by `=ε⇒`. Open from it: `weak_bisim` in `theories/` is mutual similarity, not bisimilarity, and `MeBi Sim Begin` refuses similar-but-not-bisimilar `weak_sim` goals.
 
 - **Open as of the end of 2026-10-03** (superseding the bullet above; the chronological entries have the detail): the 2026-10-02 items are all closed -- open-source premises (PR #18), `Proc/Test4` (decided on demand, PR #22; `weak_sim` and `weak_bisimilar` proved via explicit structural congruence, PRs #26, #29), and saturation's cost (PR #28). The plugin's known limits are pinned in `Test.v` (`KNOWN WRONG` / `KNOWN LIMIT`), e.g. undeterminable transitions (warned, refused). What remains is new capability, to be agreed before any code (bounded universals in premises, goals with an unknown state, wider benchmarking, auto-starting `Sim`, a similarity command, collapsing self-referential definitions, structural congruence as a general recipe), and @dcastrop's decisions (C4/C5/C8, `Auto` defaults, the CADP no-starvation property).
 
-Working notes live in `notes/` (local only, excluded via `.git/info/exclude`, so
-not present in a fresh clone). Note 1 is done; its analysis was incomplete on two
+The shared-encoding-table revert is done; its original analysis was incomplete on two
 points, both recorded in the 2026-08-18 entry above.
 
 ## Verification baseline

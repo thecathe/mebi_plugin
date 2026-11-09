@@ -5,7 +5,10 @@
 ;
 ; All 17 mutually-referential model components (State, Label, Action, Edge,
 ; ...) live nested inside one functor in components.ml, rather than each in
-; its own file/library -- see notes/3-collapse-model-component-cluster.md.
+; its own file/library. Nested, they see each other directly, so the
+; type-sharing constraints that each being its own functor needed are not
+; written, and the algorithm functors take the one module instead of a dozen
+; arguments.
 
 (library
  (name components)

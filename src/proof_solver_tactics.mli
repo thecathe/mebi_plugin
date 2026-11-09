@@ -15,7 +15,7 @@ module type S = sig
   val inversion : Rocq_utils.hyp -> tactic mm
 
   (** [refute_premise h] closes the goal from [h], a premise hypothesis
-      known to be false ({!Premise_search.refute_hyp_tac}; backlog I2).
+      known to be false ({!Premise_search.refute_hyp_tac}).
       Raises nothing; the tactic fails (as a tactic) when [h] cannot be refuted.
   *)
   val refute_premise : Rocq_utils.hyp -> tactic mm
@@ -55,7 +55,7 @@ module type S = sig
 
   (** [invert_premise h] is [simpl in h; inversion h; clear h; subst],
       for a premise hypothesis that mentions variables it determines (an
-      output, such as a target [m] in [succ_rel n m]; backlog I2, stage 2).
+      output, such as a target [m] in [succ_rel n m]).
       Raises nothing; the tactic fails (as a tactic) when the inversion does. *)
   val invert_premise : Rocq_utils.hyp -> tactic mm
 
